@@ -33,7 +33,7 @@ export const Logo = ({ size = "md", showText = true }: LogoProps) => {
       {showText && (
         <div>
           <h1 className={`${textSizeClasses[size]} font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent`}>
-            Royal Palace
+            Mandap360
           </h1>
           {size === "lg" && (
             <p className="text-sm text-gray-600">Wedding Hall Management</p>
