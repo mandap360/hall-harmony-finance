@@ -12,9 +12,7 @@ export const ReportsPage = () => {
   const financialData = useMemo(() => {
     // Calculate total income from bookings
     let totalRent = 0;
-    let totalEB = 0;
-    let totalGas = 0;
-    let totalOtherIncome = 0;
+    let totalAdditional = 0;
 
     bookings.forEach(booking => {
       totalRent += booking.totalRent;
@@ -22,18 +20,12 @@ export const ReportsPage = () => {
       // Calculate additional income from payments
       booking.payments?.forEach(payment => {
         if (payment.type === 'additional') {
-          if (payment.category === 'EB') {
-            totalEB += payment.amount;
-          } else if (payment.category === 'Gas') {
-            totalGas += payment.amount;
-          } else {
-            totalOtherIncome += payment.amount;
-          }
+          totalAdditional += payment.amount;
         }
       });
     });
 
-    const totalIncome = totalRent + totalEB + totalGas + totalOtherIncome;
+    const totalIncome = totalRent + totalAdditional;
 
     // Calculate expenses by category
     const expensesByCategory: Record<string, number> = {};
@@ -52,9 +44,7 @@ export const ReportsPage = () => {
       profit,
       incomeBreakdown: {
         rent: totalRent,
-        eb: totalEB,
-        gas: totalGas,
-        other: totalOtherIncome,
+        additional: totalAdditional,
       },
       expensesByCategory,
     };
@@ -118,16 +108,8 @@ export const ReportsPage = () => {
             <span className="font-semibold">₹{financialData.incomeBreakdown.rent.toLocaleString()}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-gray-600">EB:</span>
-            <span className="font-semibold">₹{financialData.incomeBreakdown.eb.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Gas:</span>
-            <span className="font-semibold">₹{financialData.incomeBreakdown.gas.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Other:</span>
-            <span className="font-semibold">₹{financialData.incomeBreakdown.other.toLocaleString()}</span>
+            <span className="text-gray-600">Additional Income:</span>
+            <span className="font-semibold">₹{financialData.incomeBreakdown.additional.toLocaleString()}</span>
           </div>
         </CardContent>
       </Card>
