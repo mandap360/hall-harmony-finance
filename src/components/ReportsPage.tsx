@@ -10,12 +10,13 @@ export const ReportsPage = () => {
   const { expenses } = useExpenses();
 
   const financialData = useMemo(() => {
-    // Calculate total income from bookings
-    let totalRent = 0;
+    // Calculate total income from actual payments received (not total rent)
+    let totalReceived = 0;
     let totalAdditional = 0;
 
     bookings.forEach(booking => {
-      totalRent += booking.totalRent;
+      // Only count actual money received, not the full rent amount
+      totalReceived += booking.totalPaid;
       
       // Calculate additional income from payments
       booking.payments?.forEach(payment => {
@@ -25,15 +26,15 @@ export const ReportsPage = () => {
       });
     });
 
-    const totalIncome = totalRent + totalAdditional;
+    const totalIncome = totalReceived + totalAdditional;
 
-    // Calculate expenses by category
+    // Calculate expenses by category using total_amount (including GST)
     const expensesByCategory: Record<string, number> = {};
     let totalExpenses = 0;
 
     expenses.forEach(expense => {
-      expensesByCategory[expense.category] = (expensesByCategory[expense.category] || 0) + expense.amount;
-      totalExpenses += expense.amount;
+      expensesByCategory[expense.category] = (expensesByCategory[expense.category] || 0) + expense.totalAmount;
+      totalExpenses += expense.totalAmount;
     });
 
     const profit = totalIncome - totalExpenses;
@@ -43,7 +44,7 @@ export const ReportsPage = () => {
       totalExpenses,
       profit,
       incomeBreakdown: {
-        rent: totalRent,
+        received: totalReceived,
         additional: totalAdditional,
       },
       expensesByCategory,
@@ -55,12 +56,12 @@ export const ReportsPage = () => {
       {/* Header */}
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-        <p className="text-gray-600">Financial insights and analytics</p>
+        <p className="text-gray-600">Financial insights for current FY</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+        <Card className="border-rose-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Income</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-600" />
@@ -72,7 +73,7 @@ export const ReportsPage = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-rose-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
             <TrendingDown className="h-4 w-4 text-red-600" />
@@ -84,7 +85,7 @@ export const ReportsPage = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-rose-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Profit</CardTitle>
             <DollarSign className={`h-4 w-4 ${financialData.profit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
@@ -98,14 +99,14 @@ export const ReportsPage = () => {
       </div>
 
       {/* Income Breakdown */}
-      <Card>
+      <Card className="border-rose-200">
         <CardHeader>
           <CardTitle>Income Summary</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-gray-600">Rent:</span>
-            <span className="font-semibold">₹{financialData.incomeBreakdown.rent.toLocaleString()}</span>
+            <span className="text-gray-600">Amount Received:</span>
+            <span className="font-semibold">₹{financialData.incomeBreakdown.received.toLocaleString()}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Additional Income:</span>
@@ -115,7 +116,7 @@ export const ReportsPage = () => {
       </Card>
 
       {/* Expense Breakdown */}
-      <Card>
+      <Card className="border-rose-200">
         <CardHeader>
           <CardTitle>Expense Summary</CardTitle>
         </CardHeader>

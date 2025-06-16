@@ -1,79 +1,35 @@
 
 import { useState, useMemo } from "react";
-import { Search, Plus, Calendar } from "lucide-react";
+import { Search, Plus, Calendar, IndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { EditBookingDialog } from "@/components/EditBookingDialog";
 import { BookingCard } from "@/components/BookingCard";
+import { PaymentDialog } from "@/components/PaymentDialog";
 import { useBookings } from "@/hooks/useBookings";
+import { useAuth } from "@/hooks/useAuth";
 
 export const BookingsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
-  const [showAllBookings, setShowAllBookings] = useState(false);
-  const { bookings, loading, addBooking, updateBooking } = useBookings();
-
-  // Get current Indian Financial Year (April to March)
-  const getCurrentFY = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    
-    if (month >= 3) { // April onwards (month is 0-indexed, so March = 2, April = 3)
-      return { startYear: year, endYear: year + 1 };
-    } else { // January to March
-      return { startYear: year - 1, endYear: year };
-    }
-  };
-
-  const currentFY = getCurrentFY();
+  const [paymentBooking, setPaymentBooking] = useState(null);
+  const { bookings, loading, addBooking, updateBooking, addPayment } = useBookings();
+  const { profile } = useAuth();
 
   const filteredBookings = useMemo(() => {
-    console.log("All bookings:", bookings);
-    console.log("Current FY:", currentFY);
-    console.log("Show all bookings:", showAllBookings);
-
-    let filtered = bookings;
-
-    // Apply FY filter only if not showing all bookings
-    if (!showAllBookings) {
-      filtered = bookings.filter((booking) => {
-        const bookingDate = new Date(booking.startDate);
-        const bookingYear = bookingDate.getFullYear();
-        const bookingMonth = bookingDate.getMonth();
-        
-        console.log(`Booking ${booking.eventName}: date=${bookingDate.toISOString()}, year=${bookingYear}, month=${bookingMonth}`);
-        
-        // Check if booking is in current FY
-        let isInCurrentFY = false;
-        if (bookingMonth >= 3) { // April onwards (month is 0-indexed)
-          isInCurrentFY = bookingYear === currentFY.startYear;
-        } else { // January to March
-          isInCurrentFY = bookingYear === currentFY.endYear;
-        }
-        
-        console.log(`Booking ${booking.eventName}: isInCurrentFY=${isInCurrentFY}`);
-        return isInCurrentFY;
-      });
-    }
-
-    console.log("Filtered by FY:", filtered);
-
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((booking) =>
+      return bookings.filter((booking) =>
         booking.eventName.toLowerCase().includes(query) ||
         booking.clientName.toLowerCase().includes(query) ||
         booking.phoneNumber.includes(query) ||
         new Date(booking.startDate).toLocaleDateString().includes(query)
       );
     }
-
-    console.log("Final filtered bookings:", filtered);
-    return filtered.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-  }, [bookings, searchQuery, currentFY, showAllBookings]);
+    return bookings.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  }, [bookings, searchQuery]);
 
   const handleAddBooking = (bookingData) => {
     addBooking(bookingData);
@@ -81,7 +37,9 @@ export const BookingsPage = () => {
   };
 
   const handleEditBooking = (booking) => {
-    setEditingBooking(booking);
+    if (profile?.role === 'admin') {
+      setEditingBooking(booking);
+    }
   };
 
   const handleUpdateBooking = (updatedBooking) => {
@@ -89,10 +47,22 @@ export const BookingsPage = () => {
     setEditingBooking(null);
   };
 
+  const handleAddPayment = (booking) => {
+    setPaymentBooking(booking);
+  };
+
+  const handlePaymentSubmit = (amount: number) => {
+    if (paymentBooking) {
+      addPayment(paymentBooking.id, amount);
+      setPaymentBooking(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-4 space-y-6">
         <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500 mx-auto mb-4"></div>
           <p className="text-gray-500">Loading bookings...</p>
         </div>
       </div>
@@ -103,11 +73,8 @@ export const BookingsPage = () => {
     <div className="p-4 space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900">Welcome</h1>
-        <p className="text-lg text-blue-600 font-semibold">Royal Palace Wedding Hall</p>
-        <p className="text-sm text-gray-500">
-          FY {currentFY.startYear}-{currentFY.endYear.toString().slice(-2)}
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
+        <p className="text-gray-600">Manage your hall bookings</p>
       </div>
 
       {/* Search Bar */}
@@ -117,49 +84,22 @@ export const BookingsPage = () => {
           placeholder="Search bookings..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
+          className="pl-10 border-rose-200 focus:border-rose-500 focus:ring-rose-500"
         />
-      </div>
-
-      {/* Filter Toggle */}
-      <div className="flex justify-center">
-        <Button
-          variant={showAllBookings ? "outline" : "default"}
-          onClick={() => setShowAllBookings(!showAllBookings)}
-          className="text-sm"
-        >
-          {showAllBookings ? `Show Current FY Only (${filteredBookings.length})` : `Show All Bookings (${bookings.length})`}
-        </Button>
       </div>
 
       {/* Bookings List */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-800">
-            {showAllBookings ? `All Bookings (${filteredBookings.length})` : `Current FY Bookings (${filteredBookings.length})`}
+            Current FY Bookings ({filteredBookings.length})
           </h2>
         </div>
         
         {filteredBookings.length === 0 ? (
           <div className="text-center py-12">
             <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-            <p className="text-gray-500">
-              {bookings.length === 0 
-                ? "No bookings found in database" 
-                : showAllBookings 
-                  ? "No bookings match your search" 
-                  : "No bookings found for current FY"
-              }
-            </p>
-            {bookings.length > 0 && !showAllBookings && (
-              <Button
-                variant="outline"
-                onClick={() => setShowAllBookings(true)}
-                className="mt-2"
-              >
-                Show All Bookings
-              </Button>
-            )}
+            <p className="text-gray-500">No bookings found for current financial year</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -168,6 +108,8 @@ export const BookingsPage = () => {
                 key={booking.id}
                 booking={booking}
                 onEdit={handleEditBooking}
+                onAddPayment={handleAddPayment}
+                userRole={profile?.role || 'manager'}
               />
             ))}
           </div>
@@ -175,13 +117,15 @@ export const BookingsPage = () => {
       </div>
 
       {/* Add Button */}
-      <Button
-        onClick={() => setShowAddDialog(true)}
-        className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
-        size="icon"
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
+      {profile?.role === 'admin' && (
+        <Button
+          onClick={() => setShowAddDialog(true)}
+          className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700"
+          size="icon"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
 
       {/* Dialogs */}
       <AddBookingDialog
@@ -196,6 +140,15 @@ export const BookingsPage = () => {
           onOpenChange={() => setEditingBooking(null)}
           booking={editingBooking}
           onSubmit={handleUpdateBooking}
+        />
+      )}
+
+      {paymentBooking && (
+        <PaymentDialog
+          open={!!paymentBooking}
+          onOpenChange={() => setPaymentBooking(null)}
+          booking={paymentBooking}
+          onSubmit={handlePaymentSubmit}
         />
       )}
     </div>
