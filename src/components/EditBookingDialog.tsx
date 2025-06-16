@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { IndianRupee, Plus } from "lucide-react";
+import { AdditionalIncomeTab } from "@/components/AdditionalIncomeTab";
 
 interface EditBookingDialogProps {
   open: boolean;
@@ -33,7 +33,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const [newPayment, setNewPayment] = useState({
     amount: "",
     date: "",
-    type: "balance", // balance or additional
+    type: "balance",
     description: ""
   });
 
@@ -109,30 +109,40 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Booking</DialogTitle>
+          <DialogTitle className="text-amber-800">Edit Booking</DialogTitle>
         </DialogHeader>
 
         {/* Tabs */}
-        <div className="flex space-x-1 border-b">
+        <div className="flex space-x-1 border-b border-amber-200">
           <button
             onClick={() => setActiveTab("details")}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               activeTab === "details"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-500 hover:text-gray-700"
+                ? "text-amber-700 border-b-2 border-amber-600 bg-amber-50"
+                : "text-gray-500 hover:text-amber-600"
             }`}
           >
             Details
           </button>
           <button
             onClick={() => setActiveTab("payments")}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               activeTab === "payments"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-500 hover:text-gray-700"
+                ? "text-amber-700 border-b-2 border-amber-600 bg-amber-50"
+                : "text-gray-500 hover:text-amber-600"
             }`}
           >
             Payments
+          </button>
+          <button
+            onClick={() => setActiveTab("additional-income")}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "additional-income"
+                ? "text-amber-700 border-b-2 border-amber-600 bg-amber-50"
+                : "text-gray-500 hover:text-amber-600"
+            }`}
+          >
+            Additional Income
           </button>
         </div>
 
@@ -145,6 +155,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                 value={formData.eventName}
                 onChange={(e) => setFormData(prev => ({ ...prev, eventName: e.target.value }))}
                 required
+                className="border-amber-200 focus:border-amber-500"
               />
             </div>
 
@@ -155,6 +166,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                 value={formData.clientName}
                 onChange={(e) => setFormData(prev => ({ ...prev, clientName: e.target.value }))}
                 required
+                className="border-amber-200 focus:border-amber-500"
               />
             </div>
 
@@ -165,6 +177,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                 value={formData.phoneNumber}
                 onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
                 required
+                className="border-amber-200 focus:border-amber-500"
               />
             </div>
 
@@ -177,6 +190,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                   value={formData.startDate}
                   onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
                   required
+                  className="border-amber-200 focus:border-amber-500"
                 />
               </div>
               <div className="space-y-2">
@@ -187,6 +201,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                   value={formData.startTime}
                   onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
                   required
+                  className="border-amber-200 focus:border-amber-500"
                 />
               </div>
             </div>
@@ -200,6 +215,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                   value={formData.totalRent}
                   onChange={(e) => setFormData(prev => ({ ...prev, totalRent: e.target.value }))}
                   required
+                  className="border-amber-200 focus:border-amber-500"
                 />
               </div>
               <div className="space-y-2">
@@ -210,6 +226,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                   value={formData.advance}
                   onChange={(e) => setFormData(prev => ({ ...prev, advance: e.target.value }))}
                   required
+                  className="border-amber-200 focus:border-amber-500"
                 />
               </div>
             </div>
@@ -221,14 +238,17 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                 rows={3}
+                className="border-amber-200 focus:border-amber-500"
               />
             </div>
 
             <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-amber-200 text-amber-700 hover:bg-amber-50">
                 Cancel
               </Button>
-              <Button type="submit">Update Booking</Button>
+              <Button type="submit" className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
+                Update Booking
+              </Button>
             </div>
           </form>
         )}
@@ -236,7 +256,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
         {activeTab === "payments" && (
           <div className="space-y-4">
             {/* Payment Summary */}
-            <Card className="p-4">
+            <Card className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <div className="flex items-center justify-center text-green-600 mb-1">
@@ -263,8 +283,8 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
             </Card>
 
             {/* Add Payment */}
-            <Card className="p-4">
-              <h3 className="font-semibold mb-3">Add Payment</h3>
+            <Card className="p-4 border-amber-200">
+              <h3 className="font-semibold mb-3 text-amber-800">Add Payment</h3>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -274,6 +294,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                       type="number"
                       value={newPayment.amount}
                       onChange={(e) => setNewPayment(prev => ({ ...prev, amount: e.target.value }))}
+                      className="border-amber-200 focus:border-amber-500"
                     />
                   </div>
                   <div>
@@ -283,6 +304,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                       type="date"
                       value={newPayment.date}
                       onChange={(e) => setNewPayment(prev => ({ ...prev, date: e.target.value }))}
+                      className="border-amber-200 focus:border-amber-500"
                     />
                   </div>
                 </div>
@@ -293,7 +315,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                     id="paymentType"
                     value={newPayment.type}
                     onChange={(e) => setNewPayment(prev => ({ ...prev, type: e.target.value }))}
-                    className="w-full p-2 border border-gray-300 rounded-md"
+                    className="w-full p-2 border border-amber-200 rounded-md focus:border-amber-500"
                   >
                     <option value="balance">Balance Rent</option>
                     <option value="additional">Additional (Gas/EB)</option>
@@ -307,13 +329,14 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                     value={newPayment.description}
                     onChange={(e) => setNewPayment(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Optional description"
+                    className="border-amber-200 focus:border-amber-500"
                   />
                 </div>
                 
                 <Button
                   onClick={handleAddPayment}
                   disabled={!newPayment.amount || !newPayment.date}
-                  className="w-full"
+                  className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Payment
@@ -323,11 +346,11 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
 
             {/* Payment History */}
             {booking.payments && booking.payments.length > 0 && (
-              <Card className="p-4">
-                <h3 className="font-semibold mb-3">Payment History</h3>
+              <Card className="p-4 border-amber-200">
+                <h3 className="font-semibold mb-3 text-amber-800">Payment History</h3>
                 <div className="space-y-2">
                   {booking.payments.map((payment) => (
-                    <div key={payment.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <div key={payment.id} className="flex justify-between items-center p-2 bg-amber-50 rounded border border-amber-100">
                       <div>
                         <div className="flex items-center text-green-600">
                           <IndianRupee className="h-4 w-4" />
@@ -346,6 +369,10 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
               </Card>
             )}
           </div>
+        )}
+
+        {activeTab === "additional-income" && booking && (
+          <AdditionalIncomeTab bookingId={booking.id} />
         )}
       </DialogContent>
     </Dialog>

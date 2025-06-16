@@ -112,6 +112,71 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          bill_number: string
+          category_id: string
+          created_at: string
+          expense_date: string
+          gst_percentage: number | null
+          id: string
+          includes_gst: boolean
+          vendor_name: string
+        }
+        Insert: {
+          amount: number
+          bill_number: string
+          category_id: string
+          created_at?: string
+          expense_date?: string
+          gst_percentage?: number | null
+          id?: string
+          includes_gst?: boolean
+          vendor_name: string
+        }
+        Update: {
+          amount?: number
+          bill_number?: string
+          category_id?: string
+          created_at?: string
+          expense_date?: string
+          gst_percentage?: number | null
+          id?: string
+          includes_gst?: boolean
+          vendor_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       income_categories: {
         Row: {
           created_at: string | null

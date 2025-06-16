@@ -1,19 +1,20 @@
 
-import { useState } from "react";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { BookingsPage } from "@/components/BookingsPage";
 import { ExpensePage } from "@/components/ExpensePage";
 import { ReportsPage } from "@/components/ReportsPage";
 import { MorePage } from "@/components/MorePage";
+import { Logo } from "@/components/Logo";
+import { useState } from "react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("bookings");
 
-  const renderActivePage = () => {
+  const renderContent = () => {
     switch (activeTab) {
       case "bookings":
         return <BookingsPage />;
-      case "expense":
+      case "expenses":
         return <ExpensePage />;
       case "reports":
         return <ReportsPage />;
@@ -25,10 +26,20 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="flex-1 pb-20">
-        {renderActivePage()}
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100">
+      {/* Header */}
+      <div className="bg-white/90 backdrop-blur-sm border-b border-amber-200 sticky top-0 z-10">
+        <div className="p-4">
+          <Logo size="lg" />
+        </div>
       </div>
+
+      {/* Content */}
+      <div className="pb-20">
+        {renderContent()}
+      </div>
+
+      {/* Bottom Navigation */}
       <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
