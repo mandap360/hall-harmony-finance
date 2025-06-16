@@ -1,86 +1,202 @@
 
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-const STORAGE_KEY = "wedding_hall_bookings";
-
-// Sample data for demonstration
-const sampleBookings = [
-  {
-    id: "1",
-    eventName: "Rajesh & Priya Wedding",
-    clientName: "Rajesh Kumar",
-    phoneNumber: "+91 9876543210",
-    startDate: "2024-08-15T18:00",
-    endDate: "2024-08-16T02:00",
-    totalRent: 50000,
-    advance: 20000,
-    notes: "Traditional South Indian wedding",
-    paidAmount: 15000,
-    payments: [
-      {
-        id: "p1",
-        amount: 15000,
-        date: "2024-07-15",
-        type: "balance",
-        description: "Second payment"
-      }
-    ]
-  },
-  {
-    id: "2",
-    eventName: "Corporate Annual Day",
-    clientName: "Tech Solutions Pvt Ltd",
-    phoneNumber: "+91 9876543211",
-    startDate: "2024-09-20T16:00",
-    endDate: "2024-09-20T22:00",
-    totalRent: 30000,
-    advance: 10000,
-    notes: "Corporate event with 200 attendees",
-    paidAmount: 0,
-    payments: []
-  }
-];
+export interface Booking {
+  id: string;
+  eventName: string;
+  clientName: string;
+  phoneNumber: string;
+  startDate: string;
+  endDate: string;
+  totalRent: number;
+  advance: number;
+  notes?: string;
+  paidAmount: number;
+  payments: Array<{
+    id: string;
+    amount: number;
+    date: string;
+    type: string;
+    description: string;
+  }>;
+}
 
 export const useBookings = () => {
-  const [bookings, setBookings] = useState([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      console.log("Fetching bookings from Supabase...");
+      
+      // Fetch bookings from Supabase
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('*')
+        .order('start_datetime', { ascending: true });
+
+      if (bookingsError) {
+        console.error('Error fetching bookings:', bookingsError);
+        throw bookingsError;
+      }
+
+      console.log("Raw bookings data:", bookingsData);
+
+      // Fetch balance payments for each booking
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('balance_payments')
+        .select('*');
+
+      if (paymentsError) {
+        console.error('Error fetching payments:', paymentsError);
+        // Don't throw here, just log the error
+      }
+
+      console.log("Payments data:", paymentsData);
+
+      // Transform the data to match the expected format
+      const transformedBookings: Booking[] = (bookingsData || []).map(booking => {
+        const bookingPayments = (paymentsData || []).filter(payment => payment.booking_id === booking.id);
+        const paidAmount = bookingPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+
+        return {
+          id: booking.id,
+          eventName: booking.event_name,
+          clientName: booking.client_name,
+          phoneNumber: booking.phone_number || '',
+          startDate: booking.start_datetime,
+          endDate: booking.end_datetime,
+          totalRent: Number(booking.total_rent),
+          advance: Number(booking.advance),
+          notes: '',
+          paidAmount: paidAmount,
+          payments: bookingPayments.map(payment => ({
+            id: payment.id,
+            amount: Number(payment.amount),
+            date: payment.payment_date,
+            type: 'balance',
+            description: 'Balance payment'
+          }))
+        };
+      });
+
+      console.log("Transformed bookings:", transformedBookings);
+      setBookings(transformedBookings);
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch bookings",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const storedBookings = localStorage.getItem(STORAGE_KEY);
-    if (storedBookings) {
-      setBookings(JSON.parse(storedBookings));
-    } else {
-      // Initialize with sample data
-      setBookings(sampleBookings);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleBookings));
-    }
+    fetchBookings();
   }, []);
 
-  const saveBookings = (newBookings) => {
-    setBookings(newBookings);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newBookings));
+  const addBooking = async (bookingData: Omit<Booking, 'id' | 'payments' | 'paidAmount'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .insert({
+          event_name: bookingData.eventName,
+          client_name: bookingData.clientName,
+          phone_number: bookingData.phoneNumber,
+          start_datetime: bookingData.startDate,
+          end_datetime: bookingData.endDate,
+          total_rent: bookingData.totalRent,
+          advance: bookingData.advance
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await fetchBookings(); // Refresh the list
+      toast({
+        title: "Success",
+        description: "Booking added successfully",
+      });
+    } catch (error) {
+      console.error('Error adding booking:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add booking",
+        variant: "destructive",
+      });
+    }
   };
 
-  const addBooking = (booking) => {
-    const newBookings = [...bookings, booking];
-    saveBookings(newBookings);
+  const updateBooking = async (updatedBooking: Booking) => {
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          event_name: updatedBooking.eventName,
+          client_name: updatedBooking.clientName,
+          phone_number: updatedBooking.phoneNumber,
+          start_datetime: updatedBooking.startDate,
+          end_datetime: updatedBooking.endDate,
+          total_rent: updatedBooking.totalRent,
+          advance: updatedBooking.advance
+        })
+        .eq('id', updatedBooking.id);
+
+      if (error) throw error;
+
+      await fetchBookings(); // Refresh the list
+      toast({
+        title: "Success",
+        description: "Booking updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating booking:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update booking",
+        variant: "destructive",
+      });
+    }
   };
 
-  const updateBooking = (updatedBooking) => {
-    const newBookings = bookings.map(booking =>
-      booking.id === updatedBooking.id ? updatedBooking : booking
-    );
-    saveBookings(newBookings);
-  };
+  const deleteBooking = async (bookingId: string) => {
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .delete()
+        .eq('id', bookingId);
 
-  const deleteBooking = (bookingId) => {
-    const newBookings = bookings.filter(booking => booking.id !== bookingId);
-    saveBookings(newBookings);
+      if (error) throw error;
+
+      await fetchBookings(); // Refresh the list
+      toast({
+        title: "Success",
+        description: "Booking deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting booking:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete booking",
+        variant: "destructive",
+      });
+    }
   };
 
   return {
     bookings,
+    loading,
     addBooking,
     updateBooking,
-    deleteBooking
+    deleteBooking,
+    refetch: fetchBookings
   };
 };
