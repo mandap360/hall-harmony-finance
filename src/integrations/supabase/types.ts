@@ -16,7 +16,6 @@ export type Database = {
           category: string
           created_at: string | null
           id: string
-          organization_id: string | null
         }
         Insert: {
           amount: number
@@ -24,7 +23,6 @@ export type Database = {
           category: string
           created_at?: string | null
           id?: string
-          organization_id?: string | null
         }
         Update: {
           amount?: number
@@ -32,7 +30,6 @@ export type Database = {
           category?: string
           created_at?: string | null
           id?: string
-          organization_id?: string | null
         }
         Relationships: [
           {
@@ -40,13 +37,6 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "additional_income_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -57,27 +47,21 @@ export type Database = {
           booking_id: string | null
           created_at: string | null
           id: string
-          organization_id: string | null
           payment_date: string
-          payment_type: string | null
         }
         Insert: {
           amount: number
           booking_id?: string | null
           created_at?: string | null
           id?: string
-          organization_id?: string | null
           payment_date: string
-          payment_type?: string | null
         }
         Update: {
           amount?: number
           booking_id?: string | null
           created_at?: string | null
           id?: string
-          organization_id?: string | null
           payment_date?: string
-          payment_type?: string | null
         }
         Relationships: [
           {
@@ -85,13 +69,6 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "balance_payments_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -104,7 +81,6 @@ export type Database = {
           end_datetime: string
           event_name: string
           id: string
-          organization_id: string | null
           phone_number: string | null
           start_datetime: string
           total_rent: number
@@ -117,7 +93,6 @@ export type Database = {
           end_datetime: string
           event_name: string
           id?: string
-          organization_id?: string | null
           phone_number?: string | null
           start_datetime: string
           total_rent: number
@@ -130,21 +105,12 @@ export type Database = {
           end_datetime?: string
           event_name?: string
           id?: string
-          organization_id?: string | null
           phone_number?: string | null
           start_datetime?: string
           total_rent?: number
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "bookings_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       expense_categories: {
         Row: {
@@ -172,48 +138,33 @@ export type Database = {
           amount: number
           bill_number: string
           category_id: string
-          cgst_amount: number | null
-          cgst_percentage: number | null
           created_at: string
           expense_date: string
           gst_percentage: number | null
           id: string
-          organization_id: string | null
-          sgst_amount: number | null
-          sgst_percentage: number | null
-          total_amount: number | null
+          includes_gst: boolean
           vendor_name: string
         }
         Insert: {
           amount: number
           bill_number: string
           category_id: string
-          cgst_amount?: number | null
-          cgst_percentage?: number | null
           created_at?: string
           expense_date?: string
           gst_percentage?: number | null
           id?: string
-          organization_id?: string | null
-          sgst_amount?: number | null
-          sgst_percentage?: number | null
-          total_amount?: number | null
+          includes_gst?: boolean
           vendor_name: string
         }
         Update: {
           amount?: number
           bill_number?: string
           category_id?: string
-          cgst_amount?: number | null
-          cgst_percentage?: number | null
           created_at?: string
           expense_date?: string
           gst_percentage?: number | null
           id?: string
-          organization_id?: string | null
-          sgst_amount?: number | null
-          sgst_percentage?: number | null
-          total_amount?: number | null
+          includes_gst?: boolean
           vendor_name?: string
         }
         Relationships: [
@@ -222,13 +173,6 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "expense_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expenses_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -254,62 +198,6 @@ export type Database = {
         }
         Relationships: []
       }
-      organizations: {
-        Row: {
-          created_at: string
-          id: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          full_name: string | null
-          id: string
-          organization_id: string
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          full_name?: string | null
-          id: string
-          organization_id: string
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          full_name?: string | null
-          id?: string
-          organization_id?: string
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
@@ -318,7 +206,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      user_role: "admin" | "manager"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -433,8 +321,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      user_role: ["admin", "manager"],
-    },
+    Enums: {},
   },
 } as const

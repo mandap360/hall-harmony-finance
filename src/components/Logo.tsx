@@ -1,44 +1,36 @@
 
-import { Crown } from "lucide-react";
+import React from 'react';
+import { Building2 } from 'lucide-react';
 
 interface LogoProps {
-  size?: "sm" | "md" | "lg";
+  size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
+  className?: string;
 }
 
-export const Logo = ({ size = "md", showText = true }: LogoProps) => {
+export const Logo = ({ size = 'md', showText = true, className = '' }: LogoProps) => {
   const sizeClasses = {
-    sm: "w-8 h-8",
-    md: "w-12 h-12", 
-    lg: "w-16 h-16"
+    sm: 'h-6 w-6',
+    md: 'h-8 w-8',
+    lg: 'h-12 w-12'
   };
 
-  const textSizeClasses = {
-    sm: "text-lg",
-    md: "text-xl",
-    lg: "text-2xl"
-  };
-
-  const iconSizeClasses = {
-    sm: "h-4 w-4",
-    md: "h-6 w-6",
-    lg: "h-8 w-8"
+  const textSizes = {
+    sm: 'text-lg',
+    md: 'text-xl',
+    lg: 'text-3xl'
   };
 
   return (
-    <div className="flex items-center gap-3">
-      <div className={`${sizeClasses[size]} bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg`}>
-        <Crown className={`${iconSizeClasses[size]} text-white`} />
+    <div className={`flex items-center space-x-2 ${className}`}>
+      <div className="relative">
+        <Building2 className={`${sizeClasses[size]} text-amber-600`} />
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-white"></div>
       </div>
       {showText && (
-        <div>
-          <h1 className={`${textSizeClasses[size]} font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent`}>
-            Mandap360
-          </h1>
-          {size === "lg" && (
-            <p className="text-sm text-gray-600">Wedding Hall Management</p>
-          )}
-        </div>
+        <span className={`font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent ${textSizes[size]}`}>
+          mandap360
+        </span>
       )}
     </div>
   );

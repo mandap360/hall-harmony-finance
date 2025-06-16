@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 
 export interface Booking {
   id: string;
@@ -11,11 +10,10 @@ export interface Booking {
   phoneNumber: string;
   startDate: string;
   endDate: string;
-  rent: number; // Changed from totalRent to rent
+  totalRent: number;
   advance: number;
   notes?: string;
-  totalPaid: number; // Total amount actually received
-  remainingBalance: number;
+  paidAmount: number;
   payments: Array<{
     id: string;
     amount: number;
@@ -29,36 +27,16 @@ export const useBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { profile } = useAuth();
 
   const fetchBookings = async () => {
-    if (!profile?.organization_id) return;
-    
     try {
       setLoading(true);
       console.log("Fetching bookings from Supabase...");
       
-      // Get current Indian Financial Year
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth();
-      
-      let fyStartDate, fyEndDate;
-      if (month >= 3) { // April onwards
-        fyStartDate = new Date(year, 3, 1); // April 1st
-        fyEndDate = new Date(year + 1, 2, 31); // March 31st next year
-      } else { // January to March
-        fyStartDate = new Date(year - 1, 3, 1); // April 1st previous year
-        fyEndDate = new Date(year, 2, 31); // March 31st
-      }
-
-      // Fetch bookings from current FY
+      // Fetch bookings from Supabase
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select('*')
-        .eq('organization_id', profile.organization_id)
-        .gte('start_datetime', fyStartDate.toISOString())
-        .lte('start_datetime', fyEndDate.toISOString())
         .order('start_datetime', { ascending: true });
 
       if (bookingsError) {
@@ -66,21 +44,24 @@ export const useBookings = () => {
         throw bookingsError;
       }
 
-      // Fetch all payments for these bookings
+      console.log("Raw bookings data:", bookingsData);
+
+      // Fetch balance payments for each booking
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('balance_payments')
-        .select('*')
-        .eq('organization_id', profile.organization_id);
+        .select('*');
 
       if (paymentsError) {
         console.error('Error fetching payments:', paymentsError);
+        // Don't throw here, just log the error
       }
 
-      // Transform the data
+      console.log("Payments data:", paymentsData);
+
+      // Transform the data to match the expected format
       const transformedBookings: Booking[] = (bookingsData || []).map(booking => {
         const bookingPayments = (paymentsData || []).filter(payment => payment.booking_id === booking.id);
-        const totalPaid = booking.advance + bookingPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
-        const remainingBalance = booking.total_rent - totalPaid;
+        const paidAmount = bookingPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
 
         return {
           id: booking.id,
@@ -89,30 +70,21 @@ export const useBookings = () => {
           phoneNumber: booking.phone_number || '',
           startDate: booking.start_datetime,
           endDate: booking.end_datetime,
-          rent: Number(booking.total_rent),
+          totalRent: Number(booking.total_rent),
           advance: Number(booking.advance),
           notes: '',
-          totalPaid: totalPaid,
-          remainingBalance: remainingBalance,
-          payments: [
-            {
-              id: 'advance',
-              amount: Number(booking.advance),
-              date: booking.created_at,
-              type: 'advance',
-              description: 'Advance payment'
-            },
-            ...bookingPayments.map(payment => ({
-              id: payment.id,
-              amount: Number(payment.amount),
-              date: payment.payment_date,
-              type: payment.payment_type || 'balance',
-              description: 'Balance payment'
-            }))
-          ]
+          paidAmount: paidAmount,
+          payments: bookingPayments.map(payment => ({
+            id: payment.id,
+            amount: Number(payment.amount),
+            date: payment.payment_date,
+            type: 'balance',
+            description: 'Balance payment'
+          }))
         };
       });
 
+      console.log("Transformed bookings:", transformedBookings);
       setBookings(transformedBookings);
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -128,11 +100,9 @@ export const useBookings = () => {
 
   useEffect(() => {
     fetchBookings();
-  }, [profile?.organization_id]);
+  }, []);
 
-  const addBooking = async (bookingData: Omit<Booking, 'id' | 'payments' | 'totalPaid' | 'remainingBalance'>) => {
-    if (!profile?.organization_id) return;
-    
+  const addBooking = async (bookingData: Omit<Booking, 'id' | 'payments' | 'paidAmount'>) => {
     try {
       const { data, error } = await supabase
         .from('bookings')
@@ -142,16 +112,15 @@ export const useBookings = () => {
           phone_number: bookingData.phoneNumber,
           start_datetime: bookingData.startDate,
           end_datetime: bookingData.endDate,
-          total_rent: bookingData.rent,
-          advance: bookingData.advance,
-          organization_id: profile.organization_id
+          total_rent: bookingData.totalRent,
+          advance: bookingData.advance
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      await fetchBookings();
+      await fetchBookings(); // Refresh the list
       toast({
         title: "Success",
         description: "Booking added successfully",
@@ -166,40 +135,7 @@ export const useBookings = () => {
     }
   };
 
-  const addPayment = async (bookingId: string, amount: number) => {
-    if (!profile?.organization_id) return;
-    
-    try {
-      const { error } = await supabase
-        .from('balance_payments')
-        .insert({
-          booking_id: bookingId,
-          amount: amount,
-          payment_date: new Date().toISOString().split('T')[0],
-          payment_type: 'balance',
-          organization_id: profile.organization_id
-        });
-
-      if (error) throw error;
-
-      await fetchBookings();
-      toast({
-        title: "Success",
-        description: "Payment added successfully",
-      });
-    } catch (error) {
-      console.error('Error adding payment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add payment",
-        variant: "destructive",
-      });
-    }
-  };
-
   const updateBooking = async (updatedBooking: Booking) => {
-    if (!profile?.organization_id) return;
-    
     try {
       const { error } = await supabase
         .from('bookings')
@@ -209,14 +145,14 @@ export const useBookings = () => {
           phone_number: updatedBooking.phoneNumber,
           start_datetime: updatedBooking.startDate,
           end_datetime: updatedBooking.endDate,
-          total_rent: updatedBooking.rent,
+          total_rent: updatedBooking.totalRent,
           advance: updatedBooking.advance
         })
         .eq('id', updatedBooking.id);
 
       if (error) throw error;
 
-      await fetchBookings();
+      await fetchBookings(); // Refresh the list
       toast({
         title: "Success",
         description: "Booking updated successfully",
@@ -232,8 +168,6 @@ export const useBookings = () => {
   };
 
   const deleteBooking = async (bookingId: string) => {
-    if (!profile?.organization_id) return;
-    
     try {
       const { error } = await supabase
         .from('bookings')
@@ -242,7 +176,7 @@ export const useBookings = () => {
 
       if (error) throw error;
 
-      await fetchBookings();
+      await fetchBookings(); // Refresh the list
       toast({
         title: "Success",
         description: "Booking deleted successfully",
@@ -263,7 +197,6 @@ export const useBookings = () => {
     addBooking,
     updateBooking,
     deleteBooking,
-    addPayment,
     refetch: fetchBookings
   };
 };
