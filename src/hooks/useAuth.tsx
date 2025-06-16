@@ -1,5 +1,5 @@
 
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -30,12 +30,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    return useAuthHook();
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
-const useAuthHook = () => {
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -167,7 +171,7 @@ const useAuthHook = () => {
     }
   };
 
-  return {
+  const value = {
     user,
     session,
     profile,
@@ -176,6 +180,10 @@ const useAuthHook = () => {
     signUp,
     signOut,
   };
-};
 
-export const AuthProvider = AuthContext.Provider;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
