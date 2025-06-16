@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTax } from "@/hooks/useTax";
+import { useCategories } from "@/hooks/useCategories";
 
 interface AddExpenseDialogProps {
   open: boolean;
@@ -25,18 +26,8 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
   });
 
   const { taxRates } = useTax();
-
-  const expenseCategories = [
-    "Office Supplies",
-    "Utilities",
-    "Maintenance",
-    "Marketing",
-    "Food & Catering",
-    "Transportation",
-    "Professional Services",
-    "Equipment",
-    "Other"
-  ];
+  const { getExpenseCategories } = useCategories();
+  const expenseCategories = getExpenseCategories();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,8 +83,8 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
               </SelectTrigger>
               <SelectContent>
                 {expenseCategories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
+                  <SelectItem key={category.id} value={category.name}>
+                    {category.name}
                   </SelectItem>
                 ))}
               </SelectContent>

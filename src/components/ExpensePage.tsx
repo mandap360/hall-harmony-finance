@@ -8,24 +8,15 @@ import { Card } from "@/components/ui/card";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import { ExpenseCard } from "@/components/ExpenseCard";
 import { useExpenses } from "@/hooks/useExpenses";
+import { useCategories } from "@/hooks/useCategories";
 
 export const ExpensePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const { expenses, addExpense } = useExpenses();
-
-  const expenseCategories = [
-    "Office Supplies",
-    "Utilities", 
-    "Maintenance",
-    "Marketing",
-    "Food & Catering",
-    "Transportation",
-    "Professional Services",
-    "Equipment",
-    "Other"
-  ];
+  const { getExpenseCategories } = useCategories();
+  const expenseCategories = getExpenseCategories();
 
   const filteredExpenses = useMemo(() => {
     let filtered = expenses;
@@ -82,8 +73,8 @@ export const ExpensePage = () => {
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               {expenseCategories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
+                <SelectItem key={category.id} value={category.name}>
+                  {category.name}
                 </SelectItem>
               ))}
             </SelectContent>

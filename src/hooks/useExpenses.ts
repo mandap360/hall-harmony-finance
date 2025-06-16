@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export interface Expense {
   id: string;
@@ -15,6 +15,19 @@ export interface Expense {
 
 export const useExpenses = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  // Load expenses from localStorage on mount
+  useEffect(() => {
+    const savedExpenses = localStorage.getItem('expenses');
+    if (savedExpenses) {
+      setExpenses(JSON.parse(savedExpenses));
+    }
+  }, []);
+
+  // Save expenses to localStorage whenever expenses change
+  useEffect(() => {
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+  }, [expenses]);
 
   const addExpense = (expenseData: Omit<Expense, "id" | "createdAt">) => {
     const newExpense: Expense = {
