@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
     startTime: "",
     endDate: "",
     endTime: "",
-    totalRent: "",
+    rent: "",
     advance: "",
     notes: ""
   });
@@ -50,7 +51,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
         startTime: startDate.toTimeString().slice(0, 5),
         endDate: endDate.toISOString().split('T')[0],
         endTime: endDate.toTimeString().slice(0, 5),
-        totalRent: booking.totalRent.toString(),
+        rent: booking.rent.toString(),
         advance: booking.advance.toString(),
         notes: booking.notes || ""
       });
@@ -67,7 +68,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       phoneNumber: formData.phoneNumber,
       startDate: `${formData.startDate}T${formData.startTime}`,
       endDate: `${formData.endDate}T${formData.endTime}`,
-      totalRent: parseInt(formData.totalRent),
+      rent: parseInt(formData.rent),
       advance: parseInt(formData.advance),
       notes: formData.notes
     };
@@ -103,7 +104,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   };
 
   const totalPaid = (booking.paidAmount || 0);
-  const remainingBalance = booking.totalRent - booking.advance - totalPaid;
+  const remainingBalance = booking.rent - booking.advance - totalPaid;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,12 +209,12 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="totalRent">Total Rent *</Label>
+                <Label htmlFor="rent">Rent *</Label>
                 <Input
-                  id="totalRent"
+                  id="rent"
                   type="number"
-                  value={formData.totalRent}
-                  onChange={(e) => setFormData(prev => ({ ...prev, totalRent: e.target.value }))}
+                  value={formData.rent}
+                  onChange={(e) => setFormData(prev => ({ ...prev, rent: e.target.value }))}
                   required
                   className="border-amber-200 focus:border-amber-500"
                 />
