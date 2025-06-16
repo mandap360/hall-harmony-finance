@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from "react";
-import { Search, Plus, Edit } from "lucide-react";
+import { Search, Plus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AddBookingDialog } from "@/components/AddBookingDialog";
