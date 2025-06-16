@@ -11,15 +11,9 @@ export const BottomNavigation = ({ activeTab, onTabChange, userRole }: BottomNav
   const tabs = [
     { id: "bookings", label: "Bookings", icon: Home },
     { id: "expenses", label: "Expenses", icon: Receipt },
+    { id: "reports", label: "Reports", icon: BarChart },
+    { id: "more", label: "More", icon: MoreHorizontal }
   ];
-
-  // Only show reports and more for admin users
-  if (userRole === 'admin') {
-    tabs.push(
-      { id: "reports", label: "Reports", icon: BarChart },
-      { id: "more", label: "More", icon: MoreHorizontal }
-    );
-  }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-rose-200 safe-area-pb">

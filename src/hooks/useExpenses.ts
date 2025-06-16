@@ -93,7 +93,7 @@ export const useExpenses = () => {
   }, [profile?.organization_id]);
 
   const addExpense = async (expenseData: Omit<Expense, "id" | "createdAt" | "category">) => {
-    if (!profile?.organization_id || profile.role !== 'admin') return;
+    if (!profile?.organization_id) return;
     
     try {
       const { error } = await supabase

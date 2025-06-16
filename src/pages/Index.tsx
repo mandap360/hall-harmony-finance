@@ -21,9 +21,9 @@ const Index = () => {
       case "expenses":
         return <ExpensePage />;
       case "reports":
-        return profile?.role === 'admin' ? <ReportsPage /> : <BookingsPage />;
+        return <ReportsPage />;
       case "more":
-        return profile?.role === 'admin' ? <MorePage /> : <BookingsPage />;
+        return <MorePage />;
       default:
         return <BookingsPage />;
     }

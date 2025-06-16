@@ -37,9 +37,7 @@ export const BookingsPage = () => {
   };
 
   const handleEditBooking = (booking) => {
-    if (profile?.role === 'admin') {
-      setEditingBooking(booking);
-    }
+    setEditingBooking(booking);
   };
 
   const handleUpdateBooking = (updatedBooking) => {
@@ -109,7 +107,7 @@ export const BookingsPage = () => {
                 booking={booking}
                 onEdit={handleEditBooking}
                 onAddPayment={handleAddPayment}
-                userRole={profile?.role || 'manager'}
+                userRole='admin'
               />
             ))}
           </div>
@@ -117,15 +115,13 @@ export const BookingsPage = () => {
       </div>
 
       {/* Add Button */}
-      {profile?.role === 'admin' && (
-        <Button
-          onClick={() => setShowAddDialog(true)}
-          className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700"
-          size="icon"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      )}
+      <Button
+        onClick={() => setShowAddDialog(true)}
+        className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700"
+        size="icon"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
 
       {/* Dialogs */}
       <AddBookingDialog

@@ -198,7 +198,7 @@ export const useBookings = () => {
   };
 
   const updateBooking = async (updatedBooking: Booking) => {
-    if (!profile?.organization_id || profile.role !== 'admin') return;
+    if (!profile?.organization_id) return;
     
     try {
       const { error } = await supabase
@@ -232,7 +232,7 @@ export const useBookings = () => {
   };
 
   const deleteBooking = async (bookingId: string) => {
-    if (!profile?.organization_id || profile.role !== 'admin') return;
+    if (!profile?.organization_id) return;
     
     try {
       const { error } = await supabase
