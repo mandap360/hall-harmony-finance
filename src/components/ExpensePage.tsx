@@ -14,12 +14,47 @@ export const ExpensePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showAllExpenses, setShowAllExpenses] = useState(false);
   const { expenses, addExpense } = useExpenses();
   const { getExpenseCategories } = useCategories();
   const expenseCategories = getExpenseCategories();
 
+  // Get current Indian Financial Year (April to March)
+  const getCurrentFY = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    
+    if (month >= 3) { // April onwards (month is 0-indexed, so March = 2, April = 3)
+      return { startYear: year, endYear: year + 1 };
+    } else { // January to March
+      return { startYear: year - 1, endYear: year };
+    }
+  };
+
+  const currentFY = getCurrentFY();
+
   const filteredExpenses = useMemo(() => {
     let filtered = expenses;
+
+    // Apply FY filter only if not showing all expenses
+    if (!showAllExpenses) {
+      filtered = expenses.filter((expense) => {
+        const expenseDate = new Date(expense.date);
+        const expenseYear = expenseDate.getFullYear();
+        const expenseMonth = expenseDate.getMonth();
+        
+        // Check if expense is in current FY
+        let isInCurrentFY = false;
+        if (expenseMonth >= 3) { // April onwards (month is 0-indexed)
+          isInCurrentFY = expenseYear === currentFY.startYear;
+        } else { // January to March
+          isInCurrentFY = expenseYear === currentFY.endYear;
+        }
+        
+        return isInCurrentFY;
+      });
+    }
 
     if (selectedCategory !== "all") {
       filtered = filtered.filter(expense => expense.category === selectedCategory);
@@ -35,14 +70,14 @@ export const ExpensePage = () => {
     }
 
     return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [expenses, searchQuery, selectedCategory]);
+  }, [expenses, searchQuery, selectedCategory, currentFY, showAllExpenses]);
 
   const handleAddExpense = (expenseData: any) => {
     addExpense(expenseData);
     setShowAddDialog(false);
   };
 
-  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0);
 
   return (
     <div className="p-4 space-y-6">
@@ -50,6 +85,9 @@ export const ExpensePage = () => {
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
         <p className="text-gray-600">Track your hall expenses</p>
+        <p className="text-sm text-gray-500">
+          FY {currentFY.startYear}-{currentFY.endYear.toString().slice(-2)}
+        </p>
       </div>
 
       {/* Search and Filter */}
@@ -80,12 +118,25 @@ export const ExpensePage = () => {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Filter Toggle */}
+        <div className="flex justify-center">
+          <Button
+            variant={showAllExpenses ? "outline" : "default"}
+            onClick={() => setShowAllExpenses(!showAllExpenses)}
+            className="text-sm"
+          >
+            {showAllExpenses ? `Show Current FY Only (${filteredExpenses.length})` : `Show All Expenses (${expenses.length})`}
+          </Button>
+        </div>
       </div>
 
       {/* Summary */}
       <Card className="p-4">
         <div className="text-center">
-          <p className="text-sm text-gray-600">Total Expenses</p>
+          <p className="text-sm text-gray-600">
+            {showAllExpenses ? 'Total Expenses (All Time)' : `Total Expenses (FY ${currentFY.startYear}-${currentFY.endYear.toString().slice(-2)})`}
+          </p>
           <p className="text-2xl font-bold text-red-600">₹{totalExpenses.toLocaleString()}</p>
           <p className="text-xs text-gray-500">{filteredExpenses.length} expenses</p>
         </div>
@@ -95,7 +146,23 @@ export const ExpensePage = () => {
       <div className="space-y-4">
         {filteredExpenses.length === 0 ? (
           <Card className="p-8 text-center">
-            <p className="text-gray-500">No expenses found</p>
+            <p className="text-gray-500">
+              {expenses.length === 0 
+                ? "No expenses found" 
+                : showAllExpenses 
+                  ? "No expenses match your search" 
+                  : "No expenses found for current FY"
+              }
+            </p>
+            {expenses.length > 0 && !showAllExpenses && (
+              <Button
+                variant="outline"
+                onClick={() => setShowAllExpenses(true)}
+                className="mt-2"
+              >
+                Show All Expenses
+              </Button>
+            )}
           </Card>
         ) : (
           <div className="space-y-3">

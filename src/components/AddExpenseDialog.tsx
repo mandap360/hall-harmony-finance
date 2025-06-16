@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useTax } from "@/hooks/useTax";
 import { useCategories } from "@/hooks/useCategories";
 
 interface AddExpenseDialogProps {
@@ -20,22 +19,37 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
     billNumber: "",
     category: "",
     amount: "",
-    includesGST: true,
-    gstPercentage: 18,
+    cgstPercentage: 6,
+    sgstPercentage: 6,
     date: new Date().toISOString().split('T')[0],
   });
 
-  const { taxRates } = useTax();
   const { getExpenseCategories } = useCategories();
   const expenseCategories = getExpenseCategories();
+
+  const calculateTaxAmounts = () => {
+    const baseAmount = parseFloat(formData.amount) || 0;
+    const cgstAmount = (baseAmount * formData.cgstPercentage) / 100;
+    const sgstAmount = (baseAmount * formData.sgstPercentage) / 100;
+    const totalAmount = baseAmount + cgstAmount + sgstAmount;
+    
+    return { cgstAmount, sgstAmount, totalAmount };
+  };
+
+  const { cgstAmount, sgstAmount, totalAmount } = calculateTaxAmounts();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.vendorName || !formData.amount || !formData.category) return;
 
+    const { cgstAmount, sgstAmount, totalAmount } = calculateTaxAmounts();
+
     onSubmit({
       ...formData,
       amount: parseFloat(formData.amount),
+      cgstAmount,
+      sgstAmount,
+      totalAmount,
     });
 
     setFormData({
@@ -43,8 +57,8 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
       billNumber: "",
       category: "",
       amount: "",
-      includesGST: true,
-      gstPercentage: 18,
+      cgstPercentage: 6,
+      sgstPercentage: 6,
       date: new Date().toISOString().split('T')[0],
     });
   };
@@ -92,7 +106,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
           </div>
 
           <div>
-            <Label htmlFor="amount">Amount</Label>
+            <Label htmlFor="amount">Bill Amount</Label>
             <Input
               id="amount"
               type="number"
@@ -103,39 +117,51 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
             />
           </div>
 
-          <div>
-            <Label htmlFor="includesGST">GST</Label>
-            <Select 
-              value={formData.includesGST ? "including" : "excluding"} 
-              onValueChange={(value) => setFormData({ ...formData, includesGST: value === "including" })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="including">Including GST</SelectItem>
-                <SelectItem value="excluding">Excluding GST</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="cgst">CGST</Label>
+              <div className="flex items-center space-x-2">
+                <Select 
+                  value={formData.cgstPercentage.toString()} 
+                  onValueChange={(value) => setFormData({ ...formData, cgstPercentage: parseInt(value) })}
+                >
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="6">6%</SelectItem>
+                    <SelectItem value="9">9%</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-gray-600">₹{cgstAmount.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="sgst">SGST</Label>
+              <div className="flex items-center space-x-2">
+                <Select 
+                  value={formData.sgstPercentage.toString()} 
+                  onValueChange={(value) => setFormData({ ...formData, sgstPercentage: parseInt(value) })}
+                >
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="6">6%</SelectItem>
+                    <SelectItem value="9">9%</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-gray-600">₹{sgstAmount.toFixed(2)}</span>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <Label htmlFor="gstPercentage">GST %</Label>
-            <Select 
-              value={formData.gstPercentage.toString()} 
-              onValueChange={(value) => setFormData({ ...formData, gstPercentage: parseInt(value) })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {taxRates.map((tax) => (
-                  <SelectItem key={tax.id} value={tax.percentage.toString()}>
-                    {tax.percentage}%
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold">Total Amount:</span>
+              <span className="font-bold text-lg">₹{totalAmount.toFixed(2)}</span>
+            </div>
           </div>
 
           <div>

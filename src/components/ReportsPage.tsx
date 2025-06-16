@@ -9,13 +9,55 @@ export const ReportsPage = () => {
   const { bookings } = useBookings();
   const { expenses } = useExpenses();
 
+  // Get current Indian Financial Year (April to March)
+  const getCurrentFY = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    
+    if (month >= 3) { // April onwards (month is 0-indexed, so March = 2, April = 3)
+      return { startYear: year, endYear: year + 1 };
+    } else { // January to March
+      return { startYear: year - 1, endYear: year };
+    }
+  };
+
+  const currentFY = getCurrentFY();
+
   const financialData = useMemo(() => {
-    // Calculate total income from bookings
-    let totalRent = 0;
+    // Filter bookings for current FY
+    const currentFYBookings = bookings.filter((booking) => {
+      const bookingDate = new Date(booking.startDate);
+      const bookingYear = bookingDate.getFullYear();
+      const bookingMonth = bookingDate.getMonth();
+      
+      if (bookingMonth >= 3) { // April onwards
+        return bookingYear === currentFY.startYear;
+      } else { // January to March
+        return bookingYear === currentFY.endYear;
+      }
+    });
+
+    // Filter expenses for current FY
+    const currentFYExpenses = expenses.filter((expense) => {
+      const expenseDate = new Date(expense.date);
+      const expenseYear = expenseDate.getFullYear();
+      const expenseMonth = expenseDate.getMonth();
+      
+      if (expenseMonth >= 3) { // April onwards
+        return expenseYear === currentFY.startYear;
+      } else { // January to March
+        return expenseYear === currentFY.endYear;
+      }
+    });
+
+    // Calculate total income from actual payments received
+    let totalPaidAmount = 0;
     let totalAdditional = 0;
 
-    bookings.forEach(booking => {
-      totalRent += booking.totalRent;
+    currentFYBookings.forEach(booking => {
+      // Use paidAmount which represents actual payments received
+      totalPaidAmount += booking.paidAmount || 0;
       
       // Calculate additional income from payments
       booking.payments?.forEach(payment => {
@@ -25,15 +67,15 @@ export const ReportsPage = () => {
       });
     });
 
-    const totalIncome = totalRent + totalAdditional;
+    const totalIncome = totalPaidAmount + totalAdditional;
 
-    // Calculate expenses by category
+    // Calculate expenses by category for current FY
     const expensesByCategory: Record<string, number> = {};
     let totalExpenses = 0;
 
-    expenses.forEach(expense => {
-      expensesByCategory[expense.category] = (expensesByCategory[expense.category] || 0) + expense.amount;
-      totalExpenses += expense.amount;
+    currentFYExpenses.forEach(expense => {
+      expensesByCategory[expense.category] = (expensesByCategory[expense.category] || 0) + expense.totalAmount;
+      totalExpenses += expense.totalAmount;
     });
 
     const profit = totalIncome - totalExpenses;
@@ -43,32 +85,34 @@ export const ReportsPage = () => {
       totalExpenses,
       profit,
       incomeBreakdown: {
-        rent: totalRent,
+        rent: totalPaidAmount,
         additional: totalAdditional,
       },
       expensesByCategory,
+      currentFY
     };
-  }, [bookings, expenses]);
+  }, [bookings, expenses, currentFY]);
 
   return (
     <div className="p-4 space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-        <p className="text-gray-600">Financial insights and analytics</p>
+        <p className="text-gray-600">Financial insights for FY {financialData.currentFY.startYear}-{financialData.currentFY.endYear.toString().slice(-2)}</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Income Received</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
               ₹{financialData.totalIncome.toLocaleString()}
             </div>
+            <p className="text-xs text-gray-500">Actual payments received</p>
           </CardContent>
         </Card>
 
@@ -100,11 +144,11 @@ export const ReportsPage = () => {
       {/* Income Breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle>Income Summary</CardTitle>
+          <CardTitle>Income Summary (Received)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-gray-600">Rent:</span>
+            <span className="text-gray-600">Rent Payments Received:</span>
             <span className="font-semibold">₹{financialData.incomeBreakdown.rent.toLocaleString()}</span>
           </div>
           <div className="flex justify-between items-center">

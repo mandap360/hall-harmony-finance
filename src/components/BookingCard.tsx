@@ -26,7 +26,7 @@ export const BookingCard = ({ booking, onEdit }: BookingCardProps) => {
     });
   };
 
-  const remainingBalance = booking.totalRent - booking.advance - (booking.paidAmount || 0);
+  const remainingBalance = booking.rent - (booking.paidAmount || 0);
 
   return (
     <Card className="p-4 hover:shadow-md transition-shadow duration-200">
@@ -66,9 +66,9 @@ export const BookingCard = ({ booking, onEdit }: BookingCardProps) => {
           <div className="text-center">
             <div className="flex items-center justify-center text-green-600 mb-1">
               <IndianRupee className="h-4 w-4" />
-              <span className="text-sm font-semibold">{booking.advance}</span>
+              <span className="text-sm font-semibold">{booking.paidAmount || 0}</span>
             </div>
-            <p className="text-xs text-gray-500">Advance</p>
+            <p className="text-xs text-gray-500">Paid</p>
           </div>
           
           <div className="text-center">
@@ -82,9 +82,9 @@ export const BookingCard = ({ booking, onEdit }: BookingCardProps) => {
           <div className="text-center">
             <div className="flex items-center justify-center text-blue-600 mb-1">
               <IndianRupee className="h-4 w-4" />
-              <span className="text-sm font-semibold">{booking.totalRent}</span>
+              <span className="text-sm font-semibold">{booking.rent}</span>
             </div>
-            <p className="text-xs text-gray-500">Total</p>
+            <p className="text-xs text-gray-500">Rent</p>
           </div>
         </div>
       </div>

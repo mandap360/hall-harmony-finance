@@ -1,5 +1,7 @@
 
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Expense {
   id: string;
@@ -7,53 +9,194 @@ export interface Expense {
   billNumber: string;
   category: string;
   amount: number;
-  includesGST: boolean;
-  gstPercentage: number;
+  cgstPercentage: number;
+  sgstPercentage: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  totalAmount: number;
   date: string;
   createdAt: string;
 }
 
 export const useExpenses = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  // Load expenses from localStorage on mount
-  useEffect(() => {
-    const savedExpenses = localStorage.getItem('expenses');
-    if (savedExpenses) {
-      setExpenses(JSON.parse(savedExpenses));
+  const fetchExpenses = async () => {
+    try {
+      setLoading(true);
+      console.log("Fetching expenses from Supabase...");
+      
+      const { data: expensesData, error: expensesError } = await supabase
+        .from('expenses')
+        .select(`
+          *,
+          expense_categories!inner(name)
+        `)
+        .order('expense_date', { ascending: false });
+
+      if (expensesError) {
+        console.error('Error fetching expenses:', expensesError);
+        throw expensesError;
+      }
+
+      console.log("Raw expenses data:", expensesData);
+
+      const transformedExpenses: Expense[] = (expensesData || []).map(expense => ({
+        id: expense.id,
+        vendorName: expense.vendor_name,
+        billNumber: expense.bill_number,
+        category: expense.expense_categories?.name || 'Unknown',
+        amount: Number(expense.amount),
+        cgstPercentage: Number(expense.cgst_percentage || 0),
+        sgstPercentage: Number(expense.sgst_percentage || 0),
+        cgstAmount: Number(expense.cgst_amount || 0),
+        sgstAmount: Number(expense.sgst_amount || 0),
+        totalAmount: Number(expense.total_amount || expense.amount),
+        date: expense.expense_date,
+        createdAt: expense.created_at
+      }));
+
+      console.log("Transformed expenses:", transformedExpenses);
+      setExpenses(transformedExpenses);
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch expenses",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchExpenses();
   }, []);
 
-  // Save expenses to localStorage whenever expenses change
-  useEffect(() => {
-    localStorage.setItem('expenses', JSON.stringify(expenses));
-  }, [expenses]);
+  const addExpense = async (expenseData: Omit<Expense, 'id' | 'createdAt'>) => {
+    try {
+      // First get the category ID
+      const { data: categories, error: categoryError } = await supabase
+        .from('expense_categories')
+        .select('id')
+        .eq('name', expenseData.category)
+        .single();
 
-  const addExpense = (expenseData: Omit<Expense, "id" | "createdAt">) => {
-    const newExpense: Expense = {
-      ...expenseData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    setExpenses(prev => [...prev, newExpense]);
+      if (categoryError) {
+        console.error('Error finding category:', categoryError);
+        throw new Error(`Category "${expenseData.category}" not found`);
+      }
+
+      const { data, error } = await supabase
+        .from('expenses')
+        .insert({
+          vendor_name: expenseData.vendorName,
+          bill_number: expenseData.billNumber,
+          category_id: categories.id,
+          amount: expenseData.amount,
+          cgst_percentage: expenseData.cgstPercentage,
+          sgst_percentage: expenseData.sgstPercentage,
+          cgst_amount: expenseData.cgstAmount,
+          sgst_amount: expenseData.sgstAmount,
+          total_amount: expenseData.totalAmount,
+          expense_date: expenseData.date
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await fetchExpenses();
+      toast({
+        title: "Success",
+        description: "Expense added successfully",
+      });
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add expense",
+        variant: "destructive",
+      });
+    }
   };
 
-  const updateExpense = (updatedExpense: Expense) => {
-    setExpenses(prev => 
-      prev.map(expense => 
-        expense.id === updatedExpense.id ? updatedExpense : expense
-      )
-    );
+  const updateExpense = async (updatedExpense: Expense) => {
+    try {
+      const { data: categories, error: categoryError } = await supabase
+        .from('expense_categories')
+        .select('id')
+        .eq('name', updatedExpense.category)
+        .single();
+
+      if (categoryError) throw categoryError;
+
+      const { error } = await supabase
+        .from('expenses')
+        .update({
+          vendor_name: updatedExpense.vendorName,
+          bill_number: updatedExpense.billNumber,
+          category_id: categories.id,
+          amount: updatedExpense.amount,
+          cgst_percentage: updatedExpense.cgstPercentage,
+          sgst_percentage: updatedExpense.sgstPercentage,
+          cgst_amount: updatedExpense.cgstAmount,
+          sgst_amount: updatedExpense.sgstAmount,
+          total_amount: updatedExpense.totalAmount,
+          expense_date: updatedExpense.date
+        })
+        .eq('id', updatedExpense.id);
+
+      if (error) throw error;
+
+      await fetchExpenses();
+      toast({
+        title: "Success",
+        description: "Expense updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update expense",
+        variant: "destructive",
+      });
+    }
   };
 
-  const deleteExpense = (expenseId: string) => {
-    setExpenses(prev => prev.filter(expense => expense.id !== expenseId));
+  const deleteExpense = async (expenseId: string) => {
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', expenseId);
+
+      if (error) throw error;
+
+      await fetchExpenses();
+      toast({
+        title: "Success",
+        description: "Expense deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete expense",
+        variant: "destructive",
+      });
+    }
   };
 
   return {
     expenses,
+    loading,
     addExpense,
     updateExpense,
     deleteExpense,
+    refetch: fetchExpenses
   };
 };

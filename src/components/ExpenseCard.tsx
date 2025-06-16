@@ -22,14 +22,38 @@ export const ExpenseCard = ({ expense }: ExpenseCardProps) => {
         </Badge>
       </div>
       
-      <div className="flex justify-between items-center mt-3">
-        <div className="text-sm text-gray-600">
-          {formattedDate}
+      <div className="space-y-2 mt-3">
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">Base Amount:</span>
+          <span>₹{expense.amount.toLocaleString()}</span>
         </div>
-        <div className="text-right">
-          <div className="font-semibold text-lg">₹{expense.amount.toLocaleString()}</div>
-          <div className="text-xs text-gray-500">
-            {expense.includesGST ? 'Inc.' : 'Exc.'} {expense.gstPercentage}% GST
+        
+        {(expense.cgstAmount > 0 || expense.sgstAmount > 0) && (
+          <>
+            {expense.cgstAmount > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">CGST ({expense.cgstPercentage}%):</span>
+                <span>₹{expense.cgstAmount.toLocaleString()}</span>
+              </div>
+            )}
+            {expense.sgstAmount > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">SGST ({expense.sgstPercentage}%):</span>
+                <span>₹{expense.sgstAmount.toLocaleString()}</span>
+              </div>
+            )}
+          </>
+        )}
+        
+        <div className="border-t pt-2">
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-gray-600">
+              {formattedDate}
+            </div>
+            <div className="text-right">
+              <div className="font-semibold text-lg">₹{expense.totalAmount.toLocaleString()}</div>
+              <div className="text-xs text-gray-500">Total Amount</div>
+            </div>
           </div>
         </div>
       </div>

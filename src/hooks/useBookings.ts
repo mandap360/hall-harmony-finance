@@ -10,7 +10,7 @@ export interface Booking {
   phoneNumber: string;
   startDate: string;
   endDate: string;
-  totalRent: number;
+  rent: number;
   advance: number;
   notes?: string;
   paidAmount: number;
@@ -33,7 +33,6 @@ export const useBookings = () => {
       setLoading(true);
       console.log("Fetching bookings from Supabase...");
       
-      // Fetch bookings from Supabase
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select('*')
@@ -44,21 +43,17 @@ export const useBookings = () => {
         throw bookingsError;
       }
 
-      console.log("Raw bookings data:", bookingsData);
-
-      // Fetch balance payments for each booking
       const { data: paymentsData, error: paymentsError } = await supabase
-        .from('balance_payments')
+        .from('payments')
         .select('*');
 
       if (paymentsError) {
         console.error('Error fetching payments:', paymentsError);
-        // Don't throw here, just log the error
       }
 
+      console.log("Bookings data:", bookingsData);
       console.log("Payments data:", paymentsData);
 
-      // Transform the data to match the expected format
       const transformedBookings: Booking[] = (bookingsData || []).map(booking => {
         const bookingPayments = (paymentsData || []).filter(payment => payment.booking_id === booking.id);
         const paidAmount = bookingPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
@@ -70,7 +65,7 @@ export const useBookings = () => {
           phoneNumber: booking.phone_number || '',
           startDate: booking.start_datetime,
           endDate: booking.end_datetime,
-          totalRent: Number(booking.total_rent),
+          rent: Number(booking.total_rent),
           advance: Number(booking.advance),
           notes: '',
           paidAmount: paidAmount,
@@ -78,8 +73,8 @@ export const useBookings = () => {
             id: payment.id,
             amount: Number(payment.amount),
             date: payment.payment_date,
-            type: 'balance',
-            description: 'Balance payment'
+            type: payment.payment_type || 'rent',
+            description: payment.description || ''
           }))
         };
       });
@@ -112,7 +107,7 @@ export const useBookings = () => {
           phone_number: bookingData.phoneNumber,
           start_datetime: bookingData.startDate,
           end_datetime: bookingData.endDate,
-          total_rent: bookingData.totalRent,
+          total_rent: bookingData.rent,
           advance: bookingData.advance
         })
         .select()
@@ -120,7 +115,20 @@ export const useBookings = () => {
 
       if (error) throw error;
 
-      await fetchBookings(); // Refresh the list
+      // Add the advance payment if greater than 0
+      if (bookingData.advance > 0) {
+        await supabase
+          .from('payments')
+          .insert({
+            booking_id: data.id,
+            amount: bookingData.advance,
+            payment_date: new Date().toISOString().split('T')[0],
+            payment_type: 'advance',
+            description: 'Initial advance payment'
+          });
+      }
+
+      await fetchBookings();
       toast({
         title: "Success",
         description: "Booking added successfully",
@@ -145,14 +153,14 @@ export const useBookings = () => {
           phone_number: updatedBooking.phoneNumber,
           start_datetime: updatedBooking.startDate,
           end_datetime: updatedBooking.endDate,
-          total_rent: updatedBooking.totalRent,
+          total_rent: updatedBooking.rent,
           advance: updatedBooking.advance
         })
         .eq('id', updatedBooking.id);
 
       if (error) throw error;
 
-      await fetchBookings(); // Refresh the list
+      await fetchBookings();
       toast({
         title: "Success",
         description: "Booking updated successfully",
@@ -169,6 +177,12 @@ export const useBookings = () => {
 
   const deleteBooking = async (bookingId: string) => {
     try {
+      // Delete payments first
+      await supabase
+        .from('payments')
+        .delete()
+        .eq('booking_id', bookingId);
+
       const { error } = await supabase
         .from('bookings')
         .delete()
@@ -176,7 +190,7 @@ export const useBookings = () => {
 
       if (error) throw error;
 
-      await fetchBookings(); // Refresh the list
+      await fetchBookings();
       toast({
         title: "Success",
         description: "Booking deleted successfully",
@@ -191,12 +205,40 @@ export const useBookings = () => {
     }
   };
 
+  const addPayment = async (bookingId: string, amount: number, date: string, description?: string) => {
+    try {
+      await supabase
+        .from('payments')
+        .insert({
+          booking_id: bookingId,
+          amount: amount,
+          payment_date: date,
+          payment_type: 'rent',
+          description: description
+        });
+
+      await fetchBookings();
+      toast({
+        title: "Success",
+        description: "Payment added successfully",
+      });
+    } catch (error) {
+      console.error('Error adding payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add payment",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     bookings,
     loading,
     addBooking,
     updateBooking,
     deleteBooking,
+    addPayment,
     refetch: fetchBookings
   };
 };
