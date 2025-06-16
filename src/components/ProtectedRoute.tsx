@@ -7,6 +7,11 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  // Skip authentication for now - always show the app
+  return <>{children}</>;
+
+  // Original authentication logic (commented out)
+  /*
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -25,4 +30,5 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   return <>{children}</>;
+  */
 };
