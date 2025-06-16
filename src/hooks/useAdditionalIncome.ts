@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,8 +12,8 @@ export interface AdditionalIncome {
 }
 
 export const useAdditionalIncome = () => {
-  const [additionalIncomes, setAdditionalIncomes] = useState<AdditionalIncome[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [additionalIncomes, setAdditionalIncomes] = React.useState<AdditionalIncome[]>([]);
+  const [loading, setLoading] = React.useState(false);
   const { toast } = useToast();
 
   const fetchAdditionalIncomes = async (bookingId: string) => {

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,12 +17,12 @@ export const AdditionalIncomeTab = ({ bookingId }: AdditionalIncomeTabProps) => 
   const { additionalIncomes, loading, fetchAdditionalIncomes, addAdditionalIncome, deleteAdditionalIncome } = useAdditionalIncome();
   const { incomeCategories } = useIncomeCategories();
   
-  const [newIncome, setNewIncome] = useState({
+  const [newIncome, setNewIncome] = React.useState({
     category: "",
     amount: "",
   });
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (bookingId) {
       fetchAdditionalIncomes(bookingId);
     }
