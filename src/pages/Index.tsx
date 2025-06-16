@@ -1,12 +1,35 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState } from "react";
+import { BottomNavigation } from "@/components/BottomNavigation";
+import { BookingsPage } from "@/components/BookingsPage";
+import { ExpensePage } from "@/components/ExpensePage";
+import { ReportsPage } from "@/components/ReportsPage";
+import { MorePage } from "@/components/MorePage";
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState("bookings");
+
+  const renderActivePage = () => {
+    switch (activeTab) {
+      case "bookings":
+        return <BookingsPage />;
+      case "expense":
+        return <ExpensePage />;
+      case "reports":
+        return <ReportsPage />;
+      case "more":
+        return <MorePage />;
+      default:
+        return <BookingsPage />;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="flex-1 pb-20">
+        {renderActivePage()}
       </div>
+      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };
