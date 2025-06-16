@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Crown, Users } from "lucide-react";
+import { Building2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Logo } from "@/components/Logo";
 
 export const AuthPage = () => {
   const { signIn, signUp, loading } = useAuth();
@@ -59,13 +60,7 @@ export const AuthPage = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl mb-4 shadow-lg">
-            <Crown className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
-            Mandap360
-          </h1>
-          <p className="text-gray-600 mt-2">Wedding Hall Management</p>
+          <Logo size="lg" showText={true} />
         </div>
 
         <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
