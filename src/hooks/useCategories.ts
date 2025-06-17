@@ -1,5 +1,7 @@
 
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Category {
   id: string;
@@ -10,52 +12,119 @@ export interface Category {
 
 export const useCategories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  // Load categories from localStorage on mount
-  useEffect(() => {
-    const savedCategories = localStorage.getItem('categories');
-    if (savedCategories) {
-      setCategories(JSON.parse(savedCategories));
-    } else {
-      // Initialize with default categories
-      const defaultCategories: Category[] = [
-        // Income categories
-        { id: "1", name: "Rent", type: "income", createdAt: new Date().toISOString() },
-        { id: "2", name: "EB", type: "income", createdAt: new Date().toISOString() },
-        { id: "3", name: "Gas", type: "income", createdAt: new Date().toISOString() },
-        { id: "4", name: "Decoration", type: "income", createdAt: new Date().toISOString() },
-        { id: "5", name: "Cleaning", type: "income", createdAt: new Date().toISOString() },
-        // Expense categories
-        { id: "6", name: "Office Supplies", type: "expense", createdAt: new Date().toISOString() },
-        { id: "7", name: "Utilities", type: "expense", createdAt: new Date().toISOString() },
-        { id: "8", name: "Maintenance", type: "expense", createdAt: new Date().toISOString() },
-        { id: "9", name: "Marketing", type: "expense", createdAt: new Date().toISOString() },
-        { id: "10", name: "Food & Catering", type: "expense", createdAt: new Date().toISOString() },
-        { id: "11", name: "Transportation", type: "expense", createdAt: new Date().toISOString() },
-        { id: "12", name: "Professional Services", type: "expense", createdAt: new Date().toISOString() },
-        { id: "13", name: "Equipment", type: "expense", createdAt: new Date().toISOString() },
-        { id: "14", name: "Other", type: "expense", createdAt: new Date().toISOString() },
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch income categories
+      const { data: incomeData, error: incomeError } = await supabase
+        .from('income_categories')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (incomeError) throw incomeError;
+
+      // Fetch expense categories
+      const { data: expenseData, error: expenseError } = await supabase
+        .from('expense_categories')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (expenseError) throw expenseError;
+
+      // Transform to unified format
+      const allCategories: Category[] = [
+        ...(incomeData || []).map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          type: "income" as const,
+          createdAt: cat.created_at
+        })),
+        ...(expenseData || []).map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          type: "expense" as const,
+          createdAt: cat.created_at
+        }))
       ];
-      setCategories(defaultCategories);
+
+      setCategories(allCategories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch categories",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-  }, []);
-
-  // Save categories to localStorage whenever categories change
-  useEffect(() => {
-    localStorage.setItem('categories', JSON.stringify(categories));
-  }, [categories]);
-
-  const addCategory = (categoryData: Omit<Category, "id" | "createdAt">) => {
-    const newCategory: Category = {
-      ...categoryData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    setCategories(prev => [...prev, newCategory]);
   };
 
-  const deleteCategory = (categoryId: string) => {
-    setCategories(prev => prev.filter(category => category.id !== categoryId));
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const addCategory = async (categoryData: Omit<Category, "id" | "createdAt">) => {
+    try {
+      const tableName = categoryData.type === 'income' ? 'income_categories' : 'expense_categories';
+      
+      const { data, error } = await supabase
+        .from(tableName)
+        .insert({
+          name: categoryData.name,
+          description: null
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await fetchCategories();
+      toast({
+        title: "Success",
+        description: "Category added successfully",
+      });
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add category",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteCategory = async (categoryId: string) => {
+    try {
+      const category = categories.find(cat => cat.id === categoryId);
+      if (!category) return;
+
+      const tableName = category.type === 'income' ? 'income_categories' : 'expense_categories';
+      
+      const { error } = await supabase
+        .from(tableName)
+        .delete()
+        .eq('id', categoryId);
+
+      if (error) throw error;
+
+      await fetchCategories();
+      toast({
+        title: "Success",
+        description: "Category deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete category",
+        variant: "destructive",
+      });
+    }
   };
 
   const getIncomeCategories = () => categories.filter(cat => cat.type === "income");
@@ -63,9 +132,11 @@ export const useCategories = () => {
 
   return {
     categories,
+    loading,
     addCategory,
     deleteCategory,
     getIncomeCategories,
     getExpenseCategories,
+    refetch: fetchCategories
   };
 };
