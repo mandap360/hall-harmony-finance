@@ -10,34 +10,19 @@ interface EditBookingDialogProps {
   onOpenChange: (open: boolean) => void;
   booking: any;
   onSubmit: (booking: any) => void;
+  onAddPayment?: (bookingId: string, amount: number, date: string, type: string, description?: string) => Promise<void>;
 }
 
-export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: EditBookingDialogProps) => {
+export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit, onAddPayment }: EditBookingDialogProps) => {
   const [activeTab, setActiveTab] = useState("details");
 
-  const handleAddPayment = (paymentData: { amount: string; date: string; type: string; description: string }) => {
-    if (!paymentData.amount || !paymentData.date) return;
+  const handleAddPayment = async (paymentData: { amount: string; date: string; type: string; description: string }) => {
+    if (!paymentData.amount || !paymentData.date || !onAddPayment) return;
 
-    const payment = {
-      id: Date.now().toString(),
-      amount: parseInt(paymentData.amount),
-      date: paymentData.date,
-      type: paymentData.type,
-      description: paymentData.description
-    };
-
-    let updatedBooking = { ...booking };
+    const amount = parseInt(paymentData.amount);
     
-    // If payment type is rent, add it to advance
-    if (paymentData.type === 'rent') {
-      updatedBooking.advance = (booking.advance || 0) + payment.amount;
-    }
-
-    // Add payment to payments array
-    updatedBooking.payments = [...(booking.payments || []), payment];
-    updatedBooking.paidAmount = (booking.paidAmount || 0) + payment.amount;
-
-    onSubmit(updatedBooking);
+    // Add payment to database
+    await onAddPayment(booking.id, amount, paymentData.date, paymentData.type, paymentData.description);
   };
 
   return (
