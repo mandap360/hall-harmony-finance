@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -42,7 +43,7 @@ export const useBookings = () => {
         throw bookingsError;
       }
 
-      // Fetch both payments and additional income
+      // Fetch payments from the payments table only
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
         .select('*');
@@ -51,6 +52,7 @@ export const useBookings = () => {
         console.error('Error fetching payments:', paymentsError);
       }
 
+      // Fetch additional income from additional_income table for display purposes
       const { data: additionalIncomeData, error: additionalIncomeError } = await supabase
         .from('additional_income')
         .select('*');
@@ -64,24 +66,44 @@ export const useBookings = () => {
       console.log("Additional income data:", additionalIncomeData);
 
       const transformedBookings: Booking[] = (bookingsData || []).map(booking => {
+        // Get all payments for this booking from the payments table
         const bookingPayments = (paymentsData || []).filter(payment => payment.booking_id === booking.id);
         
-        // Calculate advance from rent payments only
-        const rentPayments = bookingPayments.filter(payment => payment.payment_type === 'rent');
-        const advanceFromPayments = rentPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+        // Calculate advance from advance/rent payments
+        const advancePayments = bookingPayments.filter(payment => 
+          payment.payment_type === 'advance' || payment.payment_type === 'rent'
+        );
+        const advanceFromPayments = advancePayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
         
-        // Get additional income from payment records with type 'additional'
+        // Get additional income from payments table (payments with type 'additional')
         const additionalPayments = bookingPayments.filter(payment => payment.payment_type === 'additional');
         
-        const allPayments = [
-          ...bookingPayments.map(payment => ({
-            id: payment.id,
-            amount: Number(payment.amount),
-            date: payment.payment_date,
-            type: payment.payment_type || 'rent',
-            description: payment.description || ''
-          }))
-        ];
+        // Calculate total additional income from both sources
+        const additionalIncomeFromCategories = (additionalIncomeData || [])
+          .filter(income => income.booking_id === booking.id)
+          .reduce((sum, income) => sum + Number(income.amount), 0);
+        
+        const additionalIncomeFromPayments = additionalPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+
+        // Transform all payments for display
+        const allPayments = bookingPayments.map(payment => ({
+          id: payment.id,
+          amount: Number(payment.amount),
+          date: payment.payment_date,
+          type: payment.payment_type || 'rent',
+          description: payment.description || ''
+        }));
+
+        // Add a virtual payment entry for category-based additional income for display
+        if (additionalIncomeFromCategories > 0) {
+          allPayments.push({
+            id: `categories-${booking.id}`,
+            amount: additionalIncomeFromCategories,
+            date: new Date().toISOString().split('T')[0],
+            type: 'additional',
+            description: 'Income from categories'
+          });
+        }
 
         const totalPaidAmount = allPayments.reduce((sum, payment) => sum + payment.amount, 0);
 
@@ -93,7 +115,7 @@ export const useBookings = () => {
           startDate: booking.start_datetime,
           endDate: booking.end_datetime,
           rent: Number(booking.total_rent),
-          advance: Math.max(Number(booking.advance), advanceFromPayments), // Use the higher value
+          advance: Math.max(Number(booking.advance), advanceFromPayments),
           notes: '',
           paidAmount: totalPaidAmount,
           payments: allPayments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -135,6 +157,19 @@ export const useBookings = () => {
         .single();
 
       if (error) throw error;
+
+      // If there's an advance amount, create a payment record
+      if (bookingData.advance > 0) {
+        await supabase
+          .from('payments')
+          .insert({
+            booking_id: data.id,
+            amount: bookingData.advance,
+            payment_date: new Date().toISOString().split('T')[0],
+            payment_type: 'advance',
+            description: 'Initial advance payment'
+          });
+      }
 
       await fetchBookings();
       toast({

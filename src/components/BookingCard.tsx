@@ -27,7 +27,7 @@ export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => 
     });
   };
 
-  // Calculate additional income from payments
+  // Calculate additional income from all additional payments (including categories)
   const additionalIncome = (booking.payments || [])
     .filter(payment => payment.type === 'additional')
     .reduce((sum, payment) => sum + payment.amount, 0);

@@ -24,6 +24,32 @@ export const PaymentHistoryCard = ({ payments }: PaymentHistoryCardProps) => {
     );
   }
 
+  const getPaymentTypeLabel = (type: string) => {
+    switch (type) {
+      case 'rent':
+        return 'Rent Payment';
+      case 'advance':
+        return 'Advance Payment';
+      case 'additional':
+        return 'Additional Income';
+      default:
+        return 'Payment';
+    }
+  };
+
+  const getPaymentTypeColor = (type: string) => {
+    switch (type) {
+      case 'rent':
+        return 'text-blue-600';
+      case 'advance':
+        return 'text-green-600';
+      case 'additional':
+        return 'text-purple-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
   return (
     <Card className="p-4 border-amber-200">
       <h3 className="font-semibold mb-3 text-amber-800">Payment History</h3>
@@ -31,12 +57,12 @@ export const PaymentHistoryCard = ({ payments }: PaymentHistoryCardProps) => {
         {payments.map((payment) => (
           <div key={payment.id} className="flex justify-between items-center p-2 bg-amber-50 rounded border border-amber-100">
             <div>
-              <div className="flex items-center text-green-600">
+              <div className={`flex items-center ${getPaymentTypeColor(payment.type)}`}>
                 <IndianRupee className="h-4 w-4" />
                 <span className="font-semibold">{payment.amount}</span>
               </div>
               <p className="text-xs text-gray-500">
-                {new Date(payment.date).toLocaleDateString('en-IN')} • {payment.type === 'rent' ? 'Rent' : 'Additional Income'}
+                {new Date(payment.date).toLocaleDateString('en-IN')} • {getPaymentTypeLabel(payment.type)}
               </p>
               {payment.description && (
                 <p className="text-xs text-gray-600">{payment.description}</p>

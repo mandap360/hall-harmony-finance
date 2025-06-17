@@ -51,51 +51,6 @@ export type Database = {
           },
         ]
       }
-      balance_payments: {
-        Row: {
-          amount: number
-          booking_id: string | null
-          created_at: string | null
-          id: string
-          organization_id: string | null
-          payment_date: string
-          payment_type: string | null
-        }
-        Insert: {
-          amount: number
-          booking_id?: string | null
-          created_at?: string | null
-          id?: string
-          organization_id?: string | null
-          payment_date: string
-          payment_type?: string | null
-        }
-        Update: {
-          amount?: number
-          booking_id?: string | null
-          created_at?: string | null
-          id?: string
-          organization_id?: string | null
-          payment_date?: string
-          payment_type?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "balance_payments_booking_id_fkey"
-            columns: ["booking_id"]
-            isOneToOne: false
-            referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "balance_payments_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       bookings: {
         Row: {
           advance: number
