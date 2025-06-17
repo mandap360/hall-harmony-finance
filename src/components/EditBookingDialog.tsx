@@ -34,7 +34,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const [newPayment, setNewPayment] = useState({
     amount: "",
     date: "",
-    type: "balance",
+    type: "rent",
     description: ""
   });
 
@@ -87,24 +87,33 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       description: newPayment.description
     };
 
-    const updatedBooking = {
-      ...booking,
-      payments: [...(booking.payments || []), payment],
-      paidAmount: (booking.paidAmount || 0) + payment.amount
-    };
+    let updatedBooking = { ...booking };
+    
+    // If payment type is rent, add it to advance
+    if (newPayment.type === 'rent') {
+      updatedBooking.advance = (booking.advance || 0) + payment.amount;
+    }
+
+    // Add payment to payments array
+    updatedBooking.payments = [...(booking.payments || []), payment];
+    updatedBooking.paidAmount = (booking.paidAmount || 0) + payment.amount;
 
     onSubmit(updatedBooking);
     
     setNewPayment({
       amount: "",
       date: "",
-      type: "balance",
+      type: "rent",
       description: ""
     });
   };
 
-  const totalPaid = (booking.paidAmount || 0);
-  const remainingBalance = booking.rent - booking.advance - totalPaid;
+  // Calculate additional income from payments
+  const additionalIncome = (booking.payments || [])
+    .filter(payment => payment.type === 'additional')
+    .reduce((sum, payment) => sum + payment.amount, 0);
+
+  const remainingBalance = booking.rent - booking.advance;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -260,6 +269,13 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
             <Card className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
+                  <div className="flex items-center justify-center text-blue-600 mb-1">
+                    <IndianRupee className="h-4 w-4" />
+                    <span className="font-semibold">{booking.rent}</span>
+                  </div>
+                  <p className="text-xs text-gray-500">Rent</p>
+                </div>
+                <div>
                   <div className="flex items-center justify-center text-green-600 mb-1">
                     <IndianRupee className="h-4 w-4" />
                     <span className="font-semibold">{booking.advance}</span>
@@ -267,18 +283,11 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                   <p className="text-xs text-gray-500">Advance</p>
                 </div>
                 <div>
-                  <div className="flex items-center justify-center text-blue-600 mb-1">
+                  <div className="flex items-center justify-center text-purple-600 mb-1">
                     <IndianRupee className="h-4 w-4" />
-                    <span className="font-semibold">{totalPaid}</span>
+                    <span className="font-semibold">{additionalIncome}</span>
                   </div>
-                  <p className="text-xs text-gray-500">Paid</p>
-                </div>
-                <div>
-                  <div className="flex items-center justify-center text-orange-600 mb-1">
-                    <IndianRupee className="h-4 w-4" />
-                    <span className="font-semibold">{remainingBalance}</span>
-                  </div>
-                  <p className="text-xs text-gray-500">Remaining</p>
+                  <p className="text-xs text-gray-500">Additional Income</p>
                 </div>
               </div>
             </Card>
@@ -318,8 +327,8 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                     onChange={(e) => setNewPayment(prev => ({ ...prev, type: e.target.value }))}
                     className="w-full p-2 border border-amber-200 rounded-md focus:border-amber-500"
                   >
-                    <option value="balance">Balance Rent</option>
-                    <option value="additional">Additional (Gas/EB)</option>
+                    <option value="rent">Rent</option>
+                    <option value="additional">Additional Income</option>
                   </select>
                 </div>
                 

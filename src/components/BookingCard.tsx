@@ -26,7 +26,10 @@ export const BookingCard = ({ booking, onEdit }: BookingCardProps) => {
     });
   };
 
-  const remainingBalance = booking.rent - (booking.paidAmount || 0);
+  // Calculate additional income from payments
+  const additionalIncome = (booking.payments || [])
+    .filter(payment => payment.type === 'additional')
+    .reduce((sum, payment) => sum + payment.amount, 0);
 
   return (
     <Card className="p-4 hover:shadow-md transition-shadow duration-200">
@@ -64,27 +67,27 @@ export const BookingCard = ({ booking, onEdit }: BookingCardProps) => {
         
         <div className="grid grid-cols-3 gap-4 mt-4 pt-3 border-t border-gray-100">
           <div className="text-center">
-            <div className="flex items-center justify-center text-green-600 mb-1">
-              <IndianRupee className="h-4 w-4" />
-              <span className="text-sm font-semibold">{booking.paidAmount || 0}</span>
-            </div>
-            <p className="text-xs text-gray-500">Paid</p>
-          </div>
-          
-          <div className="text-center">
-            <div className="flex items-center justify-center text-orange-600 mb-1">
-              <IndianRupee className="h-4 w-4" />
-              <span className="text-sm font-semibold">{remainingBalance}</span>
-            </div>
-            <p className="text-xs text-gray-500">Remaining</p>
-          </div>
-          
-          <div className="text-center">
             <div className="flex items-center justify-center text-blue-600 mb-1">
               <IndianRupee className="h-4 w-4" />
               <span className="text-sm font-semibold">{booking.rent}</span>
             </div>
             <p className="text-xs text-gray-500">Rent</p>
+          </div>
+          
+          <div className="text-center">
+            <div className="flex items-center justify-center text-green-600 mb-1">
+              <IndianRupee className="h-4 w-4" />
+              <span className="text-sm font-semibold">{booking.advance || 0}</span>
+            </div>
+            <p className="text-xs text-gray-500">Advance</p>
+          </div>
+          
+          <div className="text-center">
+            <div className="flex items-center justify-center text-purple-600 mb-1">
+              <IndianRupee className="h-4 w-4" />
+              <span className="text-sm font-semibold">{additionalIncome}</span>
+            </div>
+            <p className="text-xs text-gray-500">Additional Income</p>
           </div>
         </div>
       </div>

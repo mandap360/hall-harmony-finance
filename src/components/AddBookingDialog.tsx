@@ -21,8 +21,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
     startTime: "",
     endDate: "",
     endTime: "",
-    totalRent: "",
-    advance: "",
+    rent: "",
     notes: ""
   });
 
@@ -36,8 +35,8 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
       phoneNumber: formData.phoneNumber,
       startDate: `${formData.startDate}T${formData.startTime}`,
       endDate: `${formData.endDate}T${formData.endTime}`,
-      totalRent: parseInt(formData.totalRent),
-      advance: parseInt(formData.advance),
+      rent: parseInt(formData.rent),
+      advance: 0, // Default advance to 0
       notes: formData.notes,
       paidAmount: 0,
       payments: []
@@ -54,8 +53,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
       startTime: "",
       endDate: "",
       endTime: "",
-      totalRent: "",
-      advance: "",
+      rent: "",
       notes: ""
     });
   };
@@ -148,27 +146,15 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="totalRent">Total Rent *</Label>
-              <Input
-                id="totalRent"
-                type="number"
-                value={formData.totalRent}
-                onChange={(e) => handleChange("totalRent", e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="advance">Advance *</Label>
-              <Input
-                id="advance"
-                type="number"
-                value={formData.advance}
-                onChange={(e) => handleChange("advance", e.target.value)}
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="rent">Rent *</Label>
+            <Input
+              id="rent"
+              type="number"
+              value={formData.rent}
+              onChange={(e) => handleChange("rent", e.target.value)}
+              required
+            />
           </div>
 
           <div className="space-y-2">

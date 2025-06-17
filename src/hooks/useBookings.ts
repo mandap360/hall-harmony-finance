@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -114,19 +113,6 @@ export const useBookings = () => {
         .single();
 
       if (error) throw error;
-
-      // Add the advance payment if greater than 0
-      if (bookingData.advance > 0) {
-        await supabase
-          .from('payments')
-          .insert({
-            booking_id: data.id,
-            amount: bookingData.advance,
-            payment_date: new Date().toISOString().split('T')[0],
-            payment_type: 'advance',
-            description: 'Initial advance payment'
-          });
-      }
 
       await fetchBookings();
       toast({
