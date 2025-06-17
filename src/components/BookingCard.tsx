@@ -6,9 +6,10 @@ import { Card } from "@/components/ui/card";
 interface BookingCardProps {
   booking: any;
   onEdit: (booking: any) => void;
+  onDelete: (bookingId: any) => void;
 }
 
-export const BookingCard = ({ booking, onEdit }: BookingCardProps) => {
+export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IN', {
