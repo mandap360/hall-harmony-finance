@@ -77,7 +77,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                 : "text-gray-500 hover:text-amber-600"
             }`}
           >
-            Additional Income
+            Categories
           </button>
         </div>
 
@@ -97,7 +97,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
         )}
 
         {activeTab === "additional-income" && booking && (
-          <AdditionalIncomeTab bookingId={booking.id} />
+          <AdditionalIncomeTab bookingId={booking.id} booking={booking} />
         )}
       </DialogContent>
     </Dialog>

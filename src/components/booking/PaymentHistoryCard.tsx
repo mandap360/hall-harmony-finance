@@ -14,7 +14,14 @@ interface PaymentHistoryCardProps {
 
 export const PaymentHistoryCard = ({ payments }: PaymentHistoryCardProps) => {
   if (!payments || payments.length === 0) {
-    return null;
+    return (
+      <Card className="p-4 border-amber-200">
+        <h3 className="font-semibold mb-3 text-amber-800">Payment History</h3>
+        <div className="text-center py-3 text-gray-500">
+          <p className="text-sm">No payments added yet</p>
+        </div>
+      </Card>
+    );
   }
 
   return (
@@ -29,7 +36,7 @@ export const PaymentHistoryCard = ({ payments }: PaymentHistoryCardProps) => {
                 <span className="font-semibold">{payment.amount}</span>
               </div>
               <p className="text-xs text-gray-500">
-                {new Date(payment.date).toLocaleDateString('en-IN')} • {payment.type}
+                {new Date(payment.date).toLocaleDateString('en-IN')} • {payment.type === 'rent' ? 'Rent' : 'Additional Income'}
               </p>
               {payment.description && (
                 <p className="text-xs text-gray-600">{payment.description}</p>

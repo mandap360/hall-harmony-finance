@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -66,21 +65,14 @@ export const useBookings = () => {
 
       const transformedBookings: Booking[] = (bookingsData || []).map(booking => {
         const bookingPayments = (paymentsData || []).filter(payment => payment.booking_id === booking.id);
-        const bookingAdditionalIncome = (additionalIncomeData || []).filter(income => income.booking_id === booking.id);
         
         // Calculate advance from rent payments only
         const rentPayments = bookingPayments.filter(payment => payment.payment_type === 'rent');
         const advanceFromPayments = rentPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
         
-        // Add additional income as payments for display
-        const additionalIncomePayments = bookingAdditionalIncome.map(income => ({
-          id: `income_${income.id}`,
-          amount: Number(income.amount),
-          date: income.created_at,
-          type: 'additional',
-          description: income.category
-        }));
-
+        // Get additional income from payment records with type 'additional'
+        const additionalPayments = bookingPayments.filter(payment => payment.payment_type === 'additional');
+        
         const allPayments = [
           ...bookingPayments.map(payment => ({
             id: payment.id,
@@ -88,8 +80,7 @@ export const useBookings = () => {
             date: payment.payment_date,
             type: payment.payment_type || 'rent',
             description: payment.description || ''
-          })),
-          ...additionalIncomePayments
+          }))
         ];
 
         const totalPaidAmount = allPayments.reduce((sum, payment) => sum + payment.amount, 0);
