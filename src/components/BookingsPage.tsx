@@ -12,7 +12,6 @@ export const BookingsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
-  const [showAllBookings, setShowAllBookings] = useState(false);
   const { bookings, loading, addBooking, updateBooking } = useBookings();
 
   // Get current Indian Financial Year (April to March)
@@ -33,31 +32,26 @@ export const BookingsPage = () => {
   const filteredBookings = useMemo(() => {
     console.log("All bookings:", bookings);
     console.log("Current FY:", currentFY);
-    console.log("Show all bookings:", showAllBookings);
 
-    let filtered = bookings;
-
-    // Apply FY filter only if not showing all bookings
-    if (!showAllBookings) {
-      filtered = bookings.filter((booking) => {
-        const bookingDate = new Date(booking.startDate);
-        const bookingYear = bookingDate.getFullYear();
-        const bookingMonth = bookingDate.getMonth();
-        
-        console.log(`Booking ${booking.eventName}: date=${bookingDate.toISOString()}, year=${bookingYear}, month=${bookingMonth}`);
-        
-        // Check if booking is in current FY
-        let isInCurrentFY = false;
-        if (bookingMonth >= 3) { // April onwards (month is 0-indexed)
-          isInCurrentFY = bookingYear === currentFY.startYear;
-        } else { // January to March
-          isInCurrentFY = bookingYear === currentFY.endYear;
-        }
-        
-        console.log(`Booking ${booking.eventName}: isInCurrentFY=${isInCurrentFY}`);
-        return isInCurrentFY;
-      });
-    }
+    // Filter by current FY only
+    let filtered = bookings.filter((booking) => {
+      const bookingDate = new Date(booking.startDate);
+      const bookingYear = bookingDate.getFullYear();
+      const bookingMonth = bookingDate.getMonth();
+      
+      console.log(`Booking ${booking.eventName}: date=${bookingDate.toISOString()}, year=${bookingYear}, month=${bookingMonth}`);
+      
+      // Check if booking is in current FY
+      let isInCurrentFY = false;
+      if (bookingMonth >= 3) { // April onwards (month is 0-indexed)
+        isInCurrentFY = bookingYear === currentFY.startYear;
+      } else { // January to March
+        isInCurrentFY = bookingYear === currentFY.endYear;
+      }
+      
+      console.log(`Booking ${booking.eventName}: isInCurrentFY=${isInCurrentFY}`);
+      return isInCurrentFY;
+    });
 
     console.log("Filtered by FY:", filtered);
 
@@ -73,7 +67,7 @@ export const BookingsPage = () => {
 
     console.log("Final filtered bookings:", filtered);
     return filtered.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-  }, [bookings, searchQuery, currentFY, showAllBookings]);
+  }, [bookings, searchQuery, currentFY]);
 
   const handleAddBooking = (bookingData) => {
     addBooking(bookingData);
@@ -121,22 +115,11 @@ export const BookingsPage = () => {
         />
       </div>
 
-      {/* Filter Toggle */}
-      <div className="flex justify-center">
-        <Button
-          variant={showAllBookings ? "outline" : "default"}
-          onClick={() => setShowAllBookings(!showAllBookings)}
-          className="text-sm"
-        >
-          {showAllBookings ? `Show Current FY Only (${filteredBookings.length})` : `Show All Bookings (${bookings.length})`}
-        </Button>
-      </div>
-
       {/* Bookings List */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-800">
-            {showAllBookings ? `All Bookings (${filteredBookings.length})` : `Current FY Bookings (${filteredBookings.length})`}
+            Current FY Bookings ({filteredBookings.length})
           </h2>
         </div>
         
@@ -146,20 +129,9 @@ export const BookingsPage = () => {
             <p className="text-gray-500">
               {bookings.length === 0 
                 ? "No bookings found in database" 
-                : showAllBookings 
-                  ? "No bookings match your search" 
-                  : "No bookings found for current FY"
+                : "No bookings found for current FY"
               }
             </p>
-            {bookings.length > 0 && !showAllBookings && (
-              <Button
-                variant="outline"
-                onClick={() => setShowAllBookings(true)}
-                className="mt-2"
-              >
-                Show All Bookings
-              </Button>
-            )}
           </div>
         ) : (
           <div className="space-y-3">
