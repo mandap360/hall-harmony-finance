@@ -112,6 +112,34 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
       return;
     }
     
+    // Check for duplicate categories in current breakdown
+    const duplicatesInBreakdown = breakdown.filter((item, index) => 
+      breakdown.findIndex(b => b.name === item.name) !== index
+    );
+    
+    if (duplicatesInBreakdown.length > 0) {
+      toast({
+        title: "Duplicate category",
+        description: `Category "${duplicatesInBreakdown[0].name}" appears multiple times in your current selection`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check for categories already saved
+    const alreadySavedCategories = breakdown.filter(item => 
+      savedCategoryBreakdown.some(saved => saved.category === item.name)
+    );
+    
+    if (alreadySavedCategories.length > 0) {
+      toast({
+        title: "Category already added",
+        description: `Category "${alreadySavedCategories[0].name}" has already been added for this booking`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Check if total exceeds available amount
     if (allocatedAmount > availableToAllocate) {
       toast({
@@ -135,7 +163,18 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
         .from('additional_income')
         .insert(categoriesToInsert);
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23505') {
+          // Handle unique constraint violation with more specific error
+          toast({
+            title: "Category already exists",
+            description: "One or more of these categories have already been added for this booking",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
       
       // Update saved breakdown
       const newSavedItems = breakdown.map(item => ({
