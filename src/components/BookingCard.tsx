@@ -1,5 +1,5 @@
 
-import { Calendar, User, Phone, IndianRupee, Edit } from "lucide-react";
+import { Calendar, User, Phone, IndianRupee, Edit, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -25,6 +25,12 @@ export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => 
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const formatTimeRange = (startDate: string, endDate: string) => {
+    const start = formatTime(startDate);
+    const end = formatTime(endDate);
+    return `${start} - ${end}`;
   };
 
   // Calculate additional income from all additional payments (including categories)
@@ -62,7 +68,14 @@ export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => 
         <div className="flex items-center text-gray-700">
           <Calendar className="h-4 w-4 mr-2" />
           <span className="text-sm">
-            {formatDate(booking.startDate)} at {formatTime(booking.startDate)}
+            {formatDate(booking.startDate)}
+          </span>
+        </div>
+        
+        <div className="flex items-center text-gray-700">
+          <Clock className="h-4 w-4 mr-2" />
+          <span className="text-sm">
+            {formatTimeRange(booking.startDate, booking.endDate)}
           </span>
         </div>
         

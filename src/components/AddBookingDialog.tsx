@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useBookings } from "@/hooks/useBookings";
+import { useToast } from "@/hooks/use-toast";
 
 interface AddBookingDialogProps {
   open: boolean;
@@ -13,6 +15,8 @@ interface AddBookingDialogProps {
 }
 
 export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDialogProps) => {
+  const { bookings } = useBookings();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     eventName: "",
     clientName: "",
@@ -25,16 +29,52 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
     notes: ""
   });
 
+  const checkForOverlap = (newStart: string, newEnd: string) => {
+    const newStartTime = new Date(newStart).getTime();
+    const newEndTime = new Date(newEnd).getTime();
+
+    return bookings.some(booking => {
+      const existingStart = new Date(booking.startDate).getTime();
+      const existingEnd = new Date(booking.endDate).getTime();
+      
+      // Check if there's any overlap
+      return (newStartTime < existingEnd && newEndTime > existingStart);
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const startDateTime = `${formData.startDate}T${formData.startTime}`;
+    const endDateTime = `${formData.endDate}T${formData.endTime}`;
+    
+    // Validate that end time is after start time
+    if (new Date(endDateTime) <= new Date(startDateTime)) {
+      toast({
+        title: "Invalid time range",
+        description: "End date and time must be after start date and time",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for overlapping bookings
+    if (checkForOverlap(startDateTime, endDateTime)) {
+      toast({
+        title: "Booking conflict",
+        description: "This time slot overlaps with an existing booking. Please choose a different time.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const bookingData = {
       id: Date.now().toString(),
       eventName: formData.eventName,
       clientName: formData.clientName,
       phoneNumber: formData.phoneNumber,
-      startDate: `${formData.startDate}T${formData.startTime}`,
-      endDate: `${formData.endDate}T${formData.endTime}`,
+      startDate: startDateTime,
+      endDate: endDateTime,
       rent: parseInt(formData.rent),
       advance: 0, // Default advance to 0
       notes: formData.notes,

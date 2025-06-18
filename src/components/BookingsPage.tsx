@@ -1,7 +1,9 @@
 
-import { useState } from "react";
-import { Plus } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { EditBookingDialog } from "@/components/EditBookingDialog";
 import { BookingCard } from "@/components/BookingCard";
@@ -11,6 +13,39 @@ export const BookingsPage = () => {
   const { bookings, loading, addBooking, updateBooking, deleteBooking, addPayment } = useBookings();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("");
+
+  // Generate month options for the current year
+  const monthOptions = useMemo(() => {
+    const months = [];
+    const currentYear = new Date().getFullYear();
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(currentYear, i, 1);
+      const monthName = date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+      const monthValue = `${currentYear}-${String(i + 1).padStart(2, '0')}`;
+      months.push({ label: monthName, value: monthValue });
+    }
+    return months;
+  }, []);
+
+  // Filter bookings based on search term and month
+  const filteredBookings = useMemo(() => {
+    return bookings.filter(booking => {
+      // Search filter
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = !searchTerm || 
+        booking.eventName.toLowerCase().includes(searchLower) ||
+        booking.clientName.toLowerCase().includes(searchLower) ||
+        booking.phoneNumber.toLowerCase().includes(searchLower);
+
+      // Month filter
+      const matchesMonth = !selectedMonth || 
+        booking.startDate.startsWith(selectedMonth);
+
+      return matchesSearch && matchesMonth;
+    });
+  }, [bookings, searchTerm, selectedMonth]);
 
   const handleEditBooking = (booking) => {
     setEditingBooking(booking);
@@ -51,8 +86,34 @@ export const BookingsPage = () => {
           </Button>
         </div>
 
+        {/* Search and Filter Section */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search by client name, event name, or phone number..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Filter by month" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All months</SelectItem>
+              {monthOptions.map((month) => (
+                <SelectItem key={month.value} value={month.value}>
+                  {month.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {bookings.map((booking) => (
+          {filteredBookings.map((booking) => (
             <BookingCard
               key={booking.id}
               booking={booking}
@@ -62,10 +123,19 @@ export const BookingsPage = () => {
           ))}
         </div>
 
-        {bookings.length === 0 && (
+        {filteredBookings.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No bookings found for this financial year</p>
-            <p className="text-gray-400 text-sm mt-2">Click "Add Booking" to create your first booking</p>
+            {searchTerm || selectedMonth ? (
+              <div>
+                <p className="text-gray-500 text-lg">No bookings found matching your criteria</p>
+                <p className="text-gray-400 text-sm mt-2">Try adjusting your search or filter settings</p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-gray-500 text-lg">No bookings found for this financial year</p>
+                <p className="text-gray-400 text-sm mt-2">Click "Add Booking" to create your first booking</p>
+              </div>
+            )}
           </div>
         )}
       </div>
