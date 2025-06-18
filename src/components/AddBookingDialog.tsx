@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -37,8 +36,21 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
       const existingStart = new Date(booking.startDate).getTime();
       const existingEnd = new Date(booking.endDate).getTime();
       
-      // Check if there's any overlap
-      return (newStartTime < existingEnd && newEndTime > existingStart);
+      // Check if there's any overlap - more precise overlap detection
+      // Overlap occurs if: newStart < existingEnd AND newEnd > existingStart
+      const hasOverlap = newStartTime < existingEnd && newEndTime > existingStart;
+      
+      if (hasOverlap) {
+        console.log('Overlap detected:', {
+          newStart: new Date(newStart),
+          newEnd: new Date(newEnd),
+          existingStart: new Date(booking.startDate),
+          existingEnd: new Date(booking.endDate),
+          booking: booking.eventName
+        });
+      }
+      
+      return hasOverlap;
     });
   };
 

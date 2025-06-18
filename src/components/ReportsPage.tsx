@@ -4,10 +4,42 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 import { useBookings } from "@/hooks/useBookings";
 import { useExpenses } from "@/hooks/useExpenses";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 export const ReportsPage = () => {
   const { bookings } = useBookings();
   const { expenses } = useExpenses();
+  const [additionalIncomeCategories, setAdditionalIncomeCategories] = useState<any[]>([]);
+
+  // Fetch additional income categories breakdown
+  useEffect(() => {
+    const fetchAdditionalIncomeCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('additional_income')
+          .select('category, amount');
+        
+        if (error) throw error;
+        
+        // Group by category and sum amounts
+        const categoryTotals = (data || []).reduce((acc, item) => {
+          const category = item.category;
+          acc[category] = (acc[category] || 0) + Number(item.amount);
+          return acc;
+        }, {} as Record<string, number>);
+        
+        setAdditionalIncomeCategories(Object.entries(categoryTotals).map(([category, amount]) => ({
+          category,
+          amount
+        })));
+      } catch (error) {
+        console.error('Error fetching additional income categories:', error);
+      }
+    };
+    
+    fetchAdditionalIncomeCategories();
+  }, []);
 
   // Get current Indian Financial Year (April to March)
   const getCurrentFY = () => {
@@ -157,12 +189,15 @@ export const ReportsPage = () => {
             <span className="text-gray-600">Rent Payments Received:</span>
             <span className="font-semibold">₹{financialData.incomeBreakdown.rent.toLocaleString()}</span>
           </div>
-          {financialData.incomeBreakdown.additionalCategory > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Additional Income (Category):</span>
-              <span className="font-semibold">₹{financialData.incomeBreakdown.additionalCategory.toLocaleString()}</span>
+          
+          {/* Show individual income categories */}
+          {additionalIncomeCategories.map((category) => (
+            <div key={category.category} className="flex justify-between items-center">
+              <span className="text-gray-600">{category.category}:</span>
+              <span className="font-semibold">₹{category.amount.toLocaleString()}</span>
             </div>
-          )}
+          ))}
+          
           {financialData.incomeBreakdown.additionalAdvance > 0 && (
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Additional Income (Advance):</span>

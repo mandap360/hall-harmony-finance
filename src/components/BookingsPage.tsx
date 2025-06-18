@@ -14,24 +14,42 @@ export const BookingsPage = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [selectedMonth, setSelectedMonth] = useState("upcoming");
 
-  // Generate month options for the current year
+  // Generate month options for the current financial year (April to March)
   const monthOptions = useMemo(() => {
-    const months = [];
-    const currentYear = new Date().getFullYear();
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(currentYear, i, 1);
-      const monthName = date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
-      const monthValue = `${currentYear}-${String(i + 1).padStart(2, '0')}`;
-      months.push({ label: monthName, value: monthValue });
-    }
+    const months = [
+      { label: "Upcoming", value: "upcoming" }
+    ];
+    
+    // Get current financial year (April to March)
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    // If we're in Jan-Mar, FY started previous year, otherwise current year
+    const fyStartYear = currentMonth >= 3 ? currentYear : currentYear - 1;
+    
+    // Add months from April to March
+    const monthNames = [
+      "April", "May", "June", "July", "August", "September",
+      "October", "November", "December", "January", "February", "March"
+    ];
+    
+    monthNames.forEach((monthName, index) => {
+      // April-December are in fyStartYear, Jan-March are in fyStartYear+1
+      const year = index < 9 ? fyStartYear : fyStartYear + 1;
+      const monthNumber = index < 9 ? index + 4 : index - 8; // April=4, May=5, ..., Jan=1, Feb=2, Mar=3
+      const monthValue = `${year}-${String(monthNumber).padStart(2, '0')}`;
+      months.push({ label: `${monthName} ${year}`, value: monthValue });
+    });
+    
     return months;
   }, []);
 
   // Filter bookings based on search term and month
   const filteredBookings = useMemo(() => {
-    return bookings.filter(booking => {
+    let filtered = bookings.filter(booking => {
       // Search filter
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = !searchTerm || 
@@ -39,12 +57,23 @@ export const BookingsPage = () => {
         booking.clientName.toLowerCase().includes(searchLower) ||
         booking.phoneNumber.toLowerCase().includes(searchLower);
 
-      // Month filter
-      const matchesMonth = selectedMonth === "all" || 
-        booking.startDate.startsWith(selectedMonth);
-
-      return matchesSearch && matchesMonth;
+      return matchesSearch;
     });
+
+    // Month/upcoming filter
+    if (selectedMonth === "upcoming") {
+      const now = new Date();
+      filtered = filtered
+        .filter(booking => new Date(booking.startDate) >= now)
+        .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+        .slice(0, 10); // Show only 10 upcoming bookings
+    } else {
+      filtered = filtered.filter(booking => 
+        booking.startDate.startsWith(selectedMonth)
+      );
+    }
+
+    return filtered;
   }, [bookings, searchTerm, selectedMonth]);
 
   const handleEditBooking = (booking) => {
@@ -91,7 +120,6 @@ export const BookingsPage = () => {
               <SelectValue placeholder="Filter by month" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All months</SelectItem>
               {monthOptions.map((month) => (
                 <SelectItem key={month.value} value={month.value}>
                   {month.label}
@@ -114,14 +142,14 @@ export const BookingsPage = () => {
 
         {filteredBookings.length === 0 && (
           <div className="text-center py-12">
-            {searchTerm || selectedMonth !== "all" ? (
+            {searchTerm || selectedMonth !== "upcoming" ? (
               <div>
                 <p className="text-gray-500 text-lg">No bookings found matching your criteria</p>
                 <p className="text-gray-400 text-sm mt-2">Try adjusting your search or filter settings</p>
               </div>
             ) : (
               <div>
-                <p className="text-gray-500 text-lg">No bookings found for this financial year</p>
+                <p className="text-gray-500 text-lg">No upcoming bookings found</p>
                 <p className="text-gray-400 text-sm mt-2">Click the + button to create your first booking</p>
               </div>
             )}
