@@ -69,12 +69,17 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
   const allocatedAmount = breakdown.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
   const savedAmount = savedCategoryBreakdown.reduce((sum, item) => sum + Number(item.amount), 0);
   const totalAllocated = savedAmount + allocatedAmount;
-  const remainingAmount = additionalIncome - totalAllocated;
+  
+  // Available to allocate: what can still be allocated (constant during input)
+  const availableToAllocate = additionalIncome - savedAmount;
+  
+  // Remaining to allocate: what's left after current input (updates as user types)
+  const remainingToAllocate = availableToAllocate - allocatedAmount;
   
   // Check if there's remaining amount to allocate OR if there are unsaved categories
   const shouldShowAllocationSection = additionalIncome > 0 && (
     savedCategoryBreakdown.length === 0 || 
-    remainingAmount > 0 || 
+    availableToAllocate > 0 || 
     breakdown.length > 0
   );
   
@@ -107,11 +112,11 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
       return;
     }
     
-    // Check if total exceeds remaining amount
-    if (allocatedAmount > remainingAmount) {
+    // Check if total exceeds available amount
+    if (allocatedAmount > availableToAllocate) {
       toast({
-        title: "Amount exceeds remaining",
-        description: `You can only allocate ₹${remainingAmount.toLocaleString()} more`,
+        title: "Amount exceeds available",
+        description: `You can only allocate ₹${availableToAllocate.toLocaleString()} more`,
         variant: "destructive",
       });
       return;
@@ -176,12 +181,12 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
               <p className="text-xs text-green-600 mt-2">
                 ✓ Categories allocated: ₹{savedAmount.toLocaleString()}
               </p>
-              {remainingAmount > 0 && (
+              {availableToAllocate > 0 && (
                 <p className="text-xs text-orange-600">
-                  Remaining to allocate: ₹{remainingAmount.toLocaleString()}
+                  Available to allocate: ₹{availableToAllocate.toLocaleString()}
                 </p>
               )}
-              {remainingAmount === 0 && totalAllocated === additionalIncome && (
+              {availableToAllocate === 0 && totalAllocated === additionalIncome && (
                 <p className="text-xs text-green-600">
                   ✓ All income has been allocated to categories
                 </p>
@@ -197,14 +202,14 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-semibold text-gray-800">
               {savedCategoryBreakdown.length === 0 ? 'Allocate Income Categories' : 
-               remainingAmount > 0 ? 'Allocate Remaining Amount' : 'Add More Categories'}
+               availableToAllocate > 0 ? 'Allocate Remaining Amount' : 'Add More Categories'}
             </h3>
             <Button 
               onClick={addCategoryToBreakdown} 
               variant="outline" 
               size="sm" 
               className="text-amber-600 border-amber-200 hover:bg-amber-50"
-              disabled={remainingAmount <= 0 && breakdown.length === 0}
+              disabled={availableToAllocate <= 0 && breakdown.length === 0}
             >
               <Plus className="h-4 w-4 mr-1" /> Add Category
             </Button>
@@ -240,7 +245,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
                         value={item.amount}
                         onChange={(e) => updateBreakdownItem(item.id, 'amount', Number(e.target.value))}
                         className="border-amber-200 focus:border-amber-500"
-                        max={remainingAmount + allocatedAmount}
+                        max={availableToAllocate}
                       />
                     </div>
                     <Button
@@ -258,29 +263,36 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
               <div className="flex justify-between text-sm mb-4">
                 <span>Available to allocate:</span>
                 <span className="font-medium text-amber-700">
-                  ₹{Math.max(0, remainingAmount).toLocaleString()}
+                  ₹{Math.max(0, availableToAllocate).toLocaleString()}
                 </span>
               </div>
               
               <div className="flex justify-between text-sm mb-4">
                 <span>Current allocation:</span>
-                <span className={allocatedAmount > remainingAmount ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+                <span className={allocatedAmount > availableToAllocate ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
                   ₹{allocatedAmount.toLocaleString()}
                 </span>
               </div>
               
-              {allocatedAmount > remainingAmount && (
+              <div className="flex justify-between text-sm mb-4">
+                <span>Remaining to allocate:</span>
+                <span className="font-medium text-gray-700">
+                  ₹{Math.max(0, remainingToAllocate).toLocaleString()}
+                </span>
+              </div>
+              
+              {allocatedAmount > availableToAllocate && (
                 <div className="flex items-center gap-2 text-xs text-red-600 mb-4 p-2 bg-red-50 rounded">
                   <AlertCircle className="h-4 w-4" />
                   <p>
-                    You've over-allocated by ₹{(allocatedAmount - remainingAmount).toLocaleString()}
+                    You've over-allocated by ₹{(allocatedAmount - availableToAllocate).toLocaleString()}
                   </p>
                 </div>
               )}
               
               <Button
                 onClick={saveBreakdown}
-                disabled={allocatedAmount === 0 || allocatedAmount > remainingAmount || isSubmitting}
+                disabled={allocatedAmount === 0 || allocatedAmount > availableToAllocate || isSubmitting}
                 className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
               >
                 {isSubmitting ? "Saving..." : "Save Category Allocation"}
@@ -291,8 +303,8 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
               <p>
                 {savedCategoryBreakdown.length === 0 
                   ? "Click 'Add Category' to start allocating your additional income"
-                  : remainingAmount > 0
-                  ? `Click 'Add Category' to allocate the remaining ₹{remainingAmount.toLocaleString()}`
+                  : availableToAllocate > 0
+                  ? `Click 'Add Category' to allocate the remaining ₹${availableToAllocate.toLocaleString()}`
                   : "All income has been allocated. You can still add more categories if needed."
                 }
               </p>
@@ -318,10 +330,10 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
               </div>
             ))}
           </div>
-          {remainingAmount > 0 && (
+          {availableToAllocate > 0 && (
             <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
               <p className="text-sm text-orange-700">
-                <strong>Remaining amount:</strong> ₹{remainingAmount.toLocaleString()} can still be allocated to categories
+                <strong>Available to allocate:</strong> ₹{availableToAllocate.toLocaleString()} can still be allocated to categories
               </p>
             </div>
           )}
