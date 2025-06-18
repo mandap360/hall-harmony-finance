@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ export const BookingsPage = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("all");
 
   // Generate month options for the current year
   const monthOptions = useMemo(() => {
@@ -40,7 +39,7 @@ export const BookingsPage = () => {
         booking.phoneNumber.toLowerCase().includes(searchLower);
 
       // Month filter
-      const matchesMonth = !selectedMonth || 
+      const matchesMonth = selectedMonth === "all" || 
         booking.startDate.startsWith(selectedMonth);
 
       return matchesSearch && matchesMonth;
@@ -102,7 +101,7 @@ export const BookingsPage = () => {
               <SelectValue placeholder="Filter by month" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All months</SelectItem>
+              <SelectItem value="all">All months</SelectItem>
               {monthOptions.map((month) => (
                 <SelectItem key={month.value} value={month.value}>
                   {month.label}
@@ -125,7 +124,7 @@ export const BookingsPage = () => {
 
         {filteredBookings.length === 0 && (
           <div className="text-center py-12">
-            {searchTerm || selectedMonth ? (
+            {searchTerm || selectedMonth !== "all" ? (
               <div>
                 <p className="text-gray-500 text-lg">No bookings found matching your criteria</p>
                 <p className="text-gray-400 text-sm mt-2">Try adjusting your search or filter settings</p>
