@@ -298,6 +298,47 @@ export type Database = {
           },
         ]
       }
+      vendors: {
+        Row: {
+          address: string | null
+          business_name: string
+          contact_person: string | null
+          created_at: string
+          gstin: string | null
+          id: string
+          organization_id: string | null
+          phone_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_name: string
+          contact_person?: string | null
+          created_at?: string
+          gstin?: string | null
+          id?: string
+          organization_id?: string | null
+          phone_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_name?: string
+          contact_person?: string | null
+          created_at?: string
+          gstin?: string | null
+          id?: string
+          organization_id?: string | null
+          phone_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
