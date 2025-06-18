@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -12,36 +11,11 @@ interface BookingDetailsTabProps {
 }
 
 export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetailsTabProps) => {
-  const [formData, setFormData] = useState({
-    eventName: "",
-    clientName: "",
-    phoneNumber: "",
-    startDate: "",
-    startTime: "",
-    endDate: "",
-    endTime: "",
-    rent: "",
-    advance: "",
-    notes: ""
-  });
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     if (booking) {
-      const startDate = new Date(booking.startDate);
-      const endDate = new Date(booking.endDate);
-      
-      setFormData({
-        eventName: booking.eventName,
-        clientName: booking.clientName,
-        phoneNumber: booking.phoneNumber,
-        startDate: startDate.toISOString().split('T')[0],
-        startTime: startDate.toTimeString().slice(0, 5),
-        endDate: endDate.toISOString().split('T')[0],
-        endTime: endDate.toTimeString().slice(0, 5),
-        rent: booking.rent.toString(),
-        advance: booking.advance.toString(),
-        notes: booking.notes || ""
-      });
+      setNotes(booking.notes || "");
     }
   }, [booking]);
 
@@ -50,112 +24,96 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
     
     const updatedBooking = {
       ...booking,
-      eventName: formData.eventName,
-      clientName: formData.clientName,
-      phoneNumber: formData.phoneNumber,
-      startDate: `${formData.startDate}T${formData.startTime}`,
-      endDate: `${formData.endDate}T${formData.endTime}`,
-      rent: parseInt(formData.rent),
-      advance: parseInt(formData.advance),
-      notes: formData.notes
+      notes: notes
     };
 
     onSubmit(updatedBooking);
   };
 
+  if (!booking) return null;
+
+  const startDate = new Date(booking.startDate);
+  const endDate = new Date(booking.endDate);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Read-only fields */}
       <div className="space-y-2">
-        <Label htmlFor="eventName">Event Name *</Label>
-        <Input
-          id="eventName"
-          value={formData.eventName}
-          onChange={(e) => setFormData(prev => ({ ...prev, eventName: e.target.value }))}
-          required
-          className="border-amber-200 focus:border-amber-500"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="clientName">Client Name *</Label>
-        <Input
-          id="clientName"
-          value={formData.clientName}
-          onChange={(e) => setFormData(prev => ({ ...prev, clientName: e.target.value }))}
-          required
-          className="border-amber-200 focus:border-amber-500"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="phoneNumber">Phone Number *</Label>
-        <Input
-          id="phoneNumber"
-          value={formData.phoneNumber}
-          onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
-          required
-          className="border-amber-200 focus:border-amber-500"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="startDate">Start Date *</Label>
-          <Input
-            id="startDate"
-            type="date"
-            value={formData.startDate}
-            onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-            required
-            className="border-amber-200 focus:border-amber-500"
-          />
+        <Label className="text-gray-700">Event Name</Label>
+        <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
+          {booking.eventName}
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="startTime">Start Time *</Label>
-          <Input
-            id="startTime"
-            type="time"
-            value={formData.startTime}
-            onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-            required
-            className="border-amber-200 focus:border-amber-500"
-          />
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-gray-700">Client Name</Label>
+        <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
+          {booking.clientName}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-gray-700">Phone Number</Label>
+        <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
+          {booking.phoneNumber}
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="rent">Rent *</Label>
-          <Input
-            id="rent"
-            type="number"
-            value={formData.rent}
-            onChange={(e) => setFormData(prev => ({ ...prev, rent: e.target.value }))}
-            required
-            className="border-amber-200 focus:border-amber-500"
-          />
+          <Label className="text-gray-700">Start Date</Label>
+          <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
+            {startDate.toLocaleDateString('en-IN')}
+          </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="advance">Advance *</Label>
-          <Input
-            id="advance"
-            type="number"
-            value={formData.advance}
-            onChange={(e) => setFormData(prev => ({ ...prev, advance: e.target.value }))}
-            required
-            className="border-amber-200 focus:border-amber-500"
-          />
+          <Label className="text-gray-700">Start Time</Label>
+          <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
+            {startDate.toTimeString().slice(0, 5)}
+          </div>
         </div>
       </div>
 
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-gray-700">End Date</Label>
+          <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
+            {endDate.toLocaleDateString('en-IN')}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-gray-700">End Time</Label>
+          <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
+            {endDate.toTimeString().slice(0, 5)}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-gray-700">Rent</Label>
+          <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
+            ₹{booking.rent.toLocaleString()}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-gray-700">Advance</Label>
+          <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
+            ₹{booking.advance.toLocaleString()}
+          </div>
+        </div>
+      </div>
+
+      {/* Editable notes field */}
       <div className="space-y-2">
-        <Label htmlFor="notes">Notes</Label>
+        <Label htmlFor="notes" className="text-gray-700">Notes</Label>
         <Textarea
           id="notes"
-          value={formData.notes}
-          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
           rows={3}
           className="border-amber-200 focus:border-amber-500"
+          placeholder="Add notes about this booking..."
         />
       </div>
 
@@ -164,7 +122,7 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
           Cancel
         </Button>
         <Button type="submit" className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
-          Update Booking
+          Update Notes
         </Button>
       </div>
     </form>
