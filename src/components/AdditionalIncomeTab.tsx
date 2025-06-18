@@ -71,8 +71,12 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
   const totalAllocated = savedAmount + allocatedAmount;
   const remainingAmount = additionalIncome - totalAllocated;
   
-  // Check if there's remaining amount to allocate
-  const hasRemainingAmount = remainingAmount > 0;
+  // Check if there's remaining amount to allocate OR if there are unsaved categories
+  const shouldShowAllocationSection = additionalIncome > 0 && (
+    savedCategoryBreakdown.length === 0 || 
+    remainingAmount > 0 || 
+    breakdown.length > 0
+  );
   
   // Add a new empty category to the breakdown list
   const addCategoryToBreakdown = () => {
@@ -177,23 +181,30 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
                   Remaining to allocate: ₹{remainingAmount.toLocaleString()}
                 </p>
               )}
+              {remainingAmount === 0 && totalAllocated === additionalIncome && (
+                <p className="text-xs text-green-600">
+                  ✓ All income has been allocated to categories
+                </p>
+              )}
             </>
           )}
         </div>
       </Card>
 
-      {/* Add Category Breakdown - Show if there's additional income and remaining amount */}
-      {additionalIncome > 0 && (savedCategoryBreakdown.length === 0 || hasRemainingAmount) && (
+      {/* Add Category Breakdown */}
+      {shouldShowAllocationSection && (
         <Card className="p-6 border-orange-200">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-semibold text-gray-800">
-              {savedCategoryBreakdown.length === 0 ? 'Allocate Income Categories' : 'Allocate Remaining Amount'}
+              {savedCategoryBreakdown.length === 0 ? 'Allocate Income Categories' : 
+               remainingAmount > 0 ? 'Allocate Remaining Amount' : 'Add More Categories'}
             </h3>
             <Button 
               onClick={addCategoryToBreakdown} 
               variant="outline" 
               size="sm" 
               className="text-amber-600 border-amber-200 hover:bg-amber-50"
+              disabled={remainingAmount <= 0 && breakdown.length === 0}
             >
               <Plus className="h-4 w-4 mr-1" /> Add Category
             </Button>
@@ -229,7 +240,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
                         value={item.amount}
                         onChange={(e) => updateBreakdownItem(item.id, 'amount', Number(e.target.value))}
                         className="border-amber-200 focus:border-amber-500"
-                        max={remainingAmount}
+                        max={remainingAmount + allocatedAmount}
                       />
                     </div>
                     <Button
@@ -247,7 +258,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
               <div className="flex justify-between text-sm mb-4">
                 <span>Available to allocate:</span>
                 <span className="font-medium text-amber-700">
-                  ₹{remainingAmount.toLocaleString()}
+                  ₹{Math.max(0, remainingAmount).toLocaleString()}
                 </span>
               </div>
               
@@ -262,7 +273,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
                 <div className="flex items-center gap-2 text-xs text-red-600 mb-4 p-2 bg-red-50 rounded">
                   <AlertCircle className="h-4 w-4" />
                   <p>
-                    You've over-allocated by ₹{Math.abs(remainingAmount - allocatedAmount).toLocaleString()}
+                    You've over-allocated by ₹{Math.abs(remainingAmount).toLocaleString()}
                   </p>
                 </div>
               )}
@@ -272,7 +283,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
                 disabled={allocatedAmount === 0 || allocatedAmount > remainingAmount || isSubmitting}
                 className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
               >
-                Save Category Allocation
+                {isSubmitting ? "Saving..." : "Save Category Allocation"}
               </Button>
             </>
           ) : (
@@ -280,7 +291,9 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
               <p>
                 {savedCategoryBreakdown.length === 0 
                   ? "Click 'Add Category' to start allocating your additional income"
-                  : `Click 'Add Category' to allocate the remaining ₹${remainingAmount.toLocaleString()}`
+                  : remainingAmount > 0
+                  ? `Click 'Add Category' to allocate the remaining ₹${remainingAmount.toLocaleString()}`
+                  : "All income has been allocated. You can still add more categories if needed."
                 }
               </p>
             </div>
