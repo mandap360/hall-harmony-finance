@@ -4,11 +4,25 @@ import { BookingsPage } from "@/components/BookingsPage";
 import { ExpensePage } from "@/components/ExpensePage";
 import { ReportsPage } from "@/components/ReportsPage";
 import { MorePage } from "@/components/MorePage";
-import { Logo } from "@/components/Logo";
 import { useState } from "react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("bookings");
+
+  const getPageTitle = () => {
+    switch (activeTab) {
+      case "bookings":
+        return "Bookings";
+      case "expenses":
+        return "Expenses";
+      case "reports":
+        return "Reports";
+      case "more":
+        return "More";
+      default:
+        return "Bookings";
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -30,7 +44,7 @@ const Index = () => {
       {/* Header */}
       <div className="bg-white/90 backdrop-blur-sm border-b border-amber-200 sticky top-0 z-10">
         <div className="p-4">
-          <Logo size="lg" />
+          <h1 className="text-2xl font-bold text-gray-900">{getPageTitle()}</h1>
         </div>
       </div>
 

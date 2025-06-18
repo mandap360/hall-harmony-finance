@@ -1,21 +1,20 @@
 
 import { useState, useMemo } from "react";
-import { Search, Plus, Filter } from "lucide-react";
+import { Filter, RefreshCcw, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import { ExpenseCard } from "@/components/ExpenseCard";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
 import { useVendors } from "@/hooks/useVendors";
+import { Plus } from "lucide-react";
 
 export const ExpensePage = () => {
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedVendor, setSelectedVendor] = useState("all");
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const { expenses, addExpense } = useExpenses();
+  const { expenses, addExpense, refetch } = useExpenses();
   const { getExpenseCategories } = useCategories();
   const { vendors } = useVendors();
   const expenseCategories = getExpenseCategories();
@@ -60,51 +59,27 @@ export const ExpensePage = () => {
       filtered = filtered.filter(expense => expense.vendorName === selectedVendor);
     }
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(expense =>
-        expense.vendorName.toLowerCase().includes(query) ||
-        expense.billNumber.toLowerCase().includes(query) ||
-        expense.category.toLowerCase().includes(query)
-      );
-    }
-
     return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [expenses, searchQuery, selectedCategory, selectedVendor, currentFY]);
+  }, [expenses, selectedCategory, selectedVendor, currentFY]);
 
   const handleAddExpense = (expenseData: any) => {
     addExpense(expenseData);
     setShowAddDialog(false);
   };
 
+  const handleRefresh = () => {
+    refetch();
+  };
+
   return (
-    <div className="p-4 space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
-        <p className="text-gray-600">Track your hall expenses</p>
-        <p className="text-sm text-gray-500">
-          FY {currentFY.startYear}-{currentFY.endYear.toString().slice(-2)}
-        </p>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search expenses..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-gray-500" />
+    <div className="h-screen flex flex-col overflow-hidden">
+      {/* Filter Section - Fixed */}
+      <div className="p-4 bg-white border-b space-y-3 flex-shrink-0">
+        <div className="flex items-center space-x-3">
+          <Filter className="h-4 w-4 text-gray-500 flex-shrink-0" />
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="flex-1">
-              <SelectValue placeholder="Filter by category" />
+              <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
@@ -115,13 +90,9 @@ export const ExpensePage = () => {
               ))}
             </SelectContent>
           </Select>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-gray-500" />
           <Select value={selectedVendor} onValueChange={setSelectedVendor}>
             <SelectTrigger className="flex-1">
-              <SelectValue placeholder="Filter by vendor" />
+              <SelectValue placeholder="Vendor" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Vendors</SelectItem>
@@ -135,24 +106,42 @@ export const ExpensePage = () => {
         </div>
       </div>
 
-      {/* Expenses List */}
-      <div className="space-y-4">
-        {filteredExpenses.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">
-              No expenses found for current FY
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredExpenses.map((expense) => (
-              <ExpenseCard key={expense.id} expense={expense} />
-            ))}
-          </div>
-        )}
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4">
+          {filteredExpenses.length === 0 ? (
+            <div className="text-center py-16 space-y-6">
+              <div className="flex justify-center">
+                <div className="relative">
+                  <FileText className="h-16 w-16 text-gray-400" />
+                  <div className="absolute -top-2 -right-1 w-6 h-6 bg-gray-300 rounded-full border-2 border-white transform rotate-45"></div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-gray-900">Record Business Expenses</h3>
+                <p className="text-gray-600 max-w-sm mx-auto">
+                  The operating cost of your business can be recorded as expense here.
+                </p>
+              </div>
+              <Button 
+                onClick={handleRefresh}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredExpenses.map((expense) => (
+                <ExpenseCard key={expense.id} expense={expense} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Add Button */}
+      {/* Add Button - Fixed */}
       <Button
         onClick={() => setShowAddDialog(true)}
         className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"

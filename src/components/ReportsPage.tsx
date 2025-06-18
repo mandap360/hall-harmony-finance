@@ -53,21 +53,32 @@ export const ReportsPage = () => {
 
     // Calculate total income from actual payments received
     let totalPaidAmount = 0;
-    let totalAdditional = 0;
+    let totalAdditionalCategoryIncome = 0;
+    let totalAdditionalAdvance = 0;
 
     currentFYBookings.forEach(booking => {
       // Use paidAmount which represents actual payments received
-      totalPaidAmount += booking.paidAmount || 0;
+      const rentPayments = booking.payments?.filter(payment => 
+        payment.type === 'advance' || payment.type === 'rent'
+      ).reduce((sum, payment) => sum + payment.amount, 0) || 0;
       
-      // Calculate additional income from payments
-      booking.payments?.forEach(payment => {
-        if (payment.type === 'additional') {
-          totalAdditional += payment.amount;
+      const additionalPayments = booking.payments?.filter(payment => 
+        payment.type === 'additional'
+      ) || [];
+      
+      totalPaidAmount += rentPayments;
+      
+      // Separate category-based additional income from advance additional income
+      additionalPayments.forEach(payment => {
+        if (payment.description && payment.description.includes('categories')) {
+          totalAdditionalCategoryIncome += payment.amount;
+        } else {
+          totalAdditionalAdvance += payment.amount;
         }
       });
     });
 
-    const totalIncome = totalPaidAmount + totalAdditional;
+    const totalIncome = totalPaidAmount + totalAdditionalCategoryIncome + totalAdditionalAdvance;
 
     // Calculate expenses by category for current FY
     const expensesByCategory: Record<string, number> = {};
@@ -86,7 +97,8 @@ export const ReportsPage = () => {
       profit,
       incomeBreakdown: {
         rent: totalPaidAmount,
-        additional: totalAdditional,
+        additionalCategory: totalAdditionalCategoryIncome,
+        additionalAdvance: totalAdditionalAdvance,
       },
       expensesByCategory,
       currentFY
@@ -95,12 +107,6 @@ export const ReportsPage = () => {
 
   return (
     <div className="p-4 space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-        <p className="text-gray-600">Financial insights for FY {financialData.currentFY.startYear}-{financialData.currentFY.endYear.toString().slice(-2)}</p>
-      </div>
-
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -151,10 +157,18 @@ export const ReportsPage = () => {
             <span className="text-gray-600">Rent Payments Received:</span>
             <span className="font-semibold">₹{financialData.incomeBreakdown.rent.toLocaleString()}</span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Additional Income:</span>
-            <span className="font-semibold">₹{financialData.incomeBreakdown.additional.toLocaleString()}</span>
-          </div>
+          {financialData.incomeBreakdown.additionalCategory > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Additional Income (Category):</span>
+              <span className="font-semibold">₹{financialData.incomeBreakdown.additionalCategory.toLocaleString()}</span>
+            </div>
+          )}
+          {financialData.incomeBreakdown.additionalAdvance > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Additional Income (Advance):</span>
+              <span className="font-semibold">₹{financialData.incomeBreakdown.additionalAdvance.toLocaleString()}</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
