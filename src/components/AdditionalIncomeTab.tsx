@@ -273,7 +273,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
                 <div className="flex items-center gap-2 text-xs text-red-600 mb-4 p-2 bg-red-50 rounded">
                   <AlertCircle className="h-4 w-4" />
                   <p>
-                    You've over-allocated by ₹{Math.abs(remainingAmount).toLocaleString()}
+                    You've over-allocated by ₹{(allocatedAmount - remainingAmount).toLocaleString()}
                   </p>
                 </div>
               )}
@@ -292,7 +292,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
                 {savedCategoryBreakdown.length === 0 
                   ? "Click 'Add Category' to start allocating your additional income"
                   : remainingAmount > 0
-                  ? `Click 'Add Category' to allocate the remaining ₹${remainingAmount.toLocaleString()}`
+                  ? `Click 'Add Category' to allocate the remaining ₹{remainingAmount.toLocaleString()}`
                   : "All income has been allocated. You can still add more categories if needed."
                 }
               </p>
