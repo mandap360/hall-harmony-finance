@@ -1,9 +1,10 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Settings, User, HelpCircle, Info, Calculator, Tag } from "lucide-react";
+import { Settings, User, HelpCircle, Info, Calculator, Tag, Users } from "lucide-react";
 import { TaxManagement } from "@/components/TaxManagement";
 import { CategoryManagement } from "@/components/CategoryManagement";
+import { VendorManagement } from "@/components/VendorManagement";
 
 export const MorePage = () => {
   const [currentView, setCurrentView] = useState("menu");
@@ -20,6 +21,12 @@ export const MorePage = () => {
       label: "Category Management", 
       description: "Manage income and expense categories",
       action: () => setCurrentView("categories")
+    },
+    { 
+      icon: Users, 
+      label: "Vendors", 
+      description: "Manage vendor information",
+      action: () => setCurrentView("vendors")
     },
     { icon: Settings, label: "Settings", description: "App preferences" },
     { icon: User, label: "Profile", description: "Manage your profile" },
@@ -55,6 +62,22 @@ export const MorePage = () => {
           </button>
         </div>
         <CategoryManagement />
+      </div>
+    );
+  }
+
+  if (currentView === "vendors") {
+    return (
+      <div>
+        <div className="p-4 border-b">
+          <button 
+            onClick={() => setCurrentView("menu")}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            ← Back to More
+          </button>
+        </div>
+        <VendorManagement />
       </div>
     );
   }

@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -74,17 +75,6 @@ export const BookingsPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 p-4">
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-amber-800">Bookings</h1>
-          <Button
-            onClick={() => setShowAddDialog(true)}
-            className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Booking
-          </Button>
-        </div>
-
         {/* Search and Filter Section */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
@@ -132,12 +122,21 @@ export const BookingsPage = () => {
             ) : (
               <div>
                 <p className="text-gray-500 text-lg">No bookings found for this financial year</p>
-                <p className="text-gray-400 text-sm mt-2">Click "Add Booking" to create your first booking</p>
+                <p className="text-gray-400 text-sm mt-2">Click the + button to create your first booking</p>
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* Fixed + Button at bottom right */}
+      <Button
+        onClick={() => setShowAddDialog(true)}
+        className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
+        size="icon"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
 
       <AddBookingDialog
         open={showAddDialog}
