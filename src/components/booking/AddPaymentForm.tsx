@@ -3,92 +3,125 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAccounts } from "@/hooks/useAccounts";
 
 interface AddPaymentFormProps {
-  onAddPayment: (payment: { amount: string; date: string; type: string; description: string }) => void;
+  onAddPayment: (payment: { 
+    amount: string; 
+    date: string; 
+    type: string; 
+    description: string; 
+    accountId: string; 
+  }) => void;
 }
 
 export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
-  const [newPayment, setNewPayment] = useState({
-    amount: "",
-    date: "",
-    type: "rent",
-    description: ""
-  });
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [type, setType] = useState("rent");
+  const [accountId, setAccountId] = useState("");
+  const [description, setDescription] = useState("");
+  
+  const { accounts } = useAccounts();
+  const operationalAccounts = accounts.filter(acc => acc.account_type === 'operational');
 
-  const handleAddPayment = () => {
-    if (!newPayment.amount || !newPayment.date) return;
-    onAddPayment(newPayment);
-    setNewPayment({
-      amount: "",
-      date: "",
-      type: "rent",
-      description: ""
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!amount || !date || !accountId) return;
+
+    onAddPayment({
+      amount,
+      date,
+      type,
+      description,
+      accountId
     });
+
+    setAmount("");
+    setDescription("");
   };
 
   return (
-    <Card className="p-4 border-amber-200">
-      <h3 className="font-semibold mb-3 text-amber-800">Add Payment</h3>
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="amount">Amount *</Label>
-            <Input
-              id="amount"
-              type="number"
-              value={newPayment.amount}
-              onChange={(e) => setNewPayment(prev => ({ ...prev, amount: e.target.value }))}
-              className="border-amber-200 focus:border-amber-500"
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-amber-700">Add Payment</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="account">Account</Label>
+            <Select value={accountId} onValueChange={setAccountId} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select account" />
+              </SelectTrigger>
+              <SelectContent>
+                {operationalAccounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name} (₹{account.balance.toLocaleString()})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="type">Type</Label>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rent">Rent</SelectItem>
+                <SelectItem value="advance">Advance</SelectItem>
+                <SelectItem value="additional">Additional</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Payment description"
+              rows={3}
             />
           </div>
-          <div>
-            <Label htmlFor="paymentDate">Date *</Label>
-            <Input
-              id="paymentDate"
-              type="date"
-              value={newPayment.date}
-              onChange={(e) => setNewPayment(prev => ({ ...prev, date: e.target.value }))}
-              className="border-amber-200 focus:border-amber-500"
-            />
-          </div>
-        </div>
-        
-        <div>
-          <Label htmlFor="paymentType">Type</Label>
-          <select
-            id="paymentType"
-            value={newPayment.type}
-            onChange={(e) => setNewPayment(prev => ({ ...prev, type: e.target.value }))}
-            className="w-full p-2 border border-amber-200 rounded-md focus:border-amber-500"
-          >
-            <option value="rent">Rent</option>
-            <option value="additional">Additional Income</option>
-          </select>
-        </div>
-        
-        <div>
-          <Label htmlFor="description">Description</Label>
-          <Input
-            id="description"
-            value={newPayment.description}
-            onChange={(e) => setNewPayment(prev => ({ ...prev, description: e.target.value }))}
-            placeholder="Optional description"
-            className="border-amber-200 focus:border-amber-500"
-          />
-        </div>
-        
-        <Button
-          onClick={handleAddPayment}
-          disabled={!newPayment.amount || !newPayment.date}
-          className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Payment
-        </Button>
-      </div>
+
+          <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700">
+            Add Payment
+          </Button>
+        </form>
+      </CardContent>
     </Card>
   );
 };

@@ -17,6 +17,7 @@ export type Database = {
           id: string
           is_default: boolean
           name: string
+          sub_type: string | null
           updated_at: string
         }
         Insert: {
@@ -26,6 +27,7 @@ export type Database = {
           id?: string
           is_default?: boolean
           name: string
+          sub_type?: string | null
           updated_at?: string
         }
         Update: {
@@ -35,6 +37,7 @@ export type Database = {
           id?: string
           is_default?: boolean
           name?: string
+          sub_type?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -90,7 +93,6 @@ export type Database = {
           event_name: string
           id: string
           organization_id: string | null
-          payment_mode: string | null
           phone_number: string | null
           start_datetime: string
           total_rent: number
@@ -104,7 +106,6 @@ export type Database = {
           event_name: string
           id?: string
           organization_id?: string | null
-          payment_mode?: string | null
           phone_number?: string | null
           start_datetime: string
           total_rent: number
@@ -118,7 +119,6 @@ export type Database = {
           event_name?: string
           id?: string
           organization_id?: string | null
-          payment_mode?: string | null
           phone_number?: string | null
           start_datetime?: string
           total_rent?: number
@@ -130,13 +130,6 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_payment_mode_fkey"
-            columns: ["payment_mode"]
-            isOneToOne: false
-            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -279,6 +272,7 @@ export type Database = {
           id: string
           organization_id: string | null
           payment_date: string
+          payment_mode: string | null
           payment_type: string
         }
         Insert: {
@@ -289,6 +283,7 @@ export type Database = {
           id?: string
           organization_id?: string | null
           payment_date?: string
+          payment_mode?: string | null
           payment_type?: string
         }
         Update: {
@@ -299,9 +294,18 @@ export type Database = {
           id?: string
           organization_id?: string | null
           payment_date?: string
+          payment_mode?: string | null
           payment_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payments_payment_mode_fkey"
+            columns: ["payment_mode"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

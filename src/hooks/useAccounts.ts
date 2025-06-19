@@ -6,7 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 export interface Account {
   id: string;
   name: string;
-  account_type: 'cash' | 'bank' | 'other';
+  account_type: 'operational' | 'capital';
+  sub_type?: string;
   balance: number;
   is_default: boolean;
   created_at: string;
@@ -125,6 +126,69 @@ export const useAccounts = () => {
     }
   };
 
+  const transferAmount = async (fromAccountId: string, toAccountId: string, amount: number, description?: string) => {
+    try {
+      // Create debit transaction for source account
+      await (supabase.rpc as any)('update_account_balance', {
+        account_uuid: fromAccountId,
+        amount_change: -amount
+      });
+
+      // Create credit transaction for destination account
+      await (supabase.rpc as any)('update_account_balance', {
+        account_uuid: toAccountId,
+        amount_change: amount
+      });
+
+      // Add transaction records
+      const transactionDate = new Date().toISOString().split('T')[0];
+      
+      const { error: debitError } = await supabase
+        .from('transactions')
+        .insert([{
+          account_id: fromAccountId,
+          transaction_type: 'debit',
+          amount: amount,
+          description: description || `Transfer to account`,
+          reference_type: 'transfer',
+          reference_id: toAccountId,
+          transaction_date: transactionDate
+        }]);
+
+      if (debitError) throw debitError;
+
+      const { error: creditError } = await supabase
+        .from('transactions')
+        .insert([{
+          account_id: toAccountId,
+          transaction_type: 'credit',
+          amount: amount,
+          description: description || `Transfer from account`,
+          reference_type: 'transfer',
+          reference_id: fromAccountId,
+          transaction_date: transactionDate
+        }]);
+
+      if (creditError) throw creditError;
+
+      // Refresh accounts to show updated balances
+      await fetchAccounts();
+
+      toast({
+        title: "Success",
+        description: "Amount transferred successfully",
+      });
+    } catch (error) {
+      console.error('Error transferring amount:', error);
+      toast({
+        title: "Error",
+        description: "Failed to transfer amount",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   useEffect(() => {
     fetchAccounts();
   }, []);
@@ -135,6 +199,7 @@ export const useAccounts = () => {
     addAccount,
     updateAccount,
     deleteAccount,
+    transferAmount,
     refreshAccounts: fetchAccounts,
   };
 };

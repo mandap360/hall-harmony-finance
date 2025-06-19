@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { BookingDetailsTab } from "@/components/booking/BookingDetailsTab";
 import { PaymentsTab } from "@/components/booking/PaymentsTab";
 import { AdditionalIncomeTab } from "@/components/AdditionalIncomeTab";
+import { useTransactions } from "@/hooks/useTransactions";
 
 interface EditBookingDialogProps {
   open: boolean;
@@ -15,14 +16,38 @@ interface EditBookingDialogProps {
 
 export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit, onAddPayment }: EditBookingDialogProps) => {
   const [activeTab, setActiveTab] = useState("details");
+  const { addTransaction } = useTransactions();
 
-  const handleAddPayment = async (paymentData: { amount: string; date: string; type: string; description: string }) => {
-    if (!paymentData.amount || !paymentData.date || !onAddPayment) return;
+  const handleAddPayment = async (paymentData: { 
+    amount: string; 
+    date: string; 
+    type: string; 
+    description: string; 
+    accountId: string; 
+  }) => {
+    if (!paymentData.amount || !paymentData.date || !paymentData.accountId) return;
 
     const amount = parseInt(paymentData.amount);
     
-    // Add payment to database
-    await onAddPayment(booking.id, amount, paymentData.date, paymentData.type, paymentData.description);
+    try {
+      // Add payment to database
+      if (onAddPayment) {
+        await onAddPayment(booking.id, amount, paymentData.date, paymentData.type, paymentData.description);
+      }
+
+      // Add corresponding transaction to the selected account
+      await addTransaction({
+        account_id: paymentData.accountId,
+        transaction_type: 'credit',
+        amount: amount,
+        description: `${paymentData.type} payment for ${booking.client_name} - ${booking.event_name}`,
+        reference_type: 'booking_payment',
+        reference_id: booking.id,
+        transaction_date: paymentData.date
+      });
+    } catch (error) {
+      console.error('Error adding payment and transaction:', error);
+    }
   };
 
   return (

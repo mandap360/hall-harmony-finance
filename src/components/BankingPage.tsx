@@ -1,15 +1,17 @@
 
 import { useState } from "react";
-import { Plus, ArrowLeft } from "lucide-react";
+import { Plus, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAccounts, Account } from "@/hooks/useAccounts";
 import { AddAccountDialog } from "@/components/AddAccountDialog";
 import { AccountTransactions } from "@/components/AccountTransactions";
+import { TransferDialog } from "@/components/TransferDialog";
 
 export const BankingPage = () => {
-  const { accounts, loading, addAccount } = useAccounts();
+  const { accounts, loading, addAccount, transferAmount } = useAccounts();
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
   const handleAddAccount = async (accountData: any) => {
@@ -25,6 +27,16 @@ export const BankingPage = () => {
       maximumFractionDigits: 0,
     }).format(balance);
   };
+
+  const getAccountTypeDisplay = (account: Account) => {
+    if (account.account_type === 'operational') {
+      return `Operational Account${account.sub_type ? ` (${account.sub_type})` : ''}`;
+    }
+    return 'Capital Account';
+  };
+
+  const operationalAccounts = accounts.filter(acc => acc.account_type === 'operational');
+  const capitalAccounts = accounts.filter(acc => acc.account_type === 'capital');
 
   if (selectedAccount) {
     return (
@@ -51,33 +63,65 @@ export const BankingPage = () => {
           <p className="text-gray-600">Manage your cash and bank accounts</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {accounts.map((account) => (
-            <Card 
-              key={account.id} 
-              className="p-6 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => setSelectedAccount(account)}
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-semibold text-lg text-gray-900">{account.name}</h3>
-                  <p className="text-sm text-gray-500 capitalize">{account.account_type} Account</p>
+        {/* Operational Accounts */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Operational Accounts</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {operationalAccounts.map((account) => (
+              <Card 
+                key={account.id} 
+                className="p-6 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => setSelectedAccount(account)}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-semibold text-lg text-gray-900">{account.name}</h3>
+                    <p className="text-sm text-gray-500">{getAccountTypeDisplay(account)}</p>
+                  </div>
+                  {account.is_default && (
+                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                      Default
+                    </span>
+                  )}
                 </div>
-                {account.is_default && (
-                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                    Default
-                  </span>
-                )}
-              </div>
-              
-              <div className="mt-4">
-                <p className="text-sm text-gray-500 mb-1">Balance</p>
-                <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatBalance(account.balance)}
-                </p>
-              </div>
-            </Card>
-          ))}
+                
+                <div className="mt-4">
+                  <p className="text-sm text-gray-500 mb-1">Balance</p>
+                  <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatBalance(account.balance)}
+                  </p>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Capital Accounts */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Capital Accounts</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {capitalAccounts.map((account) => (
+              <Card 
+                key={account.id} 
+                className="p-6 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => setSelectedAccount(account)}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-semibold text-lg text-gray-900">{account.name}</h3>
+                    <p className="text-sm text-gray-500">{getAccountTypeDisplay(account)}</p>
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <p className="text-sm text-gray-500 mb-1">Balance</p>
+                  <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatBalance(account.balance)}
+                  </p>
+                </div>
+              </Card>
+            ))}
+          </div>
         </div>
 
         {accounts.length === 0 && (
@@ -88,19 +132,36 @@ export const BankingPage = () => {
         )}
       </div>
 
-      {/* Fixed + Button at bottom right */}
-      <Button
-        onClick={() => setShowAddDialog(true)}
-        className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-        size="icon"
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
+      {/* Fixed Action Buttons */}
+      <div className="fixed bottom-24 right-4 flex flex-col space-y-3">
+        <Button
+          onClick={() => setShowTransferDialog(true)}
+          className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white"
+          size="icon"
+        >
+          <ArrowRightLeft className="h-6 w-6" />
+        </Button>
+        
+        <Button
+          onClick={() => setShowAddDialog(true)}
+          className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+          size="icon"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      </div>
 
       <AddAccountDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         onSubmit={handleAddAccount}
+      />
+
+      <TransferDialog
+        open={showTransferDialog}
+        onOpenChange={setShowTransferDialog}
+        accounts={accounts}
+        onTransfer={transferAmount}
       />
     </div>
   );

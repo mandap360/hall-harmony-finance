@@ -5,7 +5,13 @@ import { PaymentHistoryCard } from "./PaymentHistoryCard";
 
 interface PaymentsTabProps {
   booking: any;
-  onAddPayment: (payment: { amount: string; date: string; type: string; description: string }) => void;
+  onAddPayment: (payment: { 
+    amount: string; 
+    date: string; 
+    type: string; 
+    description: string; 
+    accountId: string; 
+  }) => void;
 }
 
 export const PaymentsTab = ({ booking, onAddPayment }: PaymentsTabProps) => {
