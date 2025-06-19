@@ -27,7 +27,7 @@ export const useAccounts = () => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setAccounts(data || []);
+      setAccounts((data || []) as Account[]);
     } catch (error) {
       console.error('Error fetching accounts:', error);
       toast({
@@ -50,13 +50,13 @@ export const useAccounts = () => {
 
       if (error) throw error;
 
-      setAccounts(prev => [...prev, data]);
+      setAccounts(prev => [...prev, data as Account]);
       toast({
         title: "Success",
         description: "Account added successfully",
       });
 
-      return data;
+      return data as Account;
     } catch (error) {
       console.error('Error adding account:', error);
       toast({
@@ -80,7 +80,7 @@ export const useAccounts = () => {
       if (error) throw error;
 
       setAccounts(prev => prev.map(account => 
-        account.id === id ? data : account
+        account.id === id ? data as Account : account
       ));
 
       toast({
@@ -88,7 +88,7 @@ export const useAccounts = () => {
         description: "Account updated successfully",
       });
 
-      return data;
+      return data as Account;
     } catch (error) {
       console.error('Error updating account:', error);
       toast({

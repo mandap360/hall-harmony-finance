@@ -35,7 +35,7 @@ export const useTransactions = (accountId?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setTransactions(data || []);
+      setTransactions((data || []) as Transaction[]);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       toast({
@@ -68,13 +68,13 @@ export const useTransactions = (accountId?: string) => {
         amount_change: balanceChange
       });
 
-      setTransactions(prev => [data, ...prev]);
+      setTransactions(prev => [data as Transaction, ...prev]);
       toast({
         title: "Success",
         description: "Transaction added successfully",
       });
 
-      return data;
+      return data as Transaction;
     } catch (error) {
       console.error('Error adding transaction:', error);
       toast({
