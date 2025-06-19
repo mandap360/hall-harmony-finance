@@ -121,6 +121,6 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
           </Button>
         </form>
       </CardContent>
-    </Dialog>
+    </Card>
   );
 };
