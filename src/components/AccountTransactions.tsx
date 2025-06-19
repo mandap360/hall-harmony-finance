@@ -4,7 +4,7 @@ import { ArrowLeft, Plus, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useTransactions } from "@/hooks/useTransactions";
-import { Account } from "@/hooks/useAccounts";
+import { useAccounts, Account } from "@/hooks/useAccounts";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 
 interface AccountTransactionsProps {
@@ -14,6 +14,7 @@ interface AccountTransactionsProps {
 
 export const AccountTransactions = ({ account, onBack }: AccountTransactionsProps) => {
   const { transactions, loading, addTransaction } = useTransactions(account.id);
+  const { refreshAccounts } = useAccounts();
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   const handleAddTransaction = async (transactionData: any) => {
@@ -21,6 +22,8 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
       ...transactionData,
       account_id: account.id,
     });
+    // Refresh accounts to show updated balance
+    await refreshAccounts();
     setShowAddDialog(false);
   };
 
@@ -98,7 +101,7 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
           {transactions.map((transaction) => (
             <Card key={transaction.id} className="p-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-start space-x-3">
                   <div className={`p-2 rounded-full ${
                     transaction.transaction_type === 'credit' 
                       ? 'bg-green-100 text-green-600' 
@@ -110,25 +113,36 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
                       <ArrowUpRight className="h-4 w-4" />
                     )}
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {transaction.description || 
-                        (transaction.transaction_type === 'credit' ? 'Money In' : 'Money Out')}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {formatDate(transaction.transaction_date)}
-                    </p>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">
+                          {formatDate(transaction.transaction_date)}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {transaction.description || 
+                            (transaction.transaction_type === 'credit' ? 'Money In' : 'Money Out')}
+                        </p>
+                      </div>
+                      <div className="text-right ml-4">
+                        <p className={`font-semibold text-sm ${
+                          transaction.transaction_type === 'credit' 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {transaction.transaction_type === 'credit' ? 'Money In' : 'Money Out'}
+                        </p>
+                        <p className={`font-bold ${
+                          transaction.transaction_type === 'credit' 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {transaction.transaction_type === 'credit' ? '+' : '-'}
+                          {formatAmount(transaction.amount)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className={`font-semibold ${
-                    transaction.transaction_type === 'credit' 
-                      ? 'text-green-600' 
-                      : 'text-red-600'
-                  }`}>
-                    {transaction.transaction_type === 'credit' ? '+' : '-'}
-                    {formatAmount(transaction.amount)}
-                  </p>
                 </div>
               </div>
             </Card>

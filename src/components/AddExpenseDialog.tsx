@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCategories } from "@/hooks/useCategories";
 import { useVendors } from "@/hooks/useVendors";
+import { useAccounts } from "@/hooks/useAccounts";
 import { AddVendorDialog } from "@/components/AddVendorDialog";
 
 interface AddExpenseDialogProps {
@@ -24,13 +25,16 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
     cgstPercentage: 6,
     sgstPercentage: 6,
     date: new Date().toISOString().split('T')[0],
+    accountId: "",
   });
 
   const [showAddVendorDialog, setShowAddVendorDialog] = useState(false);
 
   const { getExpenseCategories } = useCategories();
   const { vendors, addVendor } = useVendors();
+  const { accounts } = useAccounts();
   const expenseCategories = getExpenseCategories();
+  const operationalAccounts = accounts.filter(acc => acc.account_type === 'operational');
 
   const calculateTaxAmounts = () => {
     const baseAmount = parseFloat(formData.amount) || 0;
@@ -45,7 +49,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.vendorId || !formData.amount || !formData.category) return;
+    if (!formData.vendorId || !formData.amount || !formData.category || !formData.accountId) return;
 
     const selectedVendor = vendors.find(v => v.id === formData.vendorId);
     const { cgstAmount, sgstAmount, totalAmount } = calculateTaxAmounts();
@@ -67,6 +71,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
       cgstPercentage: 6,
       sgstPercentage: 6,
       date: new Date().toISOString().split('T')[0],
+      accountId: "",
     });
   };
 
@@ -91,6 +96,22 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
             <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="account">Account</Label>
+              <Select value={formData.accountId} onValueChange={(value) => setFormData({ ...formData, accountId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {operationalAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name} (₹{account.balance.toLocaleString()})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div>
               <Label htmlFor="vendor">Vendor</Label>
               <Select value={formData.vendorId} onValueChange={handleVendorChange}>

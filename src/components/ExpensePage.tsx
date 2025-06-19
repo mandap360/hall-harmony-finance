@@ -8,6 +8,7 @@ import { ExpenseCard } from "@/components/ExpenseCard";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
 import { useVendors } from "@/hooks/useVendors";
+import { useTransactions } from "@/hooks/useTransactions";
 import { Plus } from "lucide-react";
 
 export const ExpensePage = () => {
@@ -17,6 +18,7 @@ export const ExpensePage = () => {
   const { expenses, addExpense, refetch } = useExpenses();
   const { getExpenseCategories } = useCategories();
   const { vendors } = useVendors();
+  const { addTransaction } = useTransactions();
   const expenseCategories = getExpenseCategories();
 
   // Get current Indian Financial Year (April to March)
@@ -62,9 +64,28 @@ export const ExpensePage = () => {
     return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [expenses, selectedCategory, selectedVendor, currentFY]);
 
-  const handleAddExpense = (expenseData: any) => {
-    addExpense(expenseData);
-    setShowAddDialog(false);
+  const handleAddExpense = async (expenseData: any) => {
+    try {
+      // Add the expense
+      await addExpense(expenseData);
+      
+      // Add corresponding transaction to the selected account
+      if (expenseData.accountId) {
+        await addTransaction({
+          account_id: expenseData.accountId,
+          transaction_type: 'debit',
+          amount: expenseData.totalAmount,
+          description: `Expense - ${expenseData.vendorName} - ${expenseData.category}`,
+          reference_type: 'expense',
+          reference_id: null,
+          transaction_date: expenseData.date
+        });
+      }
+      
+      setShowAddDialog(false);
+    } catch (error) {
+      console.error('Error adding expense:', error);
+    }
   };
 
   const handleRefresh = () => {

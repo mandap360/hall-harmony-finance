@@ -75,8 +75,7 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="rent">Rent</SelectItem>
-                <SelectItem value="advance">Advance</SelectItem>
-                <SelectItem value="additional">Additional</SelectItem>
+                <SelectItem value="additional">Additional Income</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -122,6 +121,6 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
           </Button>
         </form>
       </CardContent>
-    </Card>
+    </Dialog>
   );
 };

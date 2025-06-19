@@ -15,7 +15,8 @@ interface AddAccountDialogProps {
 export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDialogProps) => {
   const [formData, setFormData] = useState({
     name: "",
-    account_type: "bank" as "cash" | "bank" | "other",
+    account_type: "operational" as "operational" | "capital",
+    sub_type: "",
     is_default: false
   });
 
@@ -26,7 +27,8 @@ export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDia
     // Reset form
     setFormData({
       name: "",
-      account_type: "bank",
+      account_type: "operational",
+      sub_type: "",
       is_default: false
     });
   };
@@ -61,12 +63,27 @@ export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDia
                 <SelectValue placeholder="Select account type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="bank">Bank</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="operational">Operational Account</SelectItem>
+                <SelectItem value="capital">Capital Account</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {formData.account_type === "operational" && (
+            <div className="space-y-2">
+              <Label htmlFor="sub_type">Sub Type</Label>
+              <Select value={formData.sub_type} onValueChange={(value) => handleChange("sub_type", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select sub type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="bank">Bank</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
