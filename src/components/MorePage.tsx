@@ -1,15 +1,22 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Settings, User, HelpCircle, Info, Calculator, Tag, Users } from "lucide-react";
+import { Settings, User, HelpCircle, Info, Calculator, Tag, Users, CreditCard } from "lucide-react";
 import { TaxManagement } from "@/components/TaxManagement";
 import { CategoryManagement } from "@/components/CategoryManagement";
 import { VendorManagement } from "@/components/VendorManagement";
+import { BankingPage } from "@/components/BankingPage";
 
 export const MorePage = () => {
   const [currentView, setCurrentView] = useState("menu");
 
   const menuItems = [
+    { 
+      icon: CreditCard, 
+      label: "Banking", 
+      description: "Manage cash and bank accounts",
+      action: () => setCurrentView("banking")
+    },
     { 
       icon: Calculator, 
       label: "Tax Management", 
@@ -33,6 +40,22 @@ export const MorePage = () => {
     { icon: HelpCircle, label: "Help & Support", description: "Get assistance" },
     { icon: Info, label: "About", description: "App information" },
   ];
+
+  if (currentView === "banking") {
+    return (
+      <div>
+        <div className="p-4 border-b">
+          <button 
+            onClick={() => setCurrentView("menu")}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            ← Back to More
+          </button>
+        </div>
+        <BankingPage />
+      </div>
+    );
+  }
 
   if (currentView === "tax") {
     return (

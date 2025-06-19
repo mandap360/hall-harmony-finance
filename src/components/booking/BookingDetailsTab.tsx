@@ -1,8 +1,13 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAccounts } from "@/hooks/useAccounts";
+import { useBookings } from "@/hooks/useBookings";
+import { useToast } from "@/hooks/use-toast";
 
 interface BookingDetailsTabProps {
   booking: any;
@@ -11,119 +16,215 @@ interface BookingDetailsTabProps {
 }
 
 export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetailsTabProps) => {
-  const [notes, setNotes] = useState("");
+  const { accounts } = useAccounts();
+  const { bookings } = useBookings();
+  const { toast } = useToast();
+  
+  const [formData, setFormData] = useState({
+    eventName: booking.eventName || "",
+    clientName: booking.clientName || "",
+    phoneNumber: booking.phoneNumber || "",
+    startDate: booking.startDate?.split('T')[0] || "",
+    startTime: booking.startDate?.split('T')[1]?.slice(0, 5) || "",
+    endDate: booking.endDate?.split('T')[0] || "",
+    endTime: booking.endDate?.split('T')[1]?.slice(0, 5) || "",
+    rent: booking.rent?.toString() || "",
+    notes: booking.notes || "",
+    paymentMode: booking.payment_mode || ""
+  });
 
-  useEffect(() => {
-    if (booking) {
-      setNotes(booking.notes || "");
-    }
-  }, [booking]);
+  const checkForOverlap = (newStart: string, newEnd: string, excludeId: string) => {
+    const newStartTime = new Date(newStart).getTime();
+    const newEndTime = new Date(newEnd).getTime();
+
+    return bookings.some(existingBooking => {
+      if (existingBooking.id === excludeId) return false; // Exclude current booking
+      
+      const existingStart = new Date(existingBooking.startDate).getTime();
+      const existingEnd = new Date(existingBooking.endDate).getTime();
+      
+      // Check if there's any overlap
+      const hasOverlap = newStartTime < existingEnd && newEndTime > existingStart;
+      
+      if (hasOverlap) {
+        console.log('Overlap detected:', {
+          newStart: new Date(newStart),
+          newEnd: new Date(newEnd),
+          existingStart: new Date(existingBooking.startDate),
+          existingEnd: new Date(existingBooking.endDate),
+          booking: existingBooking.eventName
+        });
+      }
+      
+      return hasOverlap;
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    const startDateTime = `${formData.startDate}T${formData.startTime}`;
+    const endDateTime = `${formData.endDate}T${formData.endTime}`;
+    
+    // Validate that end time is after start time
+    if (new Date(endDateTime) <= new Date(startDateTime)) {
+      toast({
+        title: "Invalid time range",
+        description: "End date and time must be after start date and time",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for overlapping bookings (excluding current booking)
+    if (checkForOverlap(startDateTime, endDateTime, booking.id)) {
+      toast({
+        title: "Booking conflict",
+        description: "This time slot overlaps with an existing booking. Please choose a different time.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const updatedBooking = {
       ...booking,
-      notes: notes
+      eventName: formData.eventName,
+      clientName: formData.clientName,
+      phoneNumber: formData.phoneNumber,
+      startDate: startDateTime,
+      endDate: endDateTime,
+      rent: parseInt(formData.rent),
+      notes: formData.notes,
+      payment_mode: formData.paymentMode || null
     };
 
     onSubmit(updatedBooking);
   };
 
-  if (!booking) return null;
-
-  const startDate = new Date(booking.startDate);
-  const endDate = new Date(booking.endDate);
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Read-only fields */}
       <div className="space-y-2">
-        <Label className="text-gray-700">Event Name</Label>
-        <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
-          {booking.eventName}
-        </div>
+        <Label htmlFor="eventName">Event Name *</Label>
+        <Input
+          id="eventName"
+          value={formData.eventName}
+          onChange={(e) => handleChange("eventName", e.target.value)}
+          required
+        />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-gray-700">Client Name</Label>
-        <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
-          {booking.clientName}
-        </div>
+        <Label htmlFor="clientName">Client Name *</Label>
+        <Input
+          id="clientName"
+          value={formData.clientName}
+          onChange={(e) => handleChange("clientName", e.target.value)}
+          required
+        />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-gray-700">Phone Number</Label>
-        <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
-          {booking.phoneNumber}
+        <Label htmlFor="phoneNumber">Phone Number *</Label>
+        <Input
+          id="phoneNumber"
+          value={formData.phoneNumber}
+          onChange={(e) => handleChange("phoneNumber", e.target.value)}
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="startDate">Start Date *</Label>
+          <Input
+            id="startDate"
+            type="date"
+            value={formData.startDate}
+            onChange={(e) => handleChange("startDate", e.target.value)}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="startTime">Start Time *</Label>
+          <Input
+            id="startTime"
+            type="time"
+            value={formData.startTime}
+            onChange={(e) => handleChange("startTime", e.target.value)}
+            required
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-gray-700">Start Date</Label>
-          <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
-            {startDate.toLocaleDateString('en-IN')}
-          </div>
+          <Label htmlFor="endDate">End Date *</Label>
+          <Input
+            id="endDate"
+            type="date"
+            value={formData.endDate}
+            onChange={(e) => handleChange("endDate", e.target.value)}
+            required
+          />
         </div>
         <div className="space-y-2">
-          <Label className="text-gray-700">Start Time</Label>
-          <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
-            {startDate.toTimeString().slice(0, 5)}
-          </div>
+          <Label htmlFor="endTime">End Time *</Label>
+          <Input
+            id="endTime"
+            type="time"
+            value={formData.endTime}
+            onChange={(e) => handleChange("endTime", e.target.value)}
+            required
+          />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label className="text-gray-700">End Date</Label>
-          <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
-            {endDate.toLocaleDateString('en-IN')}
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-gray-700">End Time</Label>
-          <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
-            {endDate.toTimeString().slice(0, 5)}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label className="text-gray-700">Rent</Label>
-          <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
-            ₹{booking.rent.toLocaleString()}
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-gray-700">Advance</Label>
-          <div className="p-2 bg-gray-50 border border-gray-200 rounded text-gray-700">
-            ₹{booking.advance.toLocaleString()}
-          </div>
-        </div>
-      </div>
-
-      {/* Editable notes field */}
       <div className="space-y-2">
-        <Label htmlFor="notes" className="text-gray-700">Notes</Label>
+        <Label htmlFor="rent">Rent *</Label>
+        <Input
+          id="rent"
+          type="number"
+          value={formData.rent}
+          onChange={(e) => handleChange("rent", e.target.value)}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="paymentMode">Payment Mode</Label>
+        <Select value={formData.paymentMode} onValueChange={(value) => handleChange("paymentMode", value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select payment mode" />
+          </SelectTrigger>
+          <SelectContent>
+            {accounts.map((account) => (
+              <SelectItem key={account.id} value={account.id}>
+                {account.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="notes">Notes (Optional)</Label>
         <Textarea
           id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          value={formData.notes}
+          onChange={(e) => handleChange("notes", e.target.value)}
           rows={3}
-          className="border-amber-200 focus:border-amber-500"
-          placeholder="Add notes about this booking..."
         />
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel} className="border-amber-200 text-amber-700 hover:bg-amber-50">
+        <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
-          Update Notes
-        </Button>
+        <Button type="submit">Update Booking</Button>
       </div>
     </form>
   );

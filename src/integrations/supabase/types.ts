@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          account_type: string
+          balance: number
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          account_type: string
+          balance?: number
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          account_type?: string
+          balance?: number
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       additional_income: {
         Row: {
           amount: number
@@ -60,6 +90,7 @@ export type Database = {
           event_name: string
           id: string
           organization_id: string | null
+          payment_mode: string | null
           phone_number: string | null
           start_datetime: string
           total_rent: number
@@ -73,6 +104,7 @@ export type Database = {
           event_name: string
           id?: string
           organization_id?: string | null
+          payment_mode?: string | null
           phone_number?: string | null
           start_datetime: string
           total_rent: number
@@ -86,6 +118,7 @@ export type Database = {
           event_name?: string
           id?: string
           organization_id?: string | null
+          payment_mode?: string | null
           phone_number?: string | null
           start_datetime?: string
           total_rent?: number
@@ -97,6 +130,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_payment_mode_fkey"
+            columns: ["payment_mode"]
+            isOneToOne: false
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -294,6 +334,50 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          account_id: string
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          reference_id: string | null
+          reference_type: string | null
+          transaction_date: string
+          transaction_type: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          transaction_date?: string
+          transaction_type: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          transaction_date?: string
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
         ]

@@ -33,6 +33,17 @@ export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => 
     return `${start} - ${end}`;
   };
 
+  const formatDateRange = (startDate: string, endDate: string) => {
+    const startDateOnly = startDate.split('T')[0];
+    const endDateOnly = endDate.split('T')[0];
+    
+    if (startDateOnly === endDateOnly) {
+      return formatDate(startDate);
+    } else {
+      return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+    }
+  };
+
   // Calculate additional income from all additional payments (including categories)
   const additionalIncome = (booking.payments || [])
     .filter(payment => payment.type === 'additional')
@@ -68,7 +79,7 @@ export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => 
         <div className="flex items-center text-gray-700">
           <Calendar className="h-4 w-4 mr-2" />
           <span className="text-sm">
-            {formatDate(booking.startDate)}
+            {formatDateRange(booking.startDate, booking.endDate)}
           </span>
         </div>
         
