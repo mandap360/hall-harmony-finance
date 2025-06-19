@@ -63,7 +63,7 @@ export const useTransactions = (accountId?: string) => {
         ? transactionData.amount 
         : -transactionData.amount;
 
-      await supabase.rpc('update_account_balance', {
+      await (supabase.rpc as any)('update_account_balance', {
         account_uuid: transactionData.account_id,
         amount_change: balanceChange
       });
@@ -103,7 +103,7 @@ export const useTransactions = (accountId?: string) => {
         ? -transaction.amount 
         : transaction.amount;
 
-      await supabase.rpc('update_account_balance', {
+      await (supabase.rpc as any)('update_account_balance', {
         account_uuid: transaction.account_id,
         amount_change: balanceChange
       });
