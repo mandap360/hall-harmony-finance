@@ -143,8 +143,8 @@ export const ReportsPage = () => {
 
   // Calculate banking summary
   const bankingSummary = useMemo(() => {
-    const cashAccount = accounts.find(acc => acc.account_type === 'cash' && acc.is_default);
-    const bankAccount = accounts.find(acc => acc.account_type === 'bank' && acc.is_default);
+    const cashAccount = accounts.find(acc => acc.account_type === 'operational' && acc.sub_type === 'cash' && acc.is_default);
+    const bankAccount = accounts.find(acc => acc.account_type === 'operational' && acc.sub_type === 'bank' && acc.is_default);
     const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
 
     return {
