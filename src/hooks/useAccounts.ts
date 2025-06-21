@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +8,7 @@ export interface Account {
   account_type: 'operational' | 'capital';
   sub_type?: string;
   balance: number;
+  opening_balance?: number;
   is_default: boolean;
   created_at: string;
   updated_at: string;
@@ -28,7 +28,34 @@ export const useAccounts = () => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setAccounts((data || []) as Account[]);
+      
+      // Calculate current balance for each account based on opening balance + transactions
+      const accountsWithCalculatedBalance = await Promise.all(
+        (data || []).map(async (account) => {
+          const { data: transactions, error: txError } = await supabase
+            .from('transactions')
+            .select('transaction_type, amount')
+            .eq('account_id', account.id);
+
+          if (txError) {
+            console.error('Error fetching transactions for account:', txError);
+            return account;
+          }
+
+          // Calculate balance from opening balance + all transactions
+          const openingBalance = account.opening_balance || 0;
+          const transactionBalance = (transactions || []).reduce((sum, tx) => {
+            return sum + (tx.transaction_type === 'credit' ? tx.amount : -tx.amount);
+          }, 0);
+
+          return {
+            ...account,
+            balance: openingBalance + transactionBalance
+          };
+        })
+      );
+
+      setAccounts(accountsWithCalculatedBalance as Account[]);
     } catch (error) {
       console.error('Error fetching accounts:', error);
       toast({
@@ -45,7 +72,7 @@ export const useAccounts = () => {
     try {
       const { data, error } = await supabase
         .from('accounts')
-        .insert([{ ...accountData, balance: 0 }])
+        .insert([{ ...accountData, balance: 0, opening_balance: 0 }])
         .select()
         .single();
 
@@ -80,9 +107,27 @@ export const useAccounts = () => {
 
       if (error) throw error;
 
-      setAccounts(prev => prev.map(account => 
-        account.id === id ? data as Account : account
-      ));
+      // Recalculate balance if opening_balance was updated
+      if (updates.opening_balance !== undefined) {
+        const { data: transactions } = await supabase
+          .from('transactions')
+          .select('transaction_type, amount')
+          .eq('account_id', id);
+
+        const transactionBalance = (transactions || []).reduce((sum, tx) => {
+          return sum + (tx.transaction_type === 'credit' ? tx.amount : -tx.amount);
+        }, 0);
+
+        const calculatedBalance = (updates.opening_balance || 0) + transactionBalance;
+        
+        setAccounts(prev => prev.map(account => 
+          account.id === id ? { ...data as Account, balance: calculatedBalance } : account
+        ));
+      } else {
+        setAccounts(prev => prev.map(account => 
+          account.id === id ? data as Account : account
+        ));
+      }
 
       toast({
         title: "Success",

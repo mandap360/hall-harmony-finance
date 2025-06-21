@@ -58,16 +58,7 @@ export const useTransactions = (accountId?: string) => {
 
       if (error) throw error;
 
-      // Update account balance
-      const balanceChange = transactionData.transaction_type === 'credit' 
-        ? transactionData.amount 
-        : -transactionData.amount;
-
-      await (supabase.rpc as any)('update_account_balance', {
-        account_uuid: transactionData.account_id,
-        amount_change: balanceChange
-      });
-
+      // No longer updating account balance directly - it's calculated from opening balance + transactions
       setTransactions(prev => [data as Transaction, ...prev]);
       toast({
         title: "Success",
@@ -88,9 +79,6 @@ export const useTransactions = (accountId?: string) => {
 
   const deleteTransaction = async (id: string) => {
     try {
-      const transaction = transactions.find(t => t.id === id);
-      if (!transaction) throw new Error('Transaction not found');
-
       const { error } = await supabase
         .from('transactions')
         .delete()
@@ -98,16 +86,7 @@ export const useTransactions = (accountId?: string) => {
 
       if (error) throw error;
 
-      // Reverse the balance change
-      const balanceChange = transaction.transaction_type === 'credit' 
-        ? -transaction.amount 
-        : transaction.amount;
-
-      await (supabase.rpc as any)('update_account_balance', {
-        account_uuid: transaction.account_id,
-        amount_change: balanceChange
-      });
-
+      // No longer updating account balance directly - it's calculated from opening balance + transactions
       setTransactions(prev => prev.filter(t => t.id !== id));
       toast({
         title: "Success",

@@ -1,11 +1,12 @@
 
 import { useState } from "react";
-import { ArrowLeft, Plus, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { ArrowLeft, Plus, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useAccounts, Account } from "@/hooks/useAccounts";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
+import { SetOpeningBalanceDialog } from "@/components/SetOpeningBalanceDialog";
 
 interface AccountTransactionsProps {
   account: Account;
@@ -16,6 +17,7 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
   const { transactions, loading, addTransaction } = useTransactions(account.id);
   const { refreshAccounts } = useAccounts();
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showOpeningBalanceDialog, setShowOpeningBalanceDialog] = useState(false);
 
   const handleAddTransaction = async (transactionData: any) => {
     await addTransaction({
@@ -53,25 +55,24 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
     });
   };
 
-  // Calculate running balance for each transaction
+  // Calculate running balance for each transaction starting from opening balance
   const transactionsWithBalance = transactions.map((transaction, index) => {
-    // Get all previous transactions (including current)
-    const previousTransactions = transactions.slice(index);
-    let runningBalance = account.balance;
+    // Start with opening balance
+    let runningBalance = account.opening_balance || 0;
     
-    // Calculate balance by reversing through previous transactions
-    for (let i = previousTransactions.length - 1; i >= 0; i--) {
-      const prevTx = previousTransactions[i];
-      if (prevTx.transaction_type === 'credit') {
-        runningBalance -= prevTx.amount;
+    // Add all transactions up to current index (transactions are sorted newest first)
+    for (let i = transactions.length - 1; i >= index; i--) {
+      const tx = transactions[i];
+      if (tx.transaction_type === 'credit') {
+        runningBalance += tx.amount;
       } else {
-        runningBalance += prevTx.amount;
+        runningBalance -= tx.amount;
       }
     }
     
     return {
       ...transaction,
-      balanceAfter: runningBalance + (transaction.transaction_type === 'credit' ? transaction.amount : -transaction.amount)
+      balanceAfter: runningBalance
     };
   });
 
@@ -100,6 +101,15 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
             <h1 className="text-2xl font-bold text-gray-900">{account.name}</h1>
             <p className="text-gray-600 capitalize">{account.account_type} Account</p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowOpeningBalanceDialog(true)}
+            className="ml-4"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Opening Balance
+          </Button>
         </div>
 
         {/* Account Balance Card */}
@@ -107,19 +117,25 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
           <div className="flex justify-between items-center">
             <div>
               <p className="text-sm text-gray-500 mb-1">Current Balance</p>
-              <p className={`text-3xl font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatBalance(account.balance)}
+              <p className={`text-3xl font-bold ${
+                (transactionsWithBalance[0]?.balanceAfter || account.opening_balance || 0) >= 0 
+                  ? 'text-green-600' 
+                  : 'text-red-600'
+              }`}>
+                {formatBalance(transactionsWithBalance[0]?.balanceAfter || account.opening_balance || 0)}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-500">Total Transactions</p>
-              <p className="text-xl font-semibold text-gray-900">{transactions.length}</p>
+              <p className="text-sm text-gray-500">Opening Balance</p>
+              <p className="text-xl font-semibold text-gray-900">
+                {formatBalance(account.opening_balance || 0)}
+              </p>
             </div>
           </div>
         </Card>
 
         {/* Transaction Headers */}
-        {transactions.length > 0 && (
+        {(transactions.length > 0 || (account.opening_balance || 0) > 0) && (
           <div className="grid grid-cols-5 gap-4 p-4 bg-gray-100 rounded-lg mb-4 text-sm font-medium text-gray-700">
             <div>Date</div>
             <div>Description</div>
@@ -127,6 +143,33 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
             <div className="text-right">Money Out</div>
             <div className="text-right">Balance</div>
           </div>
+        )}
+
+        {/* Opening Balance Row */}
+        {(account.opening_balance || 0) > 0 && (
+          <Card className="p-4 mb-2">
+            <div className="grid grid-cols-5 gap-4 items-center">
+              <div className="text-sm font-medium text-gray-900">
+                Opening
+              </div>
+              <div className="text-sm text-gray-600">
+                Opening Balance
+              </div>
+              <div className="text-right">
+                <span className="text-green-600 font-semibold">
+                  +{formatAmount(account.opening_balance || 0)}
+                </span>
+              </div>
+              <div className="text-right">
+                -
+              </div>
+              <div className="text-right">
+                <span className="font-semibold text-green-600">
+                  {formatAmount(account.opening_balance || 0)}
+                </span>
+              </div>
+            </div>
+          </Card>
         )}
 
         {/* Transactions List */}
@@ -188,6 +231,13 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         onSubmit={handleAddTransaction}
+      />
+
+      <SetOpeningBalanceDialog
+        open={showOpeningBalanceDialog}
+        onOpenChange={setShowOpeningBalanceDialog}
+        accountId={account.id}
+        currentOpeningBalance={account.opening_balance || 0}
       />
     </div>
   );
