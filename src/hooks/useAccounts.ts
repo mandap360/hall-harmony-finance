@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -8,7 +9,7 @@ export interface Account {
   account_type: 'operational' | 'capital';
   sub_type?: string;
   balance: number;
-  opening_balance?: number;
+  opening_balance: number;
   is_default: boolean;
   created_at: string;
   updated_at: string;

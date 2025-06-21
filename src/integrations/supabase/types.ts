@@ -17,6 +17,7 @@ export type Database = {
           id: string
           is_default: boolean
           name: string
+          opening_balance: number
           sub_type: string | null
           updated_at: string
         }
@@ -27,6 +28,7 @@ export type Database = {
           id?: string
           is_default?: boolean
           name: string
+          opening_balance?: number
           sub_type?: string | null
           updated_at?: string
         }
@@ -37,6 +39,7 @@ export type Database = {
           id?: string
           is_default?: boolean
           name?: string
+          opening_balance?: number
           sub_type?: string | null
           updated_at?: string
         }
