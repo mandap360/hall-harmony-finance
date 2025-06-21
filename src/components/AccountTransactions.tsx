@@ -53,6 +53,28 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
     });
   };
 
+  // Calculate running balance for each transaction
+  const transactionsWithBalance = transactions.map((transaction, index) => {
+    // Get all previous transactions (including current)
+    const previousTransactions = transactions.slice(index);
+    let runningBalance = account.balance;
+    
+    // Calculate balance by reversing through previous transactions
+    for (let i = previousTransactions.length - 1; i >= 0; i--) {
+      const prevTx = previousTransactions[i];
+      if (prevTx.transaction_type === 'credit') {
+        runningBalance -= prevTx.amount;
+      } else {
+        runningBalance += prevTx.amount;
+      }
+    }
+    
+    return {
+      ...transaction,
+      balanceAfter: runningBalance + (transaction.transaction_type === 'credit' ? transaction.amount : -transaction.amount)
+    };
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -96,53 +118,49 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
           </div>
         </Card>
 
+        {/* Transaction Headers */}
+        {transactions.length > 0 && (
+          <div className="grid grid-cols-5 gap-4 p-4 bg-gray-100 rounded-lg mb-4 text-sm font-medium text-gray-700">
+            <div>Date</div>
+            <div>Description</div>
+            <div className="text-right">Money In</div>
+            <div className="text-right">Money Out</div>
+            <div className="text-right">Balance</div>
+          </div>
+        )}
+
         {/* Transactions List */}
-        <div className="space-y-3">
-          {transactions.map((transaction) => (
+        <div className="space-y-2">
+          {transactionsWithBalance.map((transaction) => (
             <Card key={transaction.id} className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-start space-x-3">
-                  <div className={`p-2 rounded-full ${
-                    transaction.transaction_type === 'credit' 
-                      ? 'bg-green-100 text-green-600' 
-                      : 'bg-red-100 text-red-600'
+              <div className="grid grid-cols-5 gap-4 items-center">
+                <div className="text-sm font-medium text-gray-900">
+                  {formatDate(transaction.transaction_date)}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {transaction.description || 
+                    (transaction.transaction_type === 'credit' ? 'Money In' : 'Money Out')}
+                </div>
+                <div className="text-right">
+                  {transaction.transaction_type === 'credit' && (
+                    <span className="text-green-600 font-semibold">
+                      +{formatAmount(transaction.amount)}
+                    </span>
+                  )}
+                </div>
+                <div className="text-right">
+                  {transaction.transaction_type === 'debit' && (
+                    <span className="text-red-600 font-semibold">
+                      -{formatAmount(transaction.amount)}
+                    </span>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className={`font-semibold ${
+                    transaction.balanceAfter >= 0 ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    {transaction.transaction_type === 'credit' ? (
-                      <ArrowDownRight className="h-4 w-4" />
-                    ) : (
-                      <ArrowUpRight className="h-4 w-4" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm">
-                          {formatDate(transaction.transaction_date)}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {transaction.description || 
-                            (transaction.transaction_type === 'credit' ? 'Money In' : 'Money Out')}
-                        </p>
-                      </div>
-                      <div className="text-right ml-4">
-                        <p className={`font-semibold text-sm ${
-                          transaction.transaction_type === 'credit' 
-                            ? 'text-green-600' 
-                            : 'text-red-600'
-                        }`}>
-                          {transaction.transaction_type === 'credit' ? 'Money In' : 'Money Out'}
-                        </p>
-                        <p className={`font-bold ${
-                          transaction.transaction_type === 'credit' 
-                            ? 'text-green-600' 
-                            : 'text-red-600'
-                        }`}>
-                          {transaction.transaction_type === 'credit' ? '+' : '-'}
-                          {formatAmount(transaction.amount)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                    {formatAmount(transaction.balanceAfter)}
+                  </span>
                 </div>
               </div>
             </Card>

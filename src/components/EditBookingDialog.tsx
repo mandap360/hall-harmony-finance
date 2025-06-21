@@ -6,6 +6,7 @@ import { PaymentsTab } from "@/components/booking/PaymentsTab";
 import { AdditionalIncomeTab } from "@/components/AdditionalIncomeTab";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useBookings } from "@/hooks/useBookings";
 
 interface EditBookingDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit, onAdd
   const [activeTab, setActiveTab] = useState("details");
   const { addTransaction } = useTransactions();
   const { refreshAccounts } = useAccounts();
+  const { refetch: refreshBookings } = useBookings();
 
   const handleAddPayment = async (paymentData: { 
     amount: string; 
@@ -50,6 +52,9 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit, onAdd
 
       // Refresh accounts to show updated balances
       await refreshAccounts();
+      
+      // Refresh bookings to update payment history immediately
+      await refreshBookings();
     } catch (error) {
       console.error('Error adding payment and transaction:', error);
     }

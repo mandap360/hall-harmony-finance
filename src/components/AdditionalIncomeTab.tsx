@@ -25,9 +25,9 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
   const { incomeCategories } = useIncomeCategories();
   const { toast } = useToast();
   
-  // Calculate total additional income from payments
+  // Calculate total additional income from payments (excluding category-based income)
   const additionalIncome = (booking.payments || [])
-    .filter(payment => payment.type === 'additional')
+    .filter(payment => payment.type === 'additional' && !payment.id.startsWith('categories-'))
     .reduce((sum, payment) => sum + payment.amount, 0);
   
   // State for income category breakdown
@@ -152,7 +152,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
     
     setIsSubmitting(true);
     try {
-      // Insert each income category
+      // Insert each income category (only allocation, no new payment creation)
       const categoriesToInsert = breakdown.map(item => ({
         booking_id: bookingId,
         category: item.name,
@@ -213,7 +213,10 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
             <IndianRupee className="h-5 w-5" />
             <span className="text-2xl font-bold">{additionalIncome.toLocaleString()}</span>
           </div>
-          <p className="text-sm text-amber-600">Total Additional Income</p>
+          <p className="text-sm text-amber-600">Total Additional Income Available</p>
+          <p className="text-xs text-gray-500 mt-1">
+            (Added from Payments tab only)
+          </p>
           
           {savedCategoryBreakdown.length > 0 && (
             <>
@@ -355,7 +358,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
       {/* Display saved category breakdown */}
       {savedCategoryBreakdown.length > 0 && (
         <Card className="p-6 border-orange-200">
-          <h3 className="font-semibold mb-4 text-gray-800">Income Categories (Saved)</h3>
+          <h3 className="font-semibold mb-4 text-gray-800">Income Categories (Allocated)</h3>
           <div className="space-y-3">
             {savedCategoryBreakdown.map((item) => (
               <div key={item.id} className="flex justify-between items-center p-3 bg-amber-50 rounded-lg border border-amber-100">
