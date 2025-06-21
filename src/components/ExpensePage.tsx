@@ -94,42 +94,36 @@ export const ExpensePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-hidden flex flex-col">
-      {/* Fixed Header with Title and Filters */}
-      <div className="bg-white border-b flex-shrink-0">
-        <div className="p-4 border-b">
-          <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
-        </div>
-        
-        <div className="p-4 space-y-3">
-          <div className="flex items-center space-x-3">
-            <Filter className="h-4 w-4 text-gray-500 flex-shrink-0" />
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {expenseCategories.map((category) => (
-                  <SelectItem key={category.id} value={category.name}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedVendor} onValueChange={setSelectedVendor}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Vendor" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Vendors</SelectItem>
-                {vendors.map((vendor) => (
-                  <SelectItem key={vendor.id} value={vendor.businessName}>
-                    {vendor.businessName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Fixed Header with Filters */}
+      <div className="bg-white border-b flex-shrink-0 p-4">
+        <div className="flex items-center space-x-3">
+          <Filter className="h-4 w-4 text-gray-500 flex-shrink-0" />
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {expenseCategories.map((category) => (
+                <SelectItem key={category.id} value={category.name}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedVendor} onValueChange={setSelectedVendor}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Vendor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Vendors</SelectItem>
+              {vendors.map((vendor) => (
+                <SelectItem key={vendor.id} value={vendor.businessName}>
+                  {vendor.businessName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

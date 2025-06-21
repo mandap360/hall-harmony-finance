@@ -102,10 +102,10 @@ export const BookingsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Search and Filter Section */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
+      {/* Fixed Header with Search and Filter */}
+      <div className="bg-white/90 backdrop-blur-sm border-b border-amber-200 sticky top-0 z-10 p-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
@@ -128,33 +128,38 @@ export const BookingsPage = () => {
             </SelectContent>
           </Select>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredBookings.map((booking) => (
-            <BookingCard
-              key={booking.id}
-              booking={booking}
-              onEdit={handleEditBooking}
-              onDelete={handleDeleteBooking}
-            />
-          ))}
-        </div>
-
-        {filteredBookings.length === 0 && (
-          <div className="text-center py-12">
-            {searchTerm || selectedMonth !== "upcoming" ? (
-              <div>
-                <p className="text-gray-500 text-lg">No bookings found matching your criteria</p>
-                <p className="text-gray-400 text-sm mt-2">Try adjusting your search or filter settings</p>
-              </div>
-            ) : (
-              <div>
-                <p className="text-gray-500 text-lg">No upcoming bookings found</p>
-                <p className="text-gray-400 text-sm mt-2">Click the + button to create your first booking</p>
-              </div>
-            )}
+      {/* Content */}
+      <div className="p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredBookings.map((booking) => (
+              <BookingCard
+                key={booking.id}
+                booking={booking}
+                onEdit={handleEditBooking}
+                onDelete={handleDeleteBooking}
+              />
+            ))}
           </div>
-        )}
+
+          {filteredBookings.length === 0 && (
+            <div className="text-center py-12">
+              {searchTerm || selectedMonth !== "upcoming" ? (
+                <div>
+                  <p className="text-gray-500 text-lg">No bookings found matching your criteria</p>
+                  <p className="text-gray-400 text-sm mt-2">Try adjusting your search or filter settings</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-gray-500 text-lg">No upcoming bookings found</p>
+                  <p className="text-gray-400 text-sm mt-2">Click the + button to create your first booking</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Fixed + Button at bottom right */}

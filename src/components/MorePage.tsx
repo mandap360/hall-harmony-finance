@@ -49,7 +49,7 @@ export const MorePage = () => {
             onClick={() => setCurrentView("menu")}
             className="text-blue-600 hover:text-blue-800"
           >
-            ← Back to More
+            ← Back
           </button>
         </div>
         <BankingPage />
@@ -65,7 +65,7 @@ export const MorePage = () => {
             onClick={() => setCurrentView("menu")}
             className="text-blue-600 hover:text-blue-800"
           >
-            ← Back to More
+            ← Back
           </button>
         </div>
         <TaxManagement />
@@ -81,7 +81,7 @@ export const MorePage = () => {
             onClick={() => setCurrentView("menu")}
             className="text-blue-600 hover:text-blue-800"
           >
-            ← Back to More
+            ← Back
           </button>
         </div>
         <CategoryManagement />
@@ -97,7 +97,7 @@ export const MorePage = () => {
             onClick={() => setCurrentView("menu")}
             className="text-blue-600 hover:text-blue-800"
           >
-            ← Back to More
+            ← Back
           </button>
         </div>
         <VendorManagement />
@@ -107,11 +107,6 @@ export const MorePage = () => {
 
   return (
     <div className="p-4 space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900">More</h1>
-        <p className="text-gray-600">Settings and additional options</p>
-      </div>
-
       <div className="space-y-3">
         {menuItems.map((item) => {
           const Icon = item.icon;
