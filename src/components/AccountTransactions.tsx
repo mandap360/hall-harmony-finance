@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { ArrowLeft, Plus, Settings } from "lucide-react";
+import { ArrowLeft, Plus, Settings, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useTransactions } from "@/hooks/useTransactions";
@@ -54,6 +54,15 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
       year: 'numeric'
     });
   };
+
+  // Calculate money in and money out totals
+  const moneyIn = transactions.reduce((sum, tx) => 
+    tx.transaction_type === 'credit' ? sum + tx.amount : sum, 0
+  );
+  
+  const moneyOut = transactions.reduce((sum, tx) => 
+    tx.transaction_type === 'debit' ? sum + tx.amount : sum, 0
+  );
 
   // Calculate running balance for each transaction starting from opening balance
   const transactionsWithBalance = transactions.map((transaction, index) => {
@@ -112,9 +121,9 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
           </Button>
         </div>
 
-        {/* Account Balance Card */}
+        {/* Account Balance Card with Money In/Out */}
         <Card className="p-6 mb-6">
-          <div className="flex justify-between items-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <p className="text-sm text-gray-500 mb-1">Current Balance</p>
               <p className={`text-3xl font-bold ${
@@ -125,6 +134,29 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
                 {formatBalance(transactionsWithBalance[0]?.balanceAfter || account.opening_balance || 0)}
               </p>
             </div>
+            
+            <div className="flex items-center">
+              <TrendingUp className="h-5 w-5 text-green-600 mr-2" />
+              <div>
+                <p className="text-sm text-gray-500">Money In</p>
+                <p className="text-xl font-semibold text-green-600">
+                  {formatBalance(moneyIn)}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <TrendingDown className="h-5 w-5 text-red-600 mr-2" />
+              <div>
+                <p className="text-sm text-gray-500">Money Out</p>
+                <p className="text-xl font-semibold text-red-600">
+                  {formatBalance(moneyOut)}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="text-right">
               <p className="text-sm text-gray-500">Opening Balance</p>
               <p className="text-xl font-semibold text-gray-900">

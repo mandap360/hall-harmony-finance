@@ -6,13 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { Account } from "@/hooks/useAccounts";
 
 interface TransferDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   accounts: Account[];
-  onTransfer: (fromAccountId: string, toAccountId: string, amount: number, description?: string) => Promise<void>;
+  onTransfer: (fromAccountId: string, toAccountId: string, amount: number, description?: string, date?: string) => Promise<void>;
 }
 
 export const TransferDialog = ({ open, onOpenChange, accounts, onTransfer }: TransferDialogProps) => {
@@ -20,6 +25,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, onTransfer }: Tra
   const [toAccountId, setToAccountId] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [date, setDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,11 +41,12 @@ export const TransferDialog = ({ open, onOpenChange, accounts, onTransfer }: Tra
 
     setLoading(true);
     try {
-      await onTransfer(fromAccountId, toAccountId, parseFloat(amount), description);
+      await onTransfer(fromAccountId, toAccountId, parseFloat(amount), description, date.toISOString().split('T')[0]);
       setFromAccountId("");
       setToAccountId("");
       setAmount("");
       setDescription("");
+      setDate(new Date());
       onOpenChange(false);
     } catch (error) {
       // Error handled by the hook
@@ -100,6 +107,33 @@ export const TransferDialog = ({ open, onOpenChange, accounts, onTransfer }: Tra
               placeholder="Enter amount"
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="date">Transfer Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date ? format(date, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={(selectedDate) => selectedDate && setDate(selectedDate)}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">

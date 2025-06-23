@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -172,7 +171,7 @@ export const useAccounts = () => {
     }
   };
 
-  const transferAmount = async (fromAccountId: string, toAccountId: string, amount: number, description?: string) => {
+  const transferAmount = async (fromAccountId: string, toAccountId: string, amount: number, description?: string, transferDate?: string) => {
     try {
       // Create debit transaction for source account
       await (supabase.rpc as any)('update_account_balance', {
@@ -187,7 +186,7 @@ export const useAccounts = () => {
       });
 
       // Add transaction records
-      const transactionDate = new Date().toISOString().split('T')[0];
+      const transactionDate = transferDate || new Date().toISOString().split('T')[0];
       
       const { error: debitError } = await supabase
         .from('transactions')
