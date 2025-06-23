@@ -1,12 +1,17 @@
 
 import { useState } from "react";
-import { ArrowLeft, Plus, Settings, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useAccounts, Account } from "@/hooks/useAccounts";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { SetOpeningBalanceDialog } from "@/components/SetOpeningBalanceDialog";
+import { AccountHeader } from "@/components/account/AccountHeader";
+import { OpeningBalanceDisplay } from "@/components/account/OpeningBalanceDisplay";
+import { AccountBalanceCard } from "@/components/account/AccountBalanceCard";
+import { TransactionHeaders } from "@/components/account/TransactionHeaders";
+import { OpeningBalanceRow } from "@/components/account/OpeningBalanceRow";
+import { TransactionRow } from "@/components/account/TransactionRow";
 
 interface AccountTransactionsProps {
   account: Account;
@@ -27,32 +32,6 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
     // Refresh accounts to show updated balance
     await refreshAccounts();
     setShowAddDialog(false);
-  };
-
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatBalance = (balance: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(balance);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
   };
 
   // Calculate money in and money out totals
@@ -96,148 +75,34 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBack}
-            className="mr-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">{account.name}</h1>
-            <p className="text-gray-600 capitalize">{account.account_type} Account</p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowOpeningBalanceDialog(true)}
-            className="ml-4"
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Opening Balance
-          </Button>
-        </div>
+        <AccountHeader 
+          account={account}
+          onBack={onBack}
+          onOpeningBalanceClick={() => setShowOpeningBalanceDialog(true)}
+        />
 
-        {/* Opening Balance Display */}
-        <div className="mb-4">
-          <p className="text-sm text-gray-500">Opening Balance</p>
-          <p className="text-xl font-semibold text-gray-900">
-            {formatBalance(account.opening_balance || 0)}
-          </p>
-        </div>
+        <OpeningBalanceDisplay openingBalance={account.opening_balance || 0} />
 
-        {/* Account Balance Card with Money In/Out */}
-        <Card className="p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Current Balance</p>
-              <p className={`text-3xl font-bold ${
-                (transactionsWithBalance[0]?.balanceAfter || account.opening_balance || 0) >= 0 
-                  ? 'text-green-600' 
-                  : 'text-red-600'
-              }`}>
-                {formatBalance(transactionsWithBalance[0]?.balanceAfter || account.opening_balance || 0)}
-              </p>
-            </div>
-            
-            <div className="flex items-center">
-              <TrendingUp className="h-5 w-5 text-green-600 mr-2" />
-              <div>
-                <p className="text-sm text-gray-500">Money In</p>
-                <p className="text-xl font-semibold text-green-600">
-                  {formatBalance(moneyIn)}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              <TrendingDown className="h-5 w-5 text-red-600 mr-2" />
-              <div>
-                <p className="text-sm text-gray-500">Money Out</p>
-                <p className="text-xl font-semibold text-red-600">
-                  {formatBalance(moneyOut)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </Card>
+        <AccountBalanceCard
+          currentBalance={transactionsWithBalance[0]?.balanceAfter || account.opening_balance || 0}
+          moneyIn={moneyIn}
+          moneyOut={moneyOut}
+        />
 
         {/* Transaction Headers */}
         {(transactions.length > 0 || (account.opening_balance || 0) > 0) && (
-          <div className="grid grid-cols-5 gap-4 p-4 bg-gray-100 rounded-lg mb-4 text-sm font-medium text-gray-700">
-            <div>Date</div>
-            <div>Description</div>
-            <div className="text-right">Money In</div>
-            <div className="text-right">Money Out</div>
-            <div className="text-right">Balance</div>
-          </div>
+          <TransactionHeaders />
         )}
 
         {/* Opening Balance Row */}
         {(account.opening_balance || 0) > 0 && (
-          <Card className="p-4 mb-2">
-            <div className="grid grid-cols-5 gap-4 items-center">
-              <div className="text-sm font-medium text-gray-900">
-                Opening
-              </div>
-              <div className="text-sm text-gray-600">
-                Opening Balance
-              </div>
-              <div className="text-right">
-                <span className="text-green-600 font-semibold">
-                  +{formatAmount(account.opening_balance || 0)}
-                </span>
-              </div>
-              <div className="text-right">
-                -
-              </div>
-              <div className="text-right">
-                <span className="font-semibold text-green-600">
-                  {formatAmount(account.opening_balance || 0)}
-                </span>
-              </div>
-            </div>
-          </Card>
+          <OpeningBalanceRow openingBalance={account.opening_balance || 0} />
         )}
 
         {/* Transactions List */}
         <div className="space-y-2">
           {transactionsWithBalance.map((transaction) => (
-            <Card key={transaction.id} className="p-4">
-              <div className="grid grid-cols-5 gap-4 items-center">
-                <div className="text-sm font-medium text-gray-900">
-                  {formatDate(transaction.transaction_date)}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {transaction.description || 
-                    (transaction.transaction_type === 'credit' ? 'Money In' : 'Money Out')}
-                </div>
-                <div className="text-right">
-                  {transaction.transaction_type === 'credit' && (
-                    <span className="text-green-600 font-semibold">
-                      +{formatAmount(transaction.amount)}
-                    </span>
-                  )}
-                </div>
-                <div className="text-right">
-                  {transaction.transaction_type === 'debit' && (
-                    <span className="text-red-600 font-semibold">
-                      -{formatAmount(transaction.amount)}
-                    </span>
-                  )}
-                </div>
-                <div className="text-right">
-                  <span className={`font-semibold ${
-                    transaction.balanceAfter >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {formatAmount(transaction.balanceAfter)}
-                  </span>
-                </div>
-              </div>
-            </Card>
+            <TransactionRow key={transaction.id} transaction={transaction} />
           ))}
         </div>
 
