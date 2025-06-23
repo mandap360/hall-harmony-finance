@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 export interface Account {
   id: string;
   name: string;
-  account_type: 'operational' | 'capital';
+  account_type: 'operational' | 'capital' | 'other';
   sub_type?: string;
   balance: number;
   opening_balance: number;

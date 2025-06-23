@@ -30,13 +30,16 @@ export const BankingPage = () => {
   const getAccountTypeDisplay = (account: Account) => {
     if (account.account_type === 'operational') {
       return `Operational Account${account.sub_type ? ` (${account.sub_type})` : ''}`;
+    } else if (account.account_type === 'capital') {
+      return 'Capital Account';
+    } else {
+      return 'Other Account';
     }
-    return 'Capital Account';
   };
 
   const operationalAccounts = accounts.filter(acc => acc.account_type === 'operational');
   const capitalAccounts = accounts.filter(acc => acc.account_type === 'capital');
-  const otherAccounts = accounts.filter(acc => acc.account_type !== 'operational' && acc.account_type !== 'capital');
+  const otherAccounts = accounts.filter(acc => acc.account_type === 'other');
 
   if (selectedAccount) {
     return (
@@ -125,34 +128,32 @@ export const BankingPage = () => {
         </div>
 
         {/* Other Accounts */}
-        {otherAccounts.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Other Accounts</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {otherAccounts.map((account) => (
-                <Card 
-                  key={account.id} 
-                  className="p-6 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setSelectedAccount(account)}
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-semibold text-lg text-gray-900">{account.name}</h3>
-                      <p className="text-sm text-gray-500 capitalize">{account.account_type} Account</p>
-                    </div>
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Other Accounts</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {otherAccounts.map((account) => (
+              <Card 
+                key={account.id} 
+                className="p-6 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => setSelectedAccount(account)}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-semibold text-lg text-gray-900">{account.name}</h3>
+                    <p className="text-sm text-gray-500">{getAccountTypeDisplay(account)}</p>
                   </div>
-                  
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-500 mb-1">Balance</p>
-                    <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatBalance(account.balance)}
-                    </p>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                </div>
+                
+                <div className="mt-4">
+                  <p className="text-sm text-gray-500 mb-1">Balance</p>
+                  <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatBalance(account.balance)}
+                  </p>
+                </div>
+              </Card>
+            ))}
           </div>
-        )}
+        </div>
 
         {accounts.length === 0 && (
           <div className="text-center py-12">
