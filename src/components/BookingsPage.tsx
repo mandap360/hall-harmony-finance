@@ -1,13 +1,13 @@
 
 import { useState, useMemo } from "react";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { EditBookingDialog } from "@/components/EditBookingDialog";
-import { BookingCard } from "@/components/BookingCard";
 import { useBookings } from "@/hooks/useBookings";
+import { BookingFilters } from "@/components/booking/BookingFilters";
+import { BookingGrid } from "@/components/booking/BookingGrid";
+import { BookingEmptyState } from "@/components/booking/BookingEmptyState";
 
 export const BookingsPage = () => {
   const { bookings, loading, addBooking, updateBooking, deleteBooking, addPayment } = useBookings();
@@ -103,66 +103,26 @@ export const BookingsPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
-      {/* Fixed Header with Search and Filter */}
-      <div className="bg-white/90 backdrop-blur-sm border-b border-amber-200 sticky top-0 z-10 p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search by client name, event name, or phone number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Filter by month" />
-            </SelectTrigger>
-            <SelectContent>
-              {monthOptions.map((month) => (
-                <SelectItem key={month.value} value={month.value}>
-                  {month.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <BookingFilters
+        searchTerm={searchTerm}
+        selectedMonth={selectedMonth}
+        onSearchChange={setSearchTerm}
+        onMonthChange={setSelectedMonth}
+        monthOptions={monthOptions}
+      />
 
-      {/* Content */}
       <div className="p-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredBookings.map((booking) => (
-              <BookingCard
-                key={booking.id}
-                booking={booking}
-                onEdit={handleEditBooking}
-                onDelete={handleDeleteBooking}
-              />
-            ))}
-          </div>
-
-          {filteredBookings.length === 0 && (
-            <div className="text-center py-12">
-              {searchTerm || selectedMonth !== "upcoming" ? (
-                <div>
-                  <p className="text-gray-500 text-lg">No bookings found matching your criteria</p>
-                  <p className="text-gray-400 text-sm mt-2">Try adjusting your search or filter settings</p>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-gray-500 text-lg">No upcoming bookings found</p>
-                  <p className="text-gray-400 text-sm mt-2">Click the + button to create your first booking</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        {filteredBookings.length === 0 ? (
+          <BookingEmptyState searchTerm={searchTerm} selectedMonth={selectedMonth} />
+        ) : (
+          <BookingGrid
+            bookings={filteredBookings}
+            onEdit={handleEditBooking}
+            onDelete={handleDeleteBooking}
+          />
+        )}
       </div>
 
-      {/* Fixed + Button at bottom right */}
       <Button
         onClick={() => setShowAddDialog(true)}
         className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
