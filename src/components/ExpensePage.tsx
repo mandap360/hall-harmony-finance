@@ -93,9 +93,9 @@ export const ExpensePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 overflow-hidden flex flex-col">
       {/* Fixed Header with Filters */}
-      <div className="bg-white border-b flex-shrink-0 p-4 sticky top-0 z-10">
+      <div className="bg-white border-b flex-shrink-0 p-4">
         <div className="flex items-center space-x-3">
           <Filter className="h-4 w-4 text-gray-500 flex-shrink-0" />
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>

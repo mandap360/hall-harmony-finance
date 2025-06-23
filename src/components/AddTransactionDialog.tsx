@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,26 +11,15 @@ interface AddTransactionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (transaction: any) => void;
-  defaultTransactionType?: "credit" | "debit";
 }
 
-export const AddTransactionDialog = ({ 
-  open, 
-  onOpenChange, 
-  onSubmit, 
-  defaultTransactionType = "credit" 
-}: AddTransactionDialogProps) => {
+export const AddTransactionDialog = ({ open, onOpenChange, onSubmit }: AddTransactionDialogProps) => {
   const [formData, setFormData] = useState({
-    transaction_type: defaultTransactionType,
+    transaction_type: "credit" as "credit" | "debit",
     amount: "",
     description: "",
     transaction_date: new Date().toISOString().split('T')[0],
   });
-
-  // Update transaction type when defaultTransactionType changes
-  useEffect(() => {
-    setFormData(prev => ({ ...prev, transaction_type: defaultTransactionType }));
-  }, [defaultTransactionType]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +32,7 @@ export const AddTransactionDialog = ({
     
     // Reset form
     setFormData({
-      transaction_type: defaultTransactionType,
+      transaction_type: "credit",
       amount: "",
       description: "",
       transaction_date: new Date().toISOString().split('T')[0],

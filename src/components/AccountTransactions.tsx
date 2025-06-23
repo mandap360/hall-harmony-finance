@@ -7,7 +7,6 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useAccounts, Account } from "@/hooks/useAccounts";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { SetOpeningBalanceDialog } from "@/components/SetOpeningBalanceDialog";
-import { TransactionTypeDialog } from "@/components/TransactionTypeDialog";
 
 interface AccountTransactionsProps {
   account: Account;
@@ -19,19 +18,11 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
   const { refreshAccounts } = useAccounts();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showOpeningBalanceDialog, setShowOpeningBalanceDialog] = useState(false);
-  const [showTypeDialog, setShowTypeDialog] = useState(false);
-  const [selectedTransactionType, setSelectedTransactionType] = useState<'credit' | 'debit'>('credit');
-
-  const handleSelectTransactionType = (type: 'credit' | 'debit') => {
-    setSelectedTransactionType(type);
-    setShowAddDialog(true);
-  };
 
   const handleAddTransaction = async (transactionData: any) => {
     await addTransaction({
       ...transactionData,
       account_id: account.id,
-      transaction_type: selectedTransactionType,
     });
     // Refresh accounts to show updated balance
     await refreshAccounts();
@@ -229,24 +220,17 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
 
       {/* Fixed + Button at bottom right */}
       <Button
-        onClick={() => setShowTypeDialog(true)}
+        onClick={() => setShowAddDialog(true)}
         className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
         size="icon"
       >
         <Plus className="h-6 w-6" />
       </Button>
 
-      <TransactionTypeDialog
-        open={showTypeDialog}
-        onOpenChange={setShowTypeDialog}
-        onSelectType={handleSelectTransactionType}
-      />
-
       <AddTransactionDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         onSubmit={handleAddTransaction}
-        defaultTransactionType={selectedTransactionType}
       />
 
       <SetOpeningBalanceDialog
