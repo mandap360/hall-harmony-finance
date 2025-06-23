@@ -1,6 +1,5 @@
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Card } from "@/components/ui/card";
 
 interface TransactionTypeDialogProps {
   open: boolean;
@@ -28,41 +27,47 @@ export const TransactionTypeDialog = ({ open, onOpenChange, onSelectType }: Tran
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 gap-0">
-        <div className="space-y-1">
+      <DialogContent className="sm:max-w-md p-0 gap-0 [&>button]:hidden">
+        <div className="bg-white rounded-lg overflow-hidden">
           {/* Money In Section */}
-          <div className="px-4 py-2 bg-gray-100 text-sm font-medium text-gray-600">
-            MONEY IN
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+            <h3 className="text-sm font-medium text-gray-700 uppercase tracking-wide">MONEY IN</h3>
           </div>
-          {moneyInOptions.map((option) => (
-            <Card 
-              key={option.id}
-              className="m-0 rounded-none border-0 border-b border-gray-200 p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-              onClick={() => {
-                onSelectType('credit');
-                onOpenChange(false);
-              }}
-            >
-              <div className="text-gray-900">{option.label}</div>
-            </Card>
-          ))}
+          <div className="divide-y divide-gray-100">
+            {moneyInOptions.map((option) => (
+              <div 
+                key={option.id}
+                className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                onClick={() => {
+                  onSelectType('credit');
+                  onOpenChange(false);
+                }}
+              >
+                <div className="text-gray-900 font-medium">{option.label}</div>
+              </div>
+            ))}
+          </div>
 
           {/* Money Out Section */}
-          <div className="px-4 py-2 bg-gray-100 text-sm font-medium text-gray-600">
-            MONEY OUT
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 border-t border-gray-200">
+            <h3 className="text-sm font-medium text-gray-700 uppercase tracking-wide">MONEY OUT</h3>
           </div>
-          {moneyOutOptions.map((option) => (
-            <Card 
-              key={option.id}
-              className="m-0 rounded-none border-0 border-b border-gray-200 p-4 hover:bg-gray-50 cursor-pointer transition-colors last:border-b-0"
-              onClick={() => {
-                onSelectType('debit');
-                onOpenChange(false);
-              }}
-            >
-              <div className="text-gray-900">{option.label}</div>
-            </Card>
-          ))}
+          <div className="divide-y divide-gray-100">
+            {moneyOutOptions.map((option, index) => (
+              <div 
+                key={option.id}
+                className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                  index === moneyOutOptions.length - 1 ? '' : ''
+                }`}
+                onClick={() => {
+                  onSelectType('debit');
+                  onOpenChange(false);
+                }}
+              >
+                <div className="text-gray-900 font-medium">{option.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
