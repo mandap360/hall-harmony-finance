@@ -121,6 +121,14 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
           </Button>
         </div>
 
+        {/* Opening Balance Display */}
+        <div className="mb-4">
+          <p className="text-sm text-gray-500">Opening Balance</p>
+          <p className="text-xl font-semibold text-gray-900">
+            {formatBalance(account.opening_balance || 0)}
+          </p>
+        </div>
+
         {/* Account Balance Card with Money In/Out */}
         <Card className="p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -153,15 +161,6 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
                   {formatBalance(moneyOut)}
                 </p>
               </div>
-            </div>
-          </div>
-          
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Opening Balance</p>
-              <p className="text-xl font-semibold text-gray-900">
-                {formatBalance(account.opening_balance || 0)}
-              </p>
             </div>
           </div>
         </Card>
