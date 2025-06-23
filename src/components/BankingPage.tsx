@@ -29,7 +29,7 @@ export const BankingPage = () => {
 
   const getAccountTypeDisplay = (account: Account) => {
     if (account.account_type === 'operational') {
-      return `Operational Account${account.sub_type ? ` (${account.sub_type})` : ''}`;
+      return 'Operational Account';
     } else if (account.account_type === 'capital') {
       return 'Capital Account';
     } else {
@@ -58,6 +58,40 @@ export const BankingPage = () => {
     );
   }
 
+  const renderAccountSection = (title: string, accounts: Account[]) => (
+    <div className="mb-8">
+      <h2 className="text-lg font-semibold text-gray-800 mb-4">{title}</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {accounts.map((account) => (
+          <Card 
+            key={account.id} 
+            className="p-6 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => setSelectedAccount(account)}
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="font-semibold text-lg text-gray-900">{account.name}</h3>
+                <p className="text-sm text-gray-500">{getAccountTypeDisplay(account)}</p>
+              </div>
+              {account.is_default && (
+                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                  Default
+                </span>
+              )}
+            </div>
+            
+            <div className="mt-4">
+              <p className="text-sm text-gray-500 mb-1">Balance</p>
+              <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatBalance(account.balance)}
+              </p>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
@@ -67,93 +101,13 @@ export const BankingPage = () => {
         </div>
 
         {/* Operational Accounts */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Operational Accounts</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {operationalAccounts.map((account) => (
-              <Card 
-                key={account.id} 
-                className="p-6 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => setSelectedAccount(account)}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-semibold text-lg text-gray-900">{account.name}</h3>
-                    <p className="text-sm text-gray-500">{getAccountTypeDisplay(account)}</p>
-                  </div>
-                  {account.is_default && (
-                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                      Default
-                    </span>
-                  )}
-                </div>
-                
-                <div className="mt-4">
-                  <p className="text-sm text-gray-500 mb-1">Balance</p>
-                  <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatBalance(account.balance)}
-                  </p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
+        {renderAccountSection("Operational Accounts", operationalAccounts)}
 
         {/* Capital Accounts */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Capital Accounts</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {capitalAccounts.map((account) => (
-              <Card 
-                key={account.id} 
-                className="p-6 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => setSelectedAccount(account)}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-semibold text-lg text-gray-900">{account.name}</h3>
-                    <p className="text-sm text-gray-500">{getAccountTypeDisplay(account)}</p>
-                  </div>
-                </div>
-                
-                <div className="mt-4">
-                  <p className="text-sm text-gray-500 mb-1">Balance</p>
-                  <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatBalance(account.balance)}
-                  </p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
+        {renderAccountSection("Capital Accounts", capitalAccounts)}
 
         {/* Other Accounts */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Other Accounts</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {otherAccounts.map((account) => (
-              <Card 
-                key={account.id} 
-                className="p-6 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => setSelectedAccount(account)}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-semibold text-lg text-gray-900">{account.name}</h3>
-                    <p className="text-sm text-gray-500">{getAccountTypeDisplay(account)}</p>
-                  </div>
-                </div>
-                
-                <div className="mt-4">
-                  <p className="text-sm text-gray-500 mb-1">Balance</p>
-                  <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatBalance(account.balance)}
-                  </p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
+        {renderAccountSection("Other Accounts", otherAccounts)}
 
         {accounts.length === 0 && (
           <div className="text-center py-12">
