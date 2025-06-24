@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -173,6 +174,19 @@ export const useAccounts = () => {
 
   const transferAmount = async (fromAccountId: string, toAccountId: string, amount: number, description?: string, transferDate?: string) => {
     try {
+      // Get account names for better descriptions
+      const { data: fromAccount } = await supabase
+        .from('accounts')
+        .select('name')
+        .eq('id', fromAccountId)
+        .single();
+
+      const { data: toAccount } = await supabase
+        .from('accounts')
+        .select('name')
+        .eq('id', toAccountId)
+        .single();
+
       // Create debit transaction for source account
       await (supabase.rpc as any)('update_account_balance', {
         account_uuid: fromAccountId,
@@ -185,7 +199,7 @@ export const useAccounts = () => {
         amount_change: amount
       });
 
-      // Add transaction records
+      // Add transaction records with account names in descriptions
       const transactionDate = transferDate || new Date().toISOString().split('T')[0];
       
       const { error: debitError } = await supabase
@@ -194,7 +208,7 @@ export const useAccounts = () => {
           account_id: fromAccountId,
           transaction_type: 'debit',
           amount: amount,
-          description: description || `Transfer to account`,
+          description: description || `Transfer to ${toAccount?.name || 'account'}`,
           reference_type: 'transfer',
           reference_id: toAccountId,
           transaction_date: transactionDate
@@ -208,7 +222,7 @@ export const useAccounts = () => {
           account_id: toAccountId,
           transaction_type: 'credit',
           amount: amount,
-          description: description || `Transfer from account`,
+          description: description || `Transfer from ${fromAccount?.name || 'account'}`,
           reference_type: 'transfer',
           reference_id: fromAccountId,
           transaction_date: transactionDate
