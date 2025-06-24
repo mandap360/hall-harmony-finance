@@ -34,7 +34,26 @@ export const useTransactions = (accountId?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setTransactions((data || []) as Transaction[]);
+      
+      // Process transactions to ensure proper date formatting in descriptions
+      const processedTransactions = (data || []).map(transaction => {
+        if (transaction.description && transaction.description.includes('undefined')) {
+          // Fix descriptions that have undefined dates
+          const transactionDate = new Date(transaction.transaction_date);
+          const formattedDate = transactionDate.toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          });
+          
+          // Replace undefined with properly formatted date
+          transaction.description = transaction.description.replace(/undefined \(invalid date\)/gi, formattedDate);
+          transaction.description = transaction.description.replace(/undefined/gi, formattedDate);
+        }
+        return transaction;
+      });
+      
+      setTransactions(processedTransactions as Transaction[]);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       toast({
@@ -49,10 +68,24 @@ export const useTransactions = (accountId?: string) => {
 
   const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'created_at'>) => {
     try {
-      // Format the transaction date properly
+      // Format the transaction date properly and ensure description has correct date format
+      const transactionDate = new Date(transactionData.transaction_date);
+      const formattedDate = transactionDate.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+      
+      // Fix description if it contains date references
+      let description = transactionData.description;
+      if (description && description.includes('for date')) {
+        description = description.replace(/for date.*$/, `for ${formattedDate}`);
+      }
+
       const formattedTransactionData = {
         ...transactionData,
-        transaction_date: new Date(transactionData.transaction_date).toISOString().split('T')[0]
+        transaction_date: transactionDate.toISOString().split('T')[0],
+        description: description
       };
 
       const { data, error } = await supabase
