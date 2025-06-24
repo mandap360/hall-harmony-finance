@@ -14,6 +14,8 @@ import { ExpenseList } from "@/components/expense/ExpenseList";
 export const ExpensePage = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedVendor, setSelectedVendor] = useState("all");
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const { expenses, addExpense, refetch } = useExpenses();
   const { getExpenseCategories } = useCategories();
@@ -42,15 +44,23 @@ export const ExpensePage = () => {
       const expenseYear = expenseDate.getFullYear();
       const expenseMonth = expenseDate.getMonth();
       
-      // Check if expense is in current FY
-      let isInCurrentFY = false;
-      if (expenseMonth >= 3) { // April onwards (month is 0-indexed)
-        isInCurrentFY = expenseYear === currentFY.startYear;
-      } else { // January to March
-        isInCurrentFY = expenseYear === currentFY.endYear;
+      // Check if expense is in current FY (only if no date range is selected)
+      if (!startDate && !endDate) {
+        let isInCurrentFY = false;
+        if (expenseMonth >= 3) { // April onwards (month is 0-indexed)
+          isInCurrentFY = expenseYear === currentFY.startYear;
+        } else { // January to March
+          isInCurrentFY = expenseYear === currentFY.endYear;
+        }
+        
+        if (!isInCurrentFY) return false;
       }
+
+      // Apply date range filter if dates are selected
+      if (startDate && expenseDate < startDate) return false;
+      if (endDate && expenseDate > endDate) return false;
       
-      return isInCurrentFY;
+      return true;
     });
 
     if (selectedCategory !== "all") {
@@ -62,7 +72,7 @@ export const ExpensePage = () => {
     }
 
     return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [expenses, selectedCategory, selectedVendor, currentFY]);
+  }, [expenses, selectedCategory, selectedVendor, startDate, endDate, currentFY]);
 
   const handleAddExpense = async (expenseData: any) => {
     try {
@@ -95,8 +105,12 @@ export const ExpensePage = () => {
         <ExpenseFilters
           selectedCategory={selectedCategory}
           selectedVendor={selectedVendor}
+          startDate={startDate}
+          endDate={endDate}
           onCategoryChange={setSelectedCategory}
           onVendorChange={setSelectedVendor}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
           expenseCategories={expenseCategories}
           vendors={vendors}
         />

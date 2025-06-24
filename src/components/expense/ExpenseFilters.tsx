@@ -1,12 +1,17 @@
 
 import { Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ExpenseDateRangeFilter } from "./ExpenseDateRangeFilter";
 
 interface ExpenseFiltersProps {
   selectedCategory: string;
   selectedVendor: string;
+  startDate: Date | undefined;
+  endDate: Date | undefined;
   onCategoryChange: (value: string) => void;
   onVendorChange: (value: string) => void;
+  onStartDateChange: (date: Date | undefined) => void;
+  onEndDateChange: (date: Date | undefined) => void;
   expenseCategories: Array<{ id: string; name: string }>;
   vendors: Array<{ id: string; businessName: string }>;
 }
@@ -14,8 +19,12 @@ interface ExpenseFiltersProps {
 export const ExpenseFilters = ({
   selectedCategory,
   selectedVendor,
+  startDate,
+  endDate,
   onCategoryChange,
   onVendorChange,
+  onStartDateChange,
+  onEndDateChange,
   expenseCategories,
   vendors
 }: ExpenseFiltersProps) => {
@@ -49,6 +58,12 @@ export const ExpenseFilters = ({
             ))}
           </SelectContent>
         </Select>
+        <ExpenseDateRangeFilter
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={onStartDateChange}
+          onEndDateChange={onEndDateChange}
+        />
       </div>
     </div>
   );
