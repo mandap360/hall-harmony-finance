@@ -141,16 +141,17 @@ export const ReportsPage = () => {
     };
   }, [bookings, expenses, currentFY]);
 
-  // Calculate banking summary
+  // Calculate banking summary - only operational accounts
   const bankingSummary = useMemo(() => {
-    const cashAccount = accounts.find(acc => acc.account_type === 'operational' && acc.sub_type === 'cash' && acc.is_default);
-    const bankAccount = accounts.find(acc => acc.account_type === 'operational' && acc.sub_type === 'bank' && acc.is_default);
-    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+    const operationalAccounts = accounts.filter(acc => acc.account_type === 'operational');
+    const cashAccount = operationalAccounts.find(acc => acc.sub_type === 'cash' && acc.is_default);
+    const bankAccount = operationalAccounts.find(acc => acc.sub_type === 'bank' && acc.is_default);
+    const totalOperationalBalance = operationalAccounts.reduce((sum, acc) => sum + acc.balance, 0);
 
     return {
       cashInHand: cashAccount?.balance || 0,
       bankBalance: bankAccount?.balance || 0,
-      totalBankBalance: totalBalance,
+      totalBankBalance: totalOperationalBalance,
     };
   }, [accounts]);
 

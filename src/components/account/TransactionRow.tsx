@@ -1,5 +1,6 @@
 
 import { Card } from "@/components/ui/card";
+import { Plus, Minus } from "lucide-react";
 
 interface Transaction {
   id: string;
@@ -44,16 +45,22 @@ export const TransactionRow = ({ transaction }: TransactionRowProps) => {
         </div>
         <div className="text-right">
           {transaction.transaction_type === 'credit' && (
-            <span className="text-green-600 font-semibold">
-              +{formatAmount(transaction.amount)}
-            </span>
+            <div className="flex items-center justify-end">
+              <Plus className="h-4 w-4 text-green-600 mr-1" />
+              <span className="text-green-600 font-semibold">
+                {formatAmount(transaction.amount)}
+              </span>
+            </div>
           )}
         </div>
         <div className="text-right">
           {transaction.transaction_type === 'debit' && (
-            <span className="text-red-600 font-semibold">
-              -{formatAmount(transaction.amount)}
-            </span>
+            <div className="flex items-center justify-end">
+              <Minus className="h-4 w-4 text-red-600 mr-1" />
+              <span className="text-red-600 font-semibold">
+                {formatAmount(transaction.amount)}
+              </span>
+            </div>
           )}
         </div>
         <div className="text-right">

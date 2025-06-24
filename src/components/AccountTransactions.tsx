@@ -7,7 +7,6 @@ import { useAccounts, Account } from "@/hooks/useAccounts";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { SetOpeningBalanceDialog } from "@/components/SetOpeningBalanceDialog";
 import { AccountHeader } from "@/components/account/AccountHeader";
-import { OpeningBalanceDisplay } from "@/components/account/OpeningBalanceDisplay";
 import { AccountBalanceCard } from "@/components/account/AccountBalanceCard";
 import { TransactionHeaders } from "@/components/account/TransactionHeaders";
 import { OpeningBalanceRow } from "@/components/account/OpeningBalanceRow";
@@ -80,8 +79,6 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
           onBack={onBack}
           onOpeningBalanceClick={() => setShowOpeningBalanceDialog(true)}
         />
-
-        <OpeningBalanceDisplay openingBalance={account.opening_balance || 0} />
 
         <AccountBalanceCard
           currentBalance={transactionsWithBalance[0]?.balanceAfter || account.opening_balance || 0}

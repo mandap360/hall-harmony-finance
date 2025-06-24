@@ -89,16 +89,20 @@ export const ExpensePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 overflow-hidden flex flex-col">
-      <ExpenseFilters
-        selectedCategory={selectedCategory}
-        selectedVendor={selectedVendor}
-        onCategoryChange={setSelectedCategory}
-        onVendorChange={setSelectedVendor}
-        expenseCategories={expenseCategories}
-        vendors={vendors}
-      />
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Fixed Filters */}
+      <div className="flex-shrink-0">
+        <ExpenseFilters
+          selectedCategory={selectedCategory}
+          selectedVendor={selectedVendor}
+          onCategoryChange={setSelectedCategory}
+          onVendorChange={setSelectedVendor}
+          expenseCategories={expenseCategories}
+          vendors={vendors}
+        />
+      </div>
 
+      {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto">
         {filteredExpenses.length === 0 ? (
           <ExpenseEmptyState onRefresh={refetch} />
