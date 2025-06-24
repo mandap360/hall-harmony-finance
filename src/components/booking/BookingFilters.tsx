@@ -20,19 +20,19 @@ export const BookingFilters = ({
 }: BookingFiltersProps) => {
   return (
     <div className="bg-white/90 backdrop-blur-sm border-b border-amber-200 sticky top-0 z-10 p-4">
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
+      <div className="flex gap-2">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Search by client name, event name, or phone number..."
+            placeholder="Search"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10"
+            className="pl-10 text-sm"
           />
         </div>
         <Select value={selectedMonth} onValueChange={onMonthChange}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="Filter by month" />
+          <SelectTrigger className="w-32 text-sm">
+            <SelectValue placeholder="Month" />
           </SelectTrigger>
           <SelectContent>
             {monthOptions.map((month) => (

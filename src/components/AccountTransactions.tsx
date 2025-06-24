@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTransactions } from "@/hooks/useTransactions";
@@ -18,19 +18,35 @@ interface AccountTransactionsProps {
 }
 
 export const AccountTransactions = ({ account, onBack }: AccountTransactionsProps) => {
-  const { transactions, loading, addTransaction } = useTransactions(account.id);
-  const { refreshAccounts } = useAccounts();
+  const { transactions, loading, addTransaction, refreshTransactions } = useTransactions(account.id);
+  const { refreshAccounts, accounts } = useAccounts();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showOpeningBalanceDialog, setShowOpeningBalanceDialog] = useState(false);
+  const [currentAccount, setCurrentAccount] = useState(account);
+
+  // Update current account when accounts change
+  useEffect(() => {
+    const updatedAccount = accounts.find(acc => acc.id === account.id);
+    if (updatedAccount) {
+      setCurrentAccount(updatedAccount);
+    }
+  }, [accounts, account.id]);
 
   const handleAddTransaction = async (transactionData: any) => {
     await addTransaction({
       ...transactionData,
-      account_id: account.id,
+      account_id: currentAccount.id,
     });
     // Refresh accounts to show updated balance
     await refreshAccounts();
     setShowAddDialog(false);
+  };
+
+  const handleOpeningBalanceUpdate = async () => {
+    // Refresh both accounts and transactions after opening balance update
+    await refreshAccounts();
+    await refreshTransactions();
+    setShowOpeningBalanceDialog(false);
   };
 
   // Calculate money in and money out totals
@@ -45,7 +61,7 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
   // Calculate running balance for each transaction starting from opening balance
   const transactionsWithBalance = transactions.map((transaction, index) => {
     // Start with opening balance
-    let runningBalance = account.opening_balance || 0;
+    let runningBalance = currentAccount.opening_balance || 0;
     
     // Add all transactions up to current index (transactions are sorted newest first)
     for (let i = transactions.length - 1; i >= index; i--) {
@@ -75,25 +91,25 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
         <AccountHeader 
-          account={account}
+          account={currentAccount}
           onBack={onBack}
           onOpeningBalanceClick={() => setShowOpeningBalanceDialog(true)}
         />
 
         <AccountBalanceCard
-          currentBalance={transactionsWithBalance[0]?.balanceAfter || account.opening_balance || 0}
+          currentBalance={transactionsWithBalance[0]?.balanceAfter || currentAccount.opening_balance || 0}
           moneyIn={moneyIn}
           moneyOut={moneyOut}
         />
 
         {/* Transaction Headers */}
-        {(transactions.length > 0 || (account.opening_balance || 0) > 0) && (
+        {(transactions.length > 0 || (currentAccount.opening_balance || 0) > 0) && (
           <TransactionHeaders />
         )}
 
         {/* Opening Balance Row */}
-        {(account.opening_balance || 0) > 0 && (
-          <OpeningBalanceRow openingBalance={account.opening_balance || 0} />
+        {(currentAccount.opening_balance || 0) > 0 && (
+          <OpeningBalanceRow openingBalance={currentAccount.opening_balance || 0} />
         )}
 
         {/* Transactions List */}
@@ -112,7 +128,7 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
       </div>
 
       {/* Fixed + Button at bottom right - Only for operational accounts */}
-      {account.account_type === 'operational' && (
+      {currentAccount.account_type === 'operational' && (
         <Button
           onClick={() => setShowAddDialog(true)}
           className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
@@ -131,8 +147,9 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
       <SetOpeningBalanceDialog
         open={showOpeningBalanceDialog}
         onOpenChange={setShowOpeningBalanceDialog}
-        accountId={account.id}
-        currentOpeningBalance={account.opening_balance || 0}
+        accountId={currentAccount.id}
+        currentOpeningBalance={currentAccount.opening_balance || 0}
+        onSuccess={handleOpeningBalanceUpdate}
       />
     </div>
   );

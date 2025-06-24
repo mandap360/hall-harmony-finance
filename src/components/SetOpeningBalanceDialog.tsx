@@ -12,16 +12,18 @@ interface SetOpeningBalanceDialogProps {
   onOpenChange: (open: boolean) => void;
   accountId: string;
   currentOpeningBalance: number;
+  onSuccess?: () => void;
 }
 
 export const SetOpeningBalanceDialog = ({ 
   open, 
   onOpenChange, 
   accountId, 
-  currentOpeningBalance 
+  currentOpeningBalance,
+  onSuccess
 }: SetOpeningBalanceDialogProps) => {
   const [openingBalance, setOpeningBalance] = useState(currentOpeningBalance.toString());
-  const { updateAccount, refreshAccounts } = useAccounts();
+  const { updateAccount } = useAccounts();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,14 +33,17 @@ export const SetOpeningBalanceDialog = ({
       await updateAccount(accountId, { 
         opening_balance: parseFloat(openingBalance) || 0 
       });
-      await refreshAccounts();
       
       toast({
         title: "Success",
         description: "Opening balance updated successfully",
       });
       
-      onOpenChange(false);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        onOpenChange(false);
+      }
     } catch (error) {
       console.error('Error updating opening balance:', error);
     }

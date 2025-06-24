@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -50,15 +49,20 @@ export const useTransactions = (accountId?: string) => {
 
   const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'created_at'>) => {
     try {
+      // Format the transaction date properly
+      const formattedTransactionData = {
+        ...transactionData,
+        transaction_date: new Date(transactionData.transaction_date).toISOString().split('T')[0]
+      };
+
       const { data, error } = await supabase
         .from('transactions')
-        .insert([transactionData])
+        .insert([formattedTransactionData])
         .select()
         .single();
 
       if (error) throw error;
 
-      // No longer updating account balance directly - it's calculated from opening balance + transactions
       setTransactions(prev => [data as Transaction, ...prev]);
       toast({
         title: "Success",
@@ -86,7 +90,6 @@ export const useTransactions = (accountId?: string) => {
 
       if (error) throw error;
 
-      // No longer updating account balance directly - it's calculated from opening balance + transactions
       setTransactions(prev => prev.filter(t => t.id !== id));
       toast({
         title: "Success",
