@@ -1,3 +1,4 @@
+
 import { useMemo, useState, useEffect } from "react";
 import { TrendingUp, ChevronRight } from "lucide-react";
 import { useBookings } from "@/hooks/useBookings";
@@ -5,7 +6,6 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ReceivablesPayablesCard } from "@/components/reports/ReceivablesPayablesCard";
 import { BankingSummaryCard } from "@/components/reports/BankingSummaryCard";
 import { SalesExpenseSummary } from "@/components/reports/SalesExpenseSummary";
 import { DetailedReports } from "@/components/reports/DetailedReports";
@@ -61,23 +61,12 @@ export const ReportsPage = () => {
 
   const currentFY = getCurrentFY();
 
-  // Calculate receivables and payables
-  const receivablesPayables = useMemo(() => {
-    // Calculate receivables (unpaid booking amounts)
-    const totalReceivables = bookings.reduce((total, booking) => {
-      const totalBookingAmount = booking.rentAmount + (booking.additionalAmount || 0);
-      const totalPaid = booking.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
-      const unpaidAmount = totalBookingAmount - totalPaid;
-      return total + Math.max(0, unpaidAmount);
-    }, 0);
-
-    // Calculate payables (unpaid expenses)
-    const totalPayables = expenses
+  // Calculate payables (unpaid expenses)
+  const totalPayables = useMemo(() => {
+    return expenses
       .filter(expense => !expense.isPaid)
       .reduce((total, expense) => total + expense.totalAmount, 0);
-
-    return { totalReceivables, totalPayables };
-  }, [bookings, expenses]);
+  }, [expenses]);
 
   const financialData = useMemo(() => {
     // Filter bookings for current FY
@@ -176,11 +165,6 @@ export const ReportsPage = () => {
 
   return (
     <div className="p-4 space-y-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
-      <ReceivablesPayablesCard
-        totalReceivables={receivablesPayables.totalReceivables}
-        totalPayables={receivablesPayables.totalPayables}
-      />
-
       <BankingSummaryCard
         cashInHand={bankingSummary.cashInHand}
         bankBalance={bankingSummary.bankBalance}
