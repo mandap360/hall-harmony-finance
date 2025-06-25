@@ -179,7 +179,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
                     <SelectValue placeholder="Select tax rate" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Tax</SelectItem>
+                    <SelectItem value="no_tax">No Tax</SelectItem>
                     {taxRates.map((tax) => (
                       <SelectItem key={tax.id} value={tax.id}>
                         {tax.name}
