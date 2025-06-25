@@ -35,7 +35,8 @@ export const useExpenses = () => {
         .from('expenses')
         .select(`
           *,
-          expense_categories!inner(name)
+          expense_categories!inner(name),
+          accounts(name)
         `)
         .order('expense_date', { ascending: false });
 
@@ -59,9 +60,9 @@ export const useExpenses = () => {
         totalAmount: Number(expense.total_amount || expense.amount),
         date: expense.expense_date,
         createdAt: expense.created_at,
-        isPaid: false, // Default to false since we don't have is_paid column yet
-        accountId: undefined,
-        accountName: undefined
+        isPaid: expense.is_paid || false,
+        accountId: expense.account_id,
+        accountName: expense.accounts?.name
       }));
 
       console.log("Transformed expenses:", transformedExpenses);
@@ -108,7 +109,9 @@ export const useExpenses = () => {
           cgst_amount: expenseData.cgstAmount,
           sgst_amount: expenseData.sgstAmount,
           total_amount: expenseData.totalAmount,
-          expense_date: expenseData.date
+          expense_date: expenseData.date,
+          is_paid: expenseData.isPaid,
+          account_id: expenseData.accountId
         })
         .select()
         .single();
@@ -130,15 +133,20 @@ export const useExpenses = () => {
     }
   };
 
-  const markAsPaid = async (expenseId: string, accountId: string) => {
+  const markAsPaid = async (expenseId: string, accountId: string, paymentDate: string) => {
     try {
-      // For now, we'll just update the local state since we don't have the database column yet
-      setExpenses(prev => prev.map(expense => 
-        expense.id === expenseId 
-          ? { ...expense, isPaid: true, accountId }
-          : expense
-      ));
+      const { error } = await supabase
+        .from('expenses')
+        .update({
+          is_paid: true,
+          account_id: accountId,
+          payment_date: paymentDate
+        })
+        .eq('id', expenseId);
 
+      if (error) throw error;
+
+      await fetchExpenses();
       toast({
         title: "Success",
         description: "Expense marked as paid",

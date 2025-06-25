@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAccounts } from "@/hooks/useAccounts";
 import type { Expense } from "@/hooks/useExpenses";
@@ -11,7 +12,7 @@ interface RecordPaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   expense: Expense | null;
-  onRecordPayment: (expenseId: string, accountId: string) => void;
+  onRecordPayment: (expenseId: string, accountId: string, paymentDate: string) => void;
 }
 
 export const RecordPaymentDialog = ({ 
@@ -21,15 +22,17 @@ export const RecordPaymentDialog = ({
   onRecordPayment 
 }: RecordPaymentDialogProps) => {
   const [selectedAccountId, setSelectedAccountId] = useState("");
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const { accounts } = useAccounts();
   const paymentAccounts = accounts.filter(acc => acc.account_type === 'operational' || acc.account_type === 'capital');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!expense || !selectedAccountId) return;
+    if (!expense || !selectedAccountId || !paymentDate) return;
 
-    onRecordPayment(expense.id, selectedAccountId);
+    onRecordPayment(expense.id, selectedAccountId, paymentDate);
     setSelectedAccountId("");
+    setPaymentDate(new Date().toISOString().split('T')[0]);
     onOpenChange(false);
   };
 
@@ -67,11 +70,22 @@ export const RecordPaymentDialog = ({
                 </Select>
               </div>
 
+              <div>
+                <Label htmlFor="paymentDate">Payment Date</Label>
+                <Input
+                  id="paymentDate"
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  required
+                />
+              </div>
+
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={!selectedAccountId}>
+                <Button type="submit" disabled={!selectedAccountId || !paymentDate}>
                   Record Payment
                 </Button>
               </div>

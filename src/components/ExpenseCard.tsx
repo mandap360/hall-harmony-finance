@@ -1,6 +1,5 @@
 
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Expense } from "@/hooks/useExpenses";
 
 interface ExpenseCardProps {
@@ -17,9 +16,6 @@ export const ExpenseCard = ({ expense }: ExpenseCardProps) => {
           <h3 className="font-semibold text-gray-900">{expense.vendorName}</h3>
           <p className="text-sm text-gray-600">Bill #{expense.billNumber}</p>
         </div>
-        <Badge variant="secondary" className="text-xs">
-          {expense.category}
-        </Badge>
       </div>
       
       <div className="space-y-2 mt-3">

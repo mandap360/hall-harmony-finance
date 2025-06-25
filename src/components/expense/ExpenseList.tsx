@@ -19,13 +19,13 @@ export const ExpenseList = ({ expenses }: ExpenseListProps) => {
   const { markAsPaid } = useExpenses();
   const { addTransaction } = useTransactions();
 
-  const handleRecordPayment = async (expenseId: string, accountId: string) => {
+  const handleRecordPayment = async (expenseId: string, accountId: string, paymentDate: string) => {
     const expense = expenses.find(e => e.id === expenseId);
     if (!expense) return;
 
     try {
       // Mark expense as paid
-      await markAsPaid(expenseId, accountId);
+      await markAsPaid(expenseId, accountId, paymentDate);
       
       // Add transaction record
       await addTransaction({
@@ -35,7 +35,7 @@ export const ExpenseList = ({ expenses }: ExpenseListProps) => {
         description: `Expense payment - ${expense.vendorName} - ${expense.category}`,
         reference_type: 'expense',
         reference_id: expenseId,
-        transaction_date: new Date().toISOString().split('T')[0]
+        transaction_date: paymentDate
       });
     } catch (error) {
       console.error('Error recording payment:', error);
@@ -53,7 +53,7 @@ export const ExpenseList = ({ expenses }: ExpenseListProps) => {
         <div key={expense.id} className="relative">
           <ExpenseCard expense={expense} />
           
-          <div className="absolute top-4 right-4 flex items-center space-x-2">
+          <div className="absolute top-4 right-4 flex flex-col items-end space-y-2">
             {expense.isPaid ? (
               <Badge variant="default" className="bg-green-100 text-green-800">
                 Paid
@@ -62,7 +62,7 @@ export const ExpenseList = ({ expenses }: ExpenseListProps) => {
                 )}
               </Badge>
             ) : (
-              <>
+              <div className="flex items-center space-x-2">
                 <Badge variant="secondary" className="bg-red-100 text-red-800">
                   Unpaid
                 </Badge>
@@ -74,8 +74,13 @@ export const ExpenseList = ({ expenses }: ExpenseListProps) => {
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
-              </>
+              </div>
             )}
+            
+            {/* Category badge positioned below the payment status */}
+            <Badge variant="secondary" className="text-xs">
+              {expense.category}
+            </Badge>
           </div>
         </div>
       ))}

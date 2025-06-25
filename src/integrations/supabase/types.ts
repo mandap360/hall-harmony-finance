@@ -160,6 +160,7 @@ export type Database = {
       }
       expenses: {
         Row: {
+          account_id: string | null
           amount: number
           bill_number: string
           category_id: string
@@ -169,13 +170,16 @@ export type Database = {
           expense_date: string
           gst_percentage: number | null
           id: string
+          is_paid: boolean | null
           organization_id: string | null
+          payment_date: string | null
           sgst_amount: number | null
           sgst_percentage: number | null
           total_amount: number | null
           vendor_name: string
         }
         Insert: {
+          account_id?: string | null
           amount: number
           bill_number: string
           category_id: string
@@ -185,13 +189,16 @@ export type Database = {
           expense_date?: string
           gst_percentage?: number | null
           id?: string
+          is_paid?: boolean | null
           organization_id?: string | null
+          payment_date?: string | null
           sgst_amount?: number | null
           sgst_percentage?: number | null
           total_amount?: number | null
           vendor_name: string
         }
         Update: {
+          account_id?: string | null
           amount?: number
           bill_number?: string
           category_id?: string
@@ -201,13 +208,22 @@ export type Database = {
           expense_date?: string
           gst_percentage?: number | null
           id?: string
+          is_paid?: boolean | null
           organization_id?: string | null
+          payment_date?: string | null
           sgst_amount?: number | null
           sgst_percentage?: number | null
           total_amount?: number | null
           vendor_name?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_category_id_fkey"
             columns: ["category_id"]
