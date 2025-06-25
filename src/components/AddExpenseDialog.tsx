@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCategories } from "@/hooks/useCategories";
 import { useVendors } from "@/hooks/useVendors";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useTax } from "@/hooks/useTax";
 import { AddVendorDialog } from "@/components/AddVendorDialog";
 
 interface AddExpenseDialogProps {
@@ -20,11 +21,10 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
   const [formData, setFormData] = useState({
     vendorId: "",
     billNumber: "",
+    date: new Date().toISOString().split('T')[0],
     category: "",
     amount: "",
-    cgstPercentage: 6,
-    sgstPercentage: 6,
-    date: new Date().toISOString().split('T')[0],
+    taxRateId: "",
     paidThrough: "",
   });
 
@@ -33,33 +33,37 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
   const { getExpenseCategories } = useCategories();
   const { vendors, addVendor } = useVendors();
   const { accounts } = useAccounts();
+  const { taxRates } = useTax();
   const expenseCategories = getExpenseCategories();
   const paymentAccounts = accounts.filter(acc => acc.account_type === 'operational' || acc.account_type === 'capital');
 
   const calculateTaxAmounts = () => {
     const baseAmount = parseFloat(formData.amount) || 0;
-    const cgstAmount = (baseAmount * formData.cgstPercentage) / 100;
-    const sgstAmount = (baseAmount * formData.sgstPercentage) / 100;
-    const totalAmount = baseAmount + cgstAmount + sgstAmount;
+    const selectedTaxRate = taxRates.find(tax => tax.id === formData.taxRateId);
+    const taxPercentage = selectedTaxRate?.percentage || 0;
+    const taxAmount = (baseAmount * taxPercentage) / 100;
+    const totalAmount = baseAmount + taxAmount;
     
-    return { cgstAmount, sgstAmount, totalAmount };
+    return { taxAmount, totalAmount, taxPercentage };
   };
 
-  const { cgstAmount, sgstAmount, totalAmount } = calculateTaxAmounts();
+  const { taxAmount, totalAmount, taxPercentage } = calculateTaxAmounts();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.vendorId || !formData.amount || !formData.category || !formData.paidThrough) return;
 
     const selectedVendor = vendors.find(v => v.id === formData.vendorId);
-    const { cgstAmount, sgstAmount, totalAmount } = calculateTaxAmounts();
+    const { taxAmount, totalAmount } = calculateTaxAmounts();
 
     onSubmit({
       ...formData,
       vendorName: selectedVendor?.businessName || "",
       amount: parseFloat(formData.amount),
-      cgstAmount,
-      sgstAmount,
+      cgstAmount: taxAmount / 2, // Split tax equally between CGST and SGST for backwards compatibility
+      sgstAmount: taxAmount / 2,
+      cgstPercentage: taxPercentage / 2,
+      sgstPercentage: taxPercentage / 2,
       totalAmount,
       isPaid: formData.paidThrough !== "unpaid",
       accountId: formData.paidThrough !== "unpaid" ? formData.paidThrough : null,
@@ -68,11 +72,10 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
     setFormData({
       vendorId: "",
       billNumber: "",
+      date: new Date().toISOString().split('T')[0],
       category: "",
       amount: "",
-      cgstPercentage: 6,
-      sgstPercentage: 6,
-      date: new Date().toISOString().split('T')[0],
+      taxRateId: "",
       paidThrough: "",
     });
   };
@@ -127,6 +130,17 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
             </div>
 
             <div>
+              <Label htmlFor="date">Bill Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                required
+              />
+            </div>
+
+            <div>
               <Label htmlFor="category">Expense Category</Label>
               <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
                 <SelectTrigger>
@@ -154,43 +168,28 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="cgst">CGST</Label>
-                <div className="flex items-center space-x-2">
-                  <Select 
-                    value={formData.cgstPercentage.toString()} 
-                    onValueChange={(value) => setFormData({ ...formData, cgstPercentage: parseInt(value) })}
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="6">6%</SelectItem>
-                      <SelectItem value="9">9%</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="text-sm text-gray-600">₹{cgstAmount.toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="sgst">SGST</Label>
-                <div className="flex items-center space-x-2">
-                  <Select 
-                    value={formData.sgstPercentage.toString()} 
-                    onValueChange={(value) => setFormData({ ...formData, sgstPercentage: parseInt(value) })}
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="6">6%</SelectItem>
-                      <SelectItem value="9">9%</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="text-sm text-gray-600">₹{sgstAmount.toFixed(2)}</span>
-                </div>
+            <div>
+              <Label htmlFor="tax">Tax</Label>
+              <div className="flex items-center space-x-2">
+                <Select 
+                  value={formData.taxRateId} 
+                  onValueChange={(value) => setFormData({ ...formData, taxRateId: value })}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select tax rate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Tax</SelectItem>
+                    {taxRates.map((tax) => (
+                      <SelectItem key={tax.id} value={tax.id}>
+                        {tax.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {taxAmount > 0 && (
+                  <span className="text-sm text-gray-600">₹{taxAmount.toFixed(2)}</span>
+                )}
               </div>
             </div>
 
@@ -216,17 +215,6 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                required
-              />
             </div>
 
             <div className="flex justify-end space-x-2 pt-4">

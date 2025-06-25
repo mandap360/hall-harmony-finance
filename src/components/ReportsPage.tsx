@@ -1,4 +1,3 @@
-
 import { useMemo, useState, useEffect } from "react";
 import { TrendingUp, ChevronRight } from "lucide-react";
 import { useBookings } from "@/hooks/useBookings";
@@ -6,6 +5,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { ReceivablesPayablesCard } from "@/components/reports/ReceivablesPayablesCard";
 import { BankingSummaryCard } from "@/components/reports/BankingSummaryCard";
 import { SalesExpenseSummary } from "@/components/reports/SalesExpenseSummary";
 import { DetailedReports } from "@/components/reports/DetailedReports";
@@ -68,6 +68,10 @@ export const ReportsPage = () => {
       .reduce((total, expense) => total + expense.totalAmount, 0);
   }, [expenses]);
 
+  // Set receivables to 0 for now (to be implemented later)
+  const totalReceivables = 0;
+
+  // Calculate financial data
   const financialData = useMemo(() => {
     // Filter bookings for current FY
     const currentFYBookings = bookings.filter((booking) => {
@@ -165,6 +169,12 @@ export const ReportsPage = () => {
 
   return (
     <div className="p-4 space-y-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+      {/* Receivables & Payables */}
+      <ReceivablesPayablesCard
+        totalReceivables={totalReceivables}
+        totalPayables={totalPayables}
+      />
+
       <BankingSummaryCard
         cashInHand={bankingSummary.cashInHand}
         bankBalance={bankingSummary.bankBalance}
