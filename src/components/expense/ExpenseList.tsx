@@ -16,7 +16,7 @@ interface ExpenseListProps {
 export const ExpenseList = ({ expenses }: ExpenseListProps) => {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const { markAsPaid } = useExpenses();
+  const { markAsPaid, refetch } = useExpenses();
   const { addTransaction } = useTransactions();
 
   const handleRecordPayment = async (expenseId: string, accountId: string, paymentDate: string) => {
@@ -37,6 +37,12 @@ export const ExpenseList = ({ expenses }: ExpenseListProps) => {
         reference_id: expenseId,
         transaction_date: paymentDate
       });
+
+      // Refresh the expenses list to show updated status
+      await refetch();
+      
+      setShowPaymentDialog(false);
+      setSelectedExpense(null);
     } catch (error) {
       console.error('Error recording payment:', error);
     }
