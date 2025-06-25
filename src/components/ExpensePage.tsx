@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -79,8 +78,8 @@ export const ExpensePage = () => {
       // Add the expense
       await addExpense(expenseData);
       
-      // Add corresponding transaction to the selected account
-      if (expenseData.accountId) {
+      // Add corresponding transaction if it's paid
+      if (expenseData.isPaid && expenseData.accountId) {
         await addTransaction({
           account_id: expenseData.accountId,
           transaction_type: 'debit',

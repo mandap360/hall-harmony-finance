@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +15,9 @@ export interface Expense {
   totalAmount: number;
   date: string;
   createdAt: string;
+  isPaid: boolean;
+  accountId?: string;
+  accountName?: string;
 }
 
 export const useExpenses = () => {
@@ -32,7 +34,8 @@ export const useExpenses = () => {
         .from('expenses')
         .select(`
           *,
-          expense_categories!inner(name)
+          expense_categories!inner(name),
+          accounts(name)
         `)
         .order('expense_date', { ascending: false });
 
@@ -55,7 +58,10 @@ export const useExpenses = () => {
         sgstAmount: Number(expense.sgst_amount || 0),
         totalAmount: Number(expense.total_amount || expense.amount),
         date: expense.expense_date,
-        createdAt: expense.created_at
+        createdAt: expense.created_at,
+        isPaid: expense.is_paid || false,
+        accountId: expense.account_id,
+        accountName: expense.accounts?.name
       }));
 
       console.log("Transformed expenses:", transformedExpenses);
@@ -102,7 +108,9 @@ export const useExpenses = () => {
           cgst_amount: expenseData.cgstAmount,
           sgst_amount: expenseData.sgstAmount,
           total_amount: expenseData.totalAmount,
-          expense_date: expenseData.date
+          expense_date: expenseData.date,
+          is_paid: expenseData.isPaid,
+          account_id: expenseData.accountId
         })
         .select()
         .single();
@@ -119,6 +127,33 @@ export const useExpenses = () => {
       toast({
         title: "Error",
         description: "Failed to add expense",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const markAsPaid = async (expenseId: string, accountId: string) => {
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .update({
+          is_paid: true,
+          account_id: accountId
+        })
+        .eq('id', expenseId);
+
+      if (error) throw error;
+
+      await fetchExpenses();
+      toast({
+        title: "Success",
+        description: "Expense marked as paid",
+      });
+    } catch (error) {
+      console.error('Error marking expense as paid:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark expense as paid",
         variant: "destructive",
       });
     }
@@ -197,6 +232,7 @@ export const useExpenses = () => {
     addExpense,
     updateExpense,
     deleteExpense,
+    markAsPaid,
     refetch: fetchExpenses
   };
 };
