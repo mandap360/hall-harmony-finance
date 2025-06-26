@@ -21,7 +21,7 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
     date: "",
     category: "",
     amount: "",
-    taxRateId: "",
+    taxRateId: "no_tax",
   });
 
   const { getExpenseCategories } = useCategories();
@@ -46,13 +46,17 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
         date: expense.date || "",
         category: expense.category || "",
         amount: expense.amount?.toString() || "",
-        taxRateId: matchingTaxRate?.id || "",
+        taxRateId: matchingTaxRate?.id || "no_tax",
       });
     }
   }, [expense, taxRates]);
 
   const calculateTaxAmounts = () => {
     const baseAmount = parseFloat(formData.amount) || 0;
+    if (formData.taxRateId === "no_tax") {
+      return { taxAmount: 0, totalAmount: baseAmount, taxPercentage: 0 };
+    }
+    
     const selectedTaxRate = taxRates.find(tax => tax.id === formData.taxRateId);
     const taxPercentage = selectedTaxRate?.percentage || 0;
     const taxAmount = (baseAmount * taxPercentage) / 100;
@@ -177,7 +181,7 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
                 <SelectValue placeholder="Select tax rate" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No Tax</SelectItem>
+                <SelectItem value="no_tax">No Tax</SelectItem>
                 {taxRates.map((tax) => (
                   <SelectItem key={tax.id} value={tax.id}>
                     {tax.name}
