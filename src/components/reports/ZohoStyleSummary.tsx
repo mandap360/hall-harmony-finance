@@ -48,25 +48,26 @@ export const ZohoStyleSummary = ({
         </CardContent>
       </Card>
 
-      {/* Overdue Invoices */}
-      <Card 
-        className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors"
-        onClick={onOverdueInvoicesClick}
-      >
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <span className="text-lg font-semibold text-orange-800">Overdue Invoices</span>
+      {/* Overdue Invoices and Pending Bills Column */}
+      <div className="space-y-4">
+        {/* Overdue Invoices */}
+        <Card 
+          className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors"
+          onClick={onOverdueInvoicesClick}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <span className="text-lg font-semibold text-orange-800">Overdue Invoices</span>
+              </div>
+              <div className="text-2xl font-bold text-orange-900">
+                {overdueInvoices}
+              </div>
             </div>
-            <div className="text-2xl font-bold text-orange-900">
-              {overdueInvoices}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Pending Bills */}
-      <div className="md:col-span-2">
+        {/* Pending Bills */}
         <Card 
           className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200 cursor-pointer hover:bg-purple-100 transition-colors"
           onClick={onPendingBillsClick}
