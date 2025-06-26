@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +13,7 @@ export interface Booking {
   advance: number;
   notes?: string;
   paidAmount: number;
+  additionalIncome: number;
   payments: Array<{
     id: string;
     amount: number;
@@ -61,17 +61,20 @@ export const useBookings = () => {
         // Get all payments for this booking from the payments table only
         const bookingPayments = (paymentsData || []).filter(payment => payment.booking_id === booking.id);
         
-        // Calculate advance from advance/rent payments
-        const advancePayments = bookingPayments.filter(payment => 
+        // Separate rent/advance payments from additional income
+        const rentPayments = bookingPayments.filter(payment => 
           payment.payment_type === 'advance' || payment.payment_type === 'rent'
         );
-        const advanceFromPayments = advancePayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
         
-        // Get additional income from payments table only (exclude category allocations)
         const additionalPayments = bookingPayments.filter(payment => 
-          payment.payment_type === 'additional' && 
-          !payment.description?.includes('categories')
+          payment.payment_type === 'additional'
         );
+
+        // Calculate rent-related amounts (advance/rent payments only)
+        const totalRentPaid = rentPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+        
+        // Calculate additional income separately
+        const totalAdditionalIncome = additionalPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
 
         // Transform payments for display
         const allPayments = bookingPayments.map(payment => ({
@@ -83,8 +86,6 @@ export const useBookings = () => {
           payment_mode: payment.payment_mode
         }));
 
-        const totalPaidAmount = allPayments.reduce((sum, payment) => sum + payment.amount, 0);
-
         return {
           id: booking.id,
           eventName: booking.event_name,
@@ -93,9 +94,10 @@ export const useBookings = () => {
           startDate: booking.start_datetime,
           endDate: booking.end_datetime,
           rent: Number(booking.rent_finalized),
-          advance: Math.max(Number(booking.rent_received), advanceFromPayments),
+          advance: Math.max(Number(booking.rent_received), totalRentPaid),
           notes: '',
-          paidAmount: totalPaidAmount,
+          paidAmount: totalRentPaid, // Only rent/advance payments
+          additionalIncome: totalAdditionalIncome, // Separate additional income
           payments: allPayments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         };
       });
@@ -118,7 +120,7 @@ export const useBookings = () => {
     fetchBookings();
   }, []);
 
-  const addBooking = async (bookingData: Omit<Booking, 'id' | 'payments' | 'paidAmount'>) => {
+  const addBooking = async (bookingData: Omit<Booking, 'id' | 'payments' | 'paidAmount' | 'additionalIncome'>) => {
     try {
       const { data, error } = await supabase
         .from('bookings')

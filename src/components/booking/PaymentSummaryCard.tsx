@@ -7,13 +7,12 @@ interface PaymentSummaryCardProps {
     rent: number;
     advance: number;
     paidAmount: number;
+    additionalIncome: number;
   };
 }
 
 export const PaymentSummaryCard = ({ booking }: PaymentSummaryCardProps) => {
-  // Calculate additional income from payments that are not rent/advance
-  const additionalIncome = booking.paidAmount - booking.advance;
-  const remainingAmount = booking.rent - booking.paidAmount;
+  const remainingRent = booking.rent - booking.paidAmount;
 
   return (
     <Card className="border-amber-200">
@@ -39,22 +38,22 @@ export const PaymentSummaryCard = ({ booking }: PaymentSummaryCardProps) => {
               </div>
             </div>
             
-            {additionalIncome > 0 && (
+            {booking.additionalIncome > 0 && (
               <div className="flex items-center">
                 <span className="text-gray-600 mr-1">Additional Income:</span>
                 <div className="flex items-center font-semibold text-purple-600">
                   <IndianRupee className="h-3 w-3" />
-                  {additionalIncome}
+                  {booking.additionalIncome}
                 </div>
               </div>
             )}
           </div>
           
           <div className="flex items-center">
-            <span className="text-gray-600 mr-1">Balance:</span>
-            <div className={`flex items-center font-bold ${remainingAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+            <span className="text-gray-600 mr-1">Rent Balance:</span>
+            <div className={`flex items-center font-bold ${remainingRent > 0 ? 'text-red-600' : 'text-green-600'}`}>
               <IndianRupee className="h-3 w-3" />
-              {remainingAmount}
+              {remainingRent}
             </div>
           </div>
         </div>
