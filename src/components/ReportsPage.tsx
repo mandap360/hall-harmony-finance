@@ -9,9 +9,12 @@ import { BankingSummaryCard } from "@/components/reports/BankingSummaryCard";
 import { IncomeListView } from "@/components/reports/IncomeListView";
 import { ExpenseListView } from "@/components/reports/ExpenseListView";
 import { VendorPayablesView } from "@/components/reports/VendorPayablesView";
+import { AccountTransactions } from "@/components/AccountTransactions";
+import { Account } from "@/hooks/useAccounts";
 
 export const ReportsPage = () => {
   const [currentView, setCurrentView] = useState("dashboard");
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const { bookings } = useBookings();
   const { expenses } = useExpenses();
   const { accounts } = useAccounts();
@@ -88,6 +91,19 @@ export const ReportsPage = () => {
     return acc;
   }, { cashInHand: 0, bankBalance: 0, totalBankBalance: 0 });
 
+  const handleAccountClick = (account: Account) => {
+    setSelectedAccount(account);
+  };
+
+  if (selectedAccount) {
+    return (
+      <AccountTransactions 
+        account={selectedAccount} 
+        onBack={() => setSelectedAccount(null)} 
+      />
+    );
+  }
+
   if (currentView === "income") {
     return <IncomeListView onBack={() => setCurrentView("dashboard")} />;
   }
@@ -130,6 +146,8 @@ export const ReportsPage = () => {
             cashInHand={bankingSummary.cashInHand}
             bankBalance={bankingSummary.bankBalance}
             totalBalance={bankingSummary.totalBankBalance}
+            onAccountClick={handleAccountClick}
+            accounts={accounts}
           />
         </div>
       </div>

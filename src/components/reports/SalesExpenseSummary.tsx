@@ -1,5 +1,5 @@
 
-import { TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface SalesExpenseSummaryProps {
@@ -18,53 +18,59 @@ export const SalesExpenseSummary = ({
   onExpenseClick
 }: SalesExpenseSummaryProps) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <Card 
-        className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white cursor-pointer hover:from-emerald-600 hover:to-teal-700 transition-all"
-        onClick={onIncomeClick}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium opacity-90">Total Income</CardTitle>
-          <TrendingUp className="h-4 w-4 opacity-90" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
-            ₹{totalIncome.toLocaleString()}
-          </div>
-          <p className="text-xs opacity-80">Actual payments received</p>
-        </CardContent>
-      </Card>
-
-      <Card 
-        className="bg-gradient-to-r from-red-500 to-pink-600 text-white cursor-pointer hover:from-red-600 hover:to-pink-700 transition-all"
-        onClick={onExpenseClick}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium opacity-90">Total Expenses</CardTitle>
-          <TrendingDown className="h-4 w-4 opacity-90" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
-            ₹{totalExpenses.toLocaleString()}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className={`bg-gradient-to-r ${profit >= 0 
-        ? 'from-cyan-500 to-blue-600' 
-        : 'from-orange-500 to-red-600'} text-white`}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium opacity-90">
-            {profit >= 0 ? 'Profit' : 'Loss'}
+    <div className="space-y-4">
+      {/* Monthly Chart Placeholder */}
+      <Card className="bg-white">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Monthly Overview
           </CardTitle>
-          <DollarSign className="h-4 w-4 opacity-90" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            ₹{Math.abs(profit).toLocaleString()}
+          <div className="h-32 bg-gradient-to-r from-blue-50 to-orange-50 rounded-lg flex items-center justify-center">
+            <div className="text-gray-500 text-sm">Chart visualization area</div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Income and Expense Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card 
+          className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={onIncomeClick}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-blue-700">Total Income</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-900">
+              ₹{totalIncome.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={onExpenseClick}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-orange-700">Total Expenses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-900">
+              ₹{totalExpenses.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Note about tax exclusion */}
+      <div className="text-center">
+        <p className="text-sm text-gray-500 italic">
+          Income and expense values displayed are exclusive of taxes
+        </p>
+      </div>
     </div>
   );
 };

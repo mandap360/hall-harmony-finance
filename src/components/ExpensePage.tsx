@@ -18,6 +18,7 @@ export const ExpensePage = () => {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const { expenses, addExpense, refetch } = useExpenses();
   const { getExpenseCategories } = useCategories();
   const { vendors } = useVendors();
@@ -122,6 +123,8 @@ export const ExpensePage = () => {
           onPaymentStatusChange={setPaymentStatus}
           expenseCategories={expenseCategories}
           vendors={vendors}
+          showFilters={showFilters}
+          onToggleFilters={() => setShowFilters(!showFilters)}
         />
       </div>
 

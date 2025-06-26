@@ -1,7 +1,9 @@
 
 import { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
+import { Plus, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useAccounts, Account } from "@/hooks/useAccounts";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
@@ -11,6 +13,8 @@ import { TransactionHeaders } from "@/components/account/TransactionHeaders";
 import { OpeningBalanceRow } from "@/components/account/OpeningBalanceRow";
 import { TransactionRow } from "@/components/account/TransactionRow";
 import { TransactionFilter } from "@/components/account/TransactionFilter";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface AccountTransactionsProps {
   account: Account;
@@ -24,6 +28,8 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
   const [showOpeningBalanceDialog, setShowOpeningBalanceDialog] = useState(false);
   const [currentAccount, setCurrentAccount] = useState(account);
   const [transactionFilter, setTransactionFilter] = useState("all");
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   // Update current account when accounts change
   useEffect(() => {
@@ -50,10 +56,17 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
     setShowOpeningBalanceDialog(false);
   };
 
-  // Filter transactions based on selected filter
+  // Filter transactions based on selected filter and date range
   const filteredTransactions = transactions.filter(transaction => {
-    if (transactionFilter === "all") return true;
-    return transaction.transaction_type === transactionFilter;
+    if (transactionFilter !== "all" && transaction.transaction_type !== transactionFilter) {
+      return false;
+    }
+    
+    const transactionDate = new Date(transaction.transaction_date);
+    if (startDate && transactionDate < startDate) return false;
+    if (endDate && transactionDate > endDate) return false;
+    
+    return true;
   });
 
   // Calculate money in and money out totals
@@ -104,6 +117,70 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
           onBack={onBack}
           onOpeningBalanceClick={() => setShowOpeningBalanceDialog(true)}
         />
+
+        {/* Date Range Filter */}
+        <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
+          <div className="flex items-center gap-4">
+            <div className="text-sm font-medium text-gray-700">Date Range:</div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "justify-start text-left font-normal",
+                    !startDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, "PP") : "Start date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "justify-start text-left font-normal",
+                    !endDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, "PP") : "End date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+
+            {(startDate || endDate) && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setStartDate(undefined);
+                  setEndDate(undefined);
+                }}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
 
         {/* Combined Filter and Balance Row */}
         <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
