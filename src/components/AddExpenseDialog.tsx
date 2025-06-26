@@ -102,7 +102,9 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="vendor">Payee *</Label>
+              <Label htmlFor="vendor">
+                Payee <span className="text-red-500">*</span>
+              </Label>
               <Select value={formData.vendorId} onValueChange={handleVendorChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select payee" />
@@ -121,7 +123,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
             </div>
 
             <div>
-              <Label htmlFor="billNumber">Invoice No</Label>
+              <Label htmlFor="billNumber">Invoice No (Optional)</Label>
               <Input
                 id="billNumber"
                 value={formData.billNumber}
@@ -130,7 +132,9 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
             </div>
 
             <div>
-              <Label htmlFor="date">Date *</Label>
+              <Label htmlFor="date">
+                Date <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="date"
                 type="date"
@@ -141,7 +145,9 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
             </div>
 
             <div>
-              <Label htmlFor="category">Expense Category</Label>
+              <Label htmlFor="category">
+                Expense Category <span className="text-red-500">*</span>
+              </Label>
               <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
@@ -157,7 +163,9 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
             </div>
 
             <div>
-              <Label htmlFor="amount">Bill Amount</Label>
+              <Label htmlFor="amount">
+                Amount <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="amount"
                 type="number"
@@ -169,7 +177,9 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
             </div>
 
             <div>
-              <Label htmlFor="tax">Tax</Label>
+              <Label htmlFor="tax">
+                Tax <span className="text-red-500">*</span>
+              </Label>
               <div className="flex items-center space-x-2">
                 <Select 
                   value={formData.taxRateId} 
@@ -201,7 +211,9 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
             </div>
 
             <div>
-              <Label htmlFor="paidThrough">Paid Through</Label>
+              <Label htmlFor="paidThrough">
+                Paid Through <span className="text-red-500">*</span>
+              </Label>
               <Select value={formData.paidThrough} onValueChange={(value) => setFormData({ ...formData, paidThrough: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select payment method" />

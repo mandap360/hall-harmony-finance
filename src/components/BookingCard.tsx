@@ -1,7 +1,8 @@
 
-import { Calendar, User, Phone, IndianRupee, Edit, Clock } from "lucide-react";
+import { Calendar, User, Phone, IndianRupee, Edit, Clock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface BookingCardProps {
   booking: any;
@@ -82,14 +83,41 @@ export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => 
             <span className="text-sm">{booking.phoneNumber}</span>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onEdit(booking)}
-          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-        >
-          <Edit className="h-4 w-4" />
-        </Button>
+        <div className="flex space-x-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(booking)}
+            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Booking</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This entry will be permanently deleted. Do you still wish to proceed?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>No</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onDelete(booking.id)}>
+                  Yes
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       <div className="space-y-2">
