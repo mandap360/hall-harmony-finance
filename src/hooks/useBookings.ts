@@ -36,6 +36,7 @@ export const useBookings = () => {
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select('*')
+        .eq('is_deleted', false)
         .order('start_datetime', { ascending: true });
 
       if (bookingsError) {
@@ -195,21 +196,12 @@ export const useBookings = () => {
 
   const deleteBooking = async (bookingId: string) => {
     try {
-      // Delete payments first
-      await supabase
-        .from('payments')
-        .delete()
-        .eq('booking_id', bookingId);
-
-      // Delete additional income
-      await supabase
-        .from('additional_income')
-        .delete()
-        .eq('booking_id', bookingId);
-
       const { error } = await supabase
         .from('bookings')
-        .delete()
+        .update({
+          is_deleted: true,
+          deleted_at: new Date().toISOString()
+        })
         .eq('id', bookingId);
 
       if (error) throw error;

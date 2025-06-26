@@ -38,6 +38,7 @@ export const useExpenses = () => {
           expense_categories!inner(name),
           accounts(name)
         `)
+        .eq('is_deleted', false)
         .order('expense_date', { ascending: false });
 
       if (expensesError) {
@@ -208,7 +209,10 @@ export const useExpenses = () => {
     try {
       const { error } = await supabase
         .from('expenses')
-        .delete()
+        .update({
+          is_deleted: true,
+          deleted_at: new Date().toISOString()
+        })
         .eq('id', expenseId);
 
       if (error) throw error;

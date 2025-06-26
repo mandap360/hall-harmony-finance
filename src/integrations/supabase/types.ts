@@ -91,9 +91,11 @@ export type Database = {
         Row: {
           client_name: string
           created_at: string | null
+          deleted_at: string | null
           end_datetime: string
           event_name: string
           id: string
+          is_deleted: boolean | null
           organization_id: string | null
           phone_number: string | null
           rent_finalized: number
@@ -104,9 +106,11 @@ export type Database = {
         Insert: {
           client_name: string
           created_at?: string | null
+          deleted_at?: string | null
           end_datetime: string
           event_name: string
           id?: string
+          is_deleted?: boolean | null
           organization_id?: string | null
           phone_number?: string | null
           rent_finalized: number
@@ -117,9 +121,11 @@ export type Database = {
         Update: {
           client_name?: string
           created_at?: string | null
+          deleted_at?: string | null
           end_datetime?: string
           event_name?: string
           id?: string
+          is_deleted?: boolean | null
           organization_id?: string | null
           phone_number?: string | null
           rent_finalized?: number
@@ -167,9 +173,11 @@ export type Database = {
           cgst_amount: number | null
           cgst_percentage: number | null
           created_at: string
+          deleted_at: string | null
           expense_date: string
           gst_percentage: number | null
           id: string
+          is_deleted: boolean | null
           is_paid: boolean | null
           organization_id: string | null
           payment_date: string | null
@@ -186,9 +194,11 @@ export type Database = {
           cgst_amount?: number | null
           cgst_percentage?: number | null
           created_at?: string
+          deleted_at?: string | null
           expense_date?: string
           gst_percentage?: number | null
           id?: string
+          is_deleted?: boolean | null
           is_paid?: boolean | null
           organization_id?: string | null
           payment_date?: string | null
@@ -205,9 +215,11 @@ export type Database = {
           cgst_amount?: number | null
           cgst_percentage?: number | null
           created_at?: string
+          deleted_at?: string | null
           expense_date?: string
           gst_percentage?: number | null
           id?: string
+          is_deleted?: boolean | null
           is_paid?: boolean | null
           organization_id?: string | null
           payment_date?: string | null
@@ -451,6 +463,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_deleted_records: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       migrate_advance_to_payments: {
         Args: Record<PropertyKey, never>
         Returns: undefined
