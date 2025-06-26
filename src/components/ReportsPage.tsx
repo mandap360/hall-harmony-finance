@@ -1,8 +1,9 @@
-
 import { useState } from "react";
 import { useBookings } from "@/hooks/useBookings";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useIncomeCategories } from "@/hooks/useIncomeCategories";
+import { useCategories } from "@/hooks/useCategories";
 import { SalesExpenseSummary } from "@/components/reports/SalesExpenseSummary";
 import { ZohoStyleSummary } from "@/components/reports/ZohoStyleSummary";
 import { BankingSummaryCard } from "@/components/reports/BankingSummaryCard";
@@ -10,6 +11,7 @@ import { IncomeListView } from "@/components/reports/IncomeListView";
 import { ExpenseListView } from "@/components/reports/ExpenseListView";
 import { VendorPayablesView } from "@/components/reports/VendorPayablesView";
 import { UnpaidBillsView } from "@/components/reports/UnpaidBillsView";
+import { CategoryBreakdownView } from "@/components/reports/CategoryBreakdownView";
 import { AccountTransactions } from "@/components/AccountTransactions";
 import { Account } from "@/hooks/useAccounts";
 
@@ -19,6 +21,8 @@ export const ReportsPage = () => {
   const { bookings } = useBookings();
   const { expenses } = useExpenses();
   const { accounts } = useAccounts();
+  const { incomeCategories } = useIncomeCategories();
+  const { getIncomeCategories, getExpenseCategories } = useCategories();
 
   // Get current FY data
   const getCurrentFY = () => {
@@ -70,6 +74,29 @@ export const ReportsPage = () => {
 
   const totalExpenses = currentFYPaidExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0);
 
+  // Calculate category breakdowns
+  const incomeByCategory = bookings
+    .filter((booking) => {
+      const bookingDate = new Date(booking.startDate);
+      const bookingYear = bookingDate.getFullYear();
+      const bookingMonth = bookingDate.getMonth();
+      
+      if (bookingMonth >= 3) {
+        return bookingYear === currentFY.startYear;
+      } else {
+        return bookingYear === currentFY.endYear;
+      }
+    })
+    .reduce((acc, booking) => {
+      acc["Rent"] = (acc["Rent"] || 0) + booking.paidAmount;
+      return acc;
+    }, {} as Record<string, number>);
+
+  const expensesByCategory = currentFYPaidExpenses.reduce((acc, expense) => {
+    acc[expense.category] = (acc[expense.category] || 0) + expense.totalAmount;
+    return acc;
+  }, {} as Record<string, number>);
+
   // Calculate total receivables
   const totalReceivables = bookings.reduce((sum, booking) => {
     const remaining = booking.rent - booking.paidAmount;
@@ -120,6 +147,16 @@ export const ReportsPage = () => {
     return <UnpaidBillsView onBack={() => setCurrentView("dashboard")} />;
   }
 
+  if (currentView === "category-breakdown") {
+    return (
+      <CategoryBreakdownView 
+        incomeByCategory={incomeByCategory}
+        expensesByCategory={expensesByCategory}
+        onBack={() => setCurrentView("dashboard")}
+      />
+    );
+  }
+
   // Calculate overdue invoices and bills for display
   const overdueInvoices = bookings.filter(booking => booking.rent > booking.paidAmount).length;
   const overdueBills = expenses.filter(expense => !expense.isPaid).length;
@@ -138,25 +175,25 @@ export const ReportsPage = () => {
           totalPayables={totalPayables}
           overdueInvoices={overdueInvoices}
           overdueBills={overdueBills}
-          onOverdueInvoicesClick={() => setCurrentView("payables")}
           onPendingBillsClick={() => setCurrentView("unpaid-bills")}
         />
 
-        {/* Sales & Expense Summary */}
+        {/* Banking Summary - Moved above Sales & Expense */}
+        <BankingSummaryCard 
+          cashInHand={bankingSummary.cashInHand}
+          bankBalance={bankingSummary.bankBalance}
+          onAccountClick={handleAccountClick}
+          accounts={accounts}
+        />
+
+        {/* Sales & Expense Summary with More option */}
         <SalesExpenseSummary 
           totalIncome={totalIncome}
           totalExpenses={totalExpenses}
           profit={totalIncome - totalExpenses}
           onIncomeClick={() => setCurrentView("income")}
           onExpenseClick={() => setCurrentView("expenses")}
-        />
-
-        {/* Banking Summary */}
-        <BankingSummaryCard 
-          cashInHand={bankingSummary.cashInHand}
-          bankBalance={bankingSummary.bankBalance}
-          onAccountClick={handleAccountClick}
-          accounts={accounts}
+          onMoreClick={() => setCurrentView("category-breakdown")}
         />
       </div>
     </div>
