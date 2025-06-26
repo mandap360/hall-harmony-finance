@@ -15,7 +15,6 @@ interface AddVendorDialogProps {
 export const AddVendorDialog = ({ open, onOpenChange, onSubmit }: AddVendorDialogProps) => {
   const [formData, setFormData] = useState({
     businessName: "",
-    contactPerson: "",
     phoneNumber: "",
     gstin: "",
     address: ""
@@ -29,7 +28,6 @@ export const AddVendorDialog = ({ open, onOpenChange, onSubmit }: AddVendorDialo
     
     setFormData({
       businessName: "",
-      contactPerson: "",
       phoneNumber: "",
       gstin: "",
       address: ""
@@ -44,27 +42,18 @@ export const AddVendorDialog = ({ open, onOpenChange, onSubmit }: AddVendorDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Vendor</DialogTitle>
+          <DialogTitle>Add New Payee</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="businessName">
-              Business Name <span className="text-red-500">*</span>
+              Payee Name <span className="text-red-500">*</span>
             </Label>
             <Input
               id="businessName"
               value={formData.businessName}
               onChange={(e) => handleChange("businessName", e.target.value)}
               required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="contactPerson">Contact Person</Label>
-            <Input
-              id="contactPerson"
-              value={formData.contactPerson}
-              onChange={(e) => handleChange("contactPerson", e.target.value)}
             />
           </div>
 
@@ -100,7 +89,7 @@ export const AddVendorDialog = ({ open, onOpenChange, onSubmit }: AddVendorDialo
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Add Vendor</Button>
+            <Button type="submit">Add Payee</Button>
           </div>
         </form>
       </DialogContent>

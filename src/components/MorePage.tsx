@@ -32,8 +32,8 @@ export const MorePage = () => {
     },
     { 
       icon: Users, 
-      label: "Vendors", 
-      description: "Manage vendor information",
+      label: "Payee Management", 
+      description: "Manage payee information",
       action: () => setCurrentView("vendors")
     },
     { 

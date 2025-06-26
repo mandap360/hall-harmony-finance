@@ -16,7 +16,6 @@ interface EditVendorDialogProps {
 export const EditVendorDialog = ({ open, onOpenChange, vendor, onSubmit }: EditVendorDialogProps) => {
   const [formData, setFormData] = useState({
     businessName: "",
-    contactPerson: "",
     phoneNumber: "",
     gstin: "",
     address: ""
@@ -26,7 +25,6 @@ export const EditVendorDialog = ({ open, onOpenChange, vendor, onSubmit }: EditV
     if (vendor) {
       setFormData({
         businessName: vendor.businessName || "",
-        contactPerson: vendor.contactPerson || "",
         phoneNumber: vendor.phoneNumber || "",
         gstin: vendor.gstin || "",
         address: vendor.address || ""
@@ -52,27 +50,18 @@ export const EditVendorDialog = ({ open, onOpenChange, vendor, onSubmit }: EditV
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Vendor</DialogTitle>
+          <DialogTitle>Edit Payee</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="businessName">
-              Business Name <span className="text-red-500">*</span>
+              Payee Name <span className="text-red-500">*</span>
             </Label>
             <Input
               id="businessName"
               value={formData.businessName}
               onChange={(e) => handleChange("businessName", e.target.value)}
               required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="contactPerson">Contact Person</Label>
-            <Input
-              id="contactPerson"
-              value={formData.contactPerson}
-              onChange={(e) => handleChange("contactPerson", e.target.value)}
             />
           </div>
 
@@ -108,7 +97,7 @@ export const EditVendorDialog = ({ open, onOpenChange, vendor, onSubmit }: EditV
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Update Vendor</Button>
+            <Button type="submit">Update Payee</Button>
           </div>
         </form>
       </DialogContent>

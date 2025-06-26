@@ -10,7 +10,7 @@ import { BookingGrid } from "@/components/booking/BookingGrid";
 import { BookingEmptyState } from "@/components/booking/BookingEmptyState";
 
 export const BookingsPage = () => {
-  const { bookings, loading, addBooking, updateBooking, deleteBooking, addPayment } = useBookings();
+  const { bookings, loading, addBooking, updateBooking, addPayment } = useBookings();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -85,10 +85,6 @@ export const BookingsPage = () => {
     setEditingBooking(null);
   };
 
-  const handleDeleteBooking = (bookingId) => {
-    deleteBooking(bookingId);
-  };
-
   const handleAddPayment = async (bookingId: string, amount: number, date: string, type: string, description?: string) => {
     await addPayment(bookingId, amount, date, type, description);
   };
@@ -118,7 +114,7 @@ export const BookingsPage = () => {
           <BookingGrid
             bookings={filteredBookings}
             onEdit={handleEditBooking}
-            onDelete={handleDeleteBooking}
+            onDelete={() => {}} // Remove delete functionality
           />
         )}
       </div>

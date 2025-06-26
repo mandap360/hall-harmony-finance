@@ -14,6 +14,7 @@ import { ExpenseList } from "@/components/expense/ExpenseList";
 export const ExpensePage = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedVendor, setSelectedVendor] = useState("all");
+  const [paymentStatus, setPaymentStatus] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -71,8 +72,14 @@ export const ExpensePage = () => {
       filtered = filtered.filter(expense => expense.vendorName === selectedVendor);
     }
 
+    if (paymentStatus !== "all") {
+      filtered = filtered.filter(expense => 
+        paymentStatus === "paid" ? expense.isPaid : !expense.isPaid
+      );
+    }
+
     return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [expenses, selectedCategory, selectedVendor, startDate, endDate, currentFY]);
+  }, [expenses, selectedCategory, selectedVendor, paymentStatus, startDate, endDate, currentFY]);
 
   const handleAddExpense = async (expenseData: any) => {
     try {
@@ -107,10 +114,12 @@ export const ExpensePage = () => {
           selectedVendor={selectedVendor}
           startDate={startDate}
           endDate={endDate}
+          paymentStatus={paymentStatus}
           onCategoryChange={setSelectedCategory}
           onVendorChange={setSelectedVendor}
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
+          onPaymentStatusChange={setPaymentStatus}
           expenseCategories={expenseCategories}
           vendors={vendors}
         />
