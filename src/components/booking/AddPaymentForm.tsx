@@ -52,10 +52,10 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="account">Account</Label>
+            <Label htmlFor="paymentMethod">Payment Method</Label>
             <Select value={accountId} onValueChange={setAccountId} required>
               <SelectTrigger>
-                <SelectValue placeholder="Select account" />
+                <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
               <SelectContent>
                 {operationalAccounts.map((account) => (

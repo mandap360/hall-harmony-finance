@@ -1,41 +1,50 @@
 
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IndianRupee } from "lucide-react";
 
 interface PaymentSummaryCardProps {
-  booking: any;
+  booking: {
+    rent: number;
+    advance: number;
+    paidAmount: number;
+  };
 }
 
 export const PaymentSummaryCard = ({ booking }: PaymentSummaryCardProps) => {
-  const additionalIncome = (booking.payments || [])
-    .filter(payment => payment.type === 'additional')
-    .reduce((sum, payment) => sum + payment.amount, 0);
+  const remainingAmount = booking.rent - booking.paidAmount;
 
   return (
-    <Card className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
-      <div className="grid grid-cols-3 gap-4 text-center">
-        <div>
-          <div className="flex items-center justify-center text-blue-600 mb-1">
+    <Card className="border-amber-200">
+      <CardHeader>
+        <CardTitle className="text-amber-700">Payment Summary</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium">Rent Finalized:</span>
+          <div className="flex items-center text-lg font-semibold">
             <IndianRupee className="h-4 w-4" />
-            <span className="font-semibold">{booking.rent}</span>
+            {booking.rent}
           </div>
-          <p className="text-xs text-gray-500">Rent</p>
         </div>
-        <div>
-          <div className="flex items-center justify-center text-green-600 mb-1">
+        
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium">Rent Received:</span>
+          <div className="flex items-center text-lg font-semibold text-green-600">
             <IndianRupee className="h-4 w-4" />
-            <span className="font-semibold">{booking.advance}</span>
+            {booking.paidAmount}
           </div>
-          <p className="text-xs text-gray-500">Advance</p>
         </div>
-        <div>
-          <div className="flex items-center justify-center text-purple-600 mb-1">
-            <IndianRupee className="h-4 w-4" />
-            <span className="font-semibold">{additionalIncome}</span>
+        
+        <div className="border-t pt-3">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium">Balance Remaining:</span>
+            <div className={`flex items-center text-lg font-bold ${remainingAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <IndianRupee className="h-4 w-4" />
+              {remainingAmount}
+            </div>
           </div>
-          <p className="text-xs text-gray-500">Additional Income</p>
         </div>
-      </div>
+      </CardContent>
     </Card>
   );
 };

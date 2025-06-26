@@ -18,44 +18,40 @@ export const ZohoStyleSummary = ({
   onOverdueInvoicesClick
 }: ZohoStyleSummaryProps) => {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Left Column - Receivables and Payables (spans 2 rows) */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Left Column - Receivables and Payables (merged rows) */}
       <div className="lg:row-span-2">
-        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 h-full">
-          <CardHeader className="pb-4">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <TrendingUp className="h-5 w-5 mr-2 text-blue-600" />
-                  <CardTitle className="text-lg font-semibold text-blue-800">
-                    Total Receivables
-                  </CardTitle>
-                </div>
-                <div className="text-2xl font-bold text-blue-900">
-                  ₹{totalReceivables.toLocaleString()}
-                </div>
+        <Card className="h-full bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+          <CardContent className="p-6 h-full flex flex-col justify-center space-y-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <TrendingUp className="h-5 w-5 mr-2 text-blue-600" />
+                <span className="text-lg font-semibold text-blue-800">Total Receivables</span>
               </div>
-              
-              <div className="flex items-center justify-between border-t border-blue-200 pt-6">
-                <div className="flex items-center">
-                  <TrendingDown className="h-5 w-5 mr-2 text-blue-600" />
-                  <CardTitle className="text-lg font-semibold text-blue-800">
-                    Total Payables
-                  </CardTitle>
-                </div>
-                <div className="text-2xl font-bold text-blue-900">
-                  ₹{totalPayables.toLocaleString()}
-                </div>
+              <div className="text-2xl font-bold text-blue-900">
+                ₹{totalReceivables.toLocaleString()}
               </div>
             </div>
-          </CardHeader>
+            
+            <div className="border-t border-blue-200"></div>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <TrendingDown className="h-5 w-5 mr-2 text-blue-600" />
+                <span className="text-lg font-semibold text-blue-800">Total Payables</span>
+              </div>
+              <div className="text-2xl font-bold text-blue-900">
+                ₹{totalPayables.toLocaleString()}
+              </div>
+            </div>
+          </CardContent>
         </Card>
       </div>
 
       {/* Right Column Top - Overdue Invoices */}
       <div>
         <Card 
-          className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors"
+          className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors h-full"
           onClick={onOverdueInvoicesClick}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -78,7 +74,7 @@ export const ZohoStyleSummary = ({
 
       {/* Right Column Bottom - Pending Bills */}
       <div>
-        <Card className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200">
+        <Card className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200 h-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-yellow-800 flex items-center">
               <AlertCircle className="h-4 w-4 mr-2" />
