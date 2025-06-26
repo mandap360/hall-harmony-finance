@@ -1,4 +1,3 @@
-
 import { Calendar, User, Phone, IndianRupee, Edit, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,24 +10,22 @@ interface BookingCardProps {
 
 export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => {
   const formatDate = (dateString: string) => {
-    // Parse the date string directly without timezone conversion issues
+    // Parse the date string and display in local timezone
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'short',
-      year: 'numeric',
-      timeZone: 'Asia/Kolkata' // Explicitly set timezone for Indian users
+      year: 'numeric'
     });
   };
 
   const formatTime = (dateString: string) => {
-    // Parse the date string directly without timezone conversion issues
+    // Parse the date string and display in local timezone
     const date = new Date(dateString);
     return date.toLocaleTimeString('en-IN', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true,
-      timeZone: 'Asia/Kolkata' // Explicitly set timezone for Indian users
+      hour12: true
     });
   };
 
