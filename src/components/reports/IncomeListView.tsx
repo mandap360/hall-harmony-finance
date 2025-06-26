@@ -1,10 +1,9 @@
 
 import { useState } from "react";
-import { ArrowLeft, Calendar, User, IndianRupee } from "lucide-react";
+import { ArrowLeft, Calendar, IndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useBookings } from "@/hooks/useBookings";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface IncomeListViewProps {
   onBack: () => void;
@@ -21,7 +20,7 @@ export const IncomeListView = ({ onBack }: IncomeListViewProps) => {
     });
   };
 
-  // Get current FY bookings with payments
+  // Get current FY entries and flatten payments
   const getCurrentFY = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -46,11 +45,23 @@ export const IncomeListView = ({ onBack }: IncomeListViewProps) => {
     } else {
       return bookingYear === currentFY.endYear;
     }
-  }).filter(booking => (booking.payments?.length || 0) > 0);
+  });
+
+  // Create income entries from payments
+  const incomeEntries = currentFYBookings
+    .filter(booking => (booking.payments?.length || 0) > 0)
+    .flatMap(booking => 
+      booking.payments?.map(payment => ({
+        date: payment.date,
+        description: `${payment.type === 'advance' ? 'Advance' : payment.type === 'rent' ? 'Rent' : 'Additional'} payment from ${booking.clientName} for ${booking.eventName} (${formatDate(booking.startDate)} - ${formatDate(booking.endDate)})`,
+        amount: payment.amount
+      })) || []
+    )
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="flex items-center mb-6">
           <Button
             variant="ghost"
@@ -64,53 +75,44 @@ export const IncomeListView = ({ onBack }: IncomeListViewProps) => {
 
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Income Entries</h2>
 
-        <div className="space-y-4">
-          {currentFYBookings.map((booking) => (
-            <Card key={booking.id} className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg text-gray-900 mb-2">
-                    {booking.eventName}
-                  </h3>
-                  <div className="flex items-center text-gray-600 mb-1">
-                    <User className="h-4 w-4 mr-2" />
-                    <span className="text-sm">{booking.clientName}</span>
-                  </div>
-                  <div className="flex items-center text-gray-700 mb-3">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    <span className="text-sm">
-                      {formatDate(booking.startDate)} - {formatDate(booking.endDate)}
-                    </span>
-                  </div>
-                  
-                  {/* Payment Details */}
-                  <div className="space-y-2">
-                    {booking.payments?.map((payment, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {payment.type}
-                        </Badge>
-                        <div className="flex items-center text-green-600">
-                          <IndianRupee className="h-4 w-4 mr-1" />
-                          <span className="font-semibold">₹{payment.amount.toLocaleString()}</span>
-                        </div>
-                        <span className="text-xs text-gray-500">
-                          on {formatDate(payment.date)}
-                        </span>
+        {incomeEntries.length > 0 ? (
+          <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-32">Date</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="w-32 text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {incomeEntries.map((entry, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                        {formatDate(entry.date)}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-
-          {currentFYBookings.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">No income entries found</p>
-            </div>
-          )}
-        </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-700">
+                      {entry.description}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end text-green-600 font-semibold">
+                        <IndianRupee className="h-4 w-4 mr-1" />
+                        ₹{entry.amount.toLocaleString()}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">No income entries found</p>
+          </div>
+        )}
       </div>
     </div>
   );

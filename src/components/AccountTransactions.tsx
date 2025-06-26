@@ -7,7 +7,6 @@ import { useAccounts, Account } from "@/hooks/useAccounts";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { SetOpeningBalanceDialog } from "@/components/SetOpeningBalanceDialog";
 import { AccountHeader } from "@/components/account/AccountHeader";
-import { AccountBalanceCard } from "@/components/account/AccountBalanceCard";
 import { TransactionHeaders } from "@/components/account/TransactionHeaders";
 import { OpeningBalanceRow } from "@/components/account/OpeningBalanceRow";
 import { TransactionRow } from "@/components/account/TransactionRow";
@@ -106,17 +105,38 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
           onOpeningBalanceClick={() => setShowOpeningBalanceDialog(true)}
         />
 
-        <AccountBalanceCard
-          currentBalance={transactionsWithBalance[0]?.balanceAfter || currentAccount.opening_balance || 0}
-          moneyIn={moneyIn}
-          moneyOut={moneyOut}
-        />
-
-        {/* Transaction Filter */}
-        <TransactionFilter 
-          filter={transactionFilter}
-          onFilterChange={setTransactionFilter}
-        />
+        {/* Combined Filter and Balance Row */}
+        <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-shrink-0">
+              <TransactionFilter 
+                filter={transactionFilter}
+                onFilterChange={setTransactionFilter}
+              />
+            </div>
+            
+            <div className="flex items-center gap-6 text-sm">
+              <div className="text-center">
+                <div className="text-gray-500 text-xs">Current Balance</div>
+                <div className="font-bold text-xl text-blue-600">
+                  ₹{(transactionsWithBalance[0]?.balanceAfter || currentAccount.opening_balance || 0).toLocaleString()}
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-gray-500 text-xs">Money In</div>
+                <div className="font-semibold text-green-600">
+                  ₹{moneyIn.toLocaleString()}
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-gray-500 text-xs">Money Out</div>
+                <div className="font-semibold text-red-600">
+                  ₹{moneyOut.toLocaleString()}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Transaction Headers */}
         {(transactions.length > 0 || (currentAccount.opening_balance || 0) > 0) && (

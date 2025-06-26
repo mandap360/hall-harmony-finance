@@ -9,12 +9,12 @@ interface TransactionFilterProps {
 
 export const TransactionFilter = ({ filter, onFilterChange }: TransactionFilterProps) => {
   return (
-    <div className="mb-6">
-      <Label htmlFor="transactionFilter" className="text-sm font-medium text-gray-700 mb-2 block">
-        Filter Transactions
+    <div className="flex items-center gap-2">
+      <Label htmlFor="transactionFilter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+        Filter:
       </Label>
       <Select value={filter} onValueChange={onFilterChange}>
-        <SelectTrigger className="w-48">
+        <SelectTrigger className="w-40 h-8">
           <SelectValue placeholder="All transactions" />
         </SelectTrigger>
         <SelectContent>

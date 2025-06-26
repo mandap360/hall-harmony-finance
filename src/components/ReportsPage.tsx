@@ -13,6 +13,7 @@ import { UnpaidBillsView } from "@/components/reports/UnpaidBillsView";
 import { IncomeListView } from "@/components/reports/IncomeListView";
 import { ExpenseListView } from "@/components/reports/ExpenseListView";
 import { AccountTransactions } from "@/components/AccountTransactions";
+import { VendorPayablesView } from "@/components/reports/VendorPayablesView";
 
 export const ReportsPage = () => {
   const { bookings } = useBookings();
@@ -174,7 +175,7 @@ export const ReportsPage = () => {
   }, [accounts]);
 
   const handlePayablesClick = () => {
-    setCurrentView("unpaid-bills");
+    setCurrentView("vendor-payables");
   };
 
   const handleIncomeClick = () => {
@@ -214,6 +215,10 @@ export const ReportsPage = () => {
         onBack={handleBackToReports} 
       />
     );
+  }
+
+  if (currentView === "vendor-payables") {
+    return <VendorPayablesView onBack={handleBackToReports} />;
   }
 
   return (
