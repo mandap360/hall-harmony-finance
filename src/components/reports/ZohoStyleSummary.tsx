@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, AlertCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertCircle, Clock } from "lucide-react";
 
 interface ZohoStyleSummaryProps {
   totalReceivables: number;
@@ -27,7 +27,6 @@ export const ZohoStyleSummary = ({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2 text-blue-600" />
                 <span className="text-lg font-semibold text-blue-800">Total Receivables</span>
               </div>
               <div className="text-2xl font-bold text-blue-900">
@@ -37,7 +36,6 @@ export const ZohoStyleSummary = ({
             
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <TrendingDown className="h-5 w-5 mr-2 text-blue-600" />
                 <span className="text-lg font-semibold text-blue-800">Total Payables</span>
               </div>
               <div className="text-2xl font-bold text-blue-900">
@@ -51,13 +49,11 @@ export const ZohoStyleSummary = ({
       {/* Overdue Invoices and Pending Bills Column */}
       <div className="space-y-4">
         {/* Overdue Invoices */}
-        <Card 
-          className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors"
-          onClick={onOverdueInvoicesClick}
-        >
+        <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
+                <Clock className="h-5 w-5 mr-2 text-orange-600" />
                 <span className="text-lg font-semibold text-orange-800">Overdue Invoices</span>
               </div>
               <div className="text-2xl font-bold text-orange-900">

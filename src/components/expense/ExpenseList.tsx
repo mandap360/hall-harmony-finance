@@ -1,10 +1,10 @@
 
 import { useState } from "react";
-import { Edit, Trash2, Eye } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExpenseCard } from "@/components/ExpenseCard";
-import { RecordPaymentDialog } from "./RecordPaymentDialog";
+import { EditExpenseDialog } from "./EditExpenseDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useTransactions } from "@/hooks/useTransactions";
@@ -17,9 +17,8 @@ interface ExpenseListProps {
 
 export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) => {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [showViewDetails, setShowViewDetails] = useState(false);
-  const { markAsPaid, deleteExpense } = useExpenses();
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const { markAsPaid, deleteExpense, updateExpense } = useExpenses();
   const { addTransaction } = useTransactions();
 
   const handleRecordPayment = async (expenseId: string, accountId: string, paymentDate: string) => {
@@ -45,11 +44,20 @@ export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) =>
       if (onExpenseUpdated) {
         onExpenseUpdated();
       }
-      
-      setShowPaymentDialog(false);
-      setSelectedExpense(null);
     } catch (error) {
       console.error('Error recording payment:', error);
+    }
+  };
+
+  const handleUpdateExpense = async (expenseData: any) => {
+    try {
+      await updateExpense(expenseData);
+      // Trigger refresh
+      if (onExpenseUpdated) {
+        onExpenseUpdated();
+      }
+    } catch (error) {
+      console.error('Error updating expense:', error);
     }
   };
 
@@ -65,20 +73,9 @@ export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) =>
     }
   };
 
-  const openPaymentDialog = (expense: Expense) => {
+  const openEditDialog = (expense: Expense) => {
     setSelectedExpense(expense);
-    setShowPaymentDialog(true);
-  };
-
-  const handleEditClick = (expense: Expense) => {
-    if (expense.isPaid) {
-      // Show view-only details for paid expenses
-      setSelectedExpense(expense);
-      setShowViewDetails(true);
-    } else {
-      // Open edit dialog for unpaid expenses
-      openPaymentDialog(expense);
-    }
+    setShowEditDialog(true);
   };
 
   return (
@@ -128,47 +125,26 @@ export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) =>
               </AlertDialogContent>
             </AlertDialog>
 
-            {/* Edit/View button */}
+            {/* Edit button */}
             <Button
               size="sm"
               variant="outline"
-              onClick={() => handleEditClick(expense)}
+              onClick={() => openEditDialog(expense)}
               className="h-8 w-8 p-0"
             >
-              {expense.isPaid ? <Eye className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
+              <Edit className="h-4 w-4" />
             </Button>
           </div>
         </div>
       ))}
 
-      <RecordPaymentDialog
-        open={showPaymentDialog}
-        onOpenChange={setShowPaymentDialog}
+      <EditExpenseDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
         expense={selectedExpense}
+        onUpdateExpense={handleUpdateExpense}
         onRecordPayment={handleRecordPayment}
       />
-
-      {/* View Details Dialog for paid expenses */}
-      {showViewDetails && selectedExpense && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Expense Details</h3>
-            <div className="space-y-2 text-sm">
-              <p><strong>Payee:</strong> {selectedExpense.vendorName}</p>
-              <p><strong>Category:</strong> {selectedExpense.category}</p>
-              <p><strong>Date:</strong> {new Date(selectedExpense.date).toLocaleDateString('en-IN')}</p>
-              <p><strong>Amount:</strong> ₹{selectedExpense.totalAmount.toLocaleString()}</p>
-              <p><strong>Status:</strong> Paid</p>
-              {selectedExpense.accountName && (
-                <p><strong>Paid via:</strong> {selectedExpense.accountName}</p>
-              )}
-            </div>
-            <div className="flex justify-end mt-4">
-              <Button onClick={() => setShowViewDetails(false)}>Close</Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
