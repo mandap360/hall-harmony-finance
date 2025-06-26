@@ -28,26 +28,41 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
   const { taxRates } = useTax();
   const expenseCategories = getExpenseCategories();
 
+  // Initialize form data immediately when expense changes
   useEffect(() => {
-    console.log("ExpenseDetailsForm - expense data:", expense);
-    console.log("Available tax rates:", taxRates);
+    console.log("ExpenseDetailsForm - initializing form with expense data:", expense);
     
     if (expense) {
-      // Calculate the tax rate ID based on existing tax percentages
-      const totalTaxPercentage = expense.cgstPercentage + expense.sgstPercentage;
-      const matchingTaxRate = taxRates.find(tax => tax.percentage === totalTaxPercentage);
-      
-      console.log("Total tax percentage:", totalTaxPercentage);
-      console.log("Matching tax rate:", matchingTaxRate);
-      
       setFormData({
         vendorName: expense.vendorName || "",
         billNumber: expense.billNumber || "",
         date: expense.date || "",
         category: expense.category || "",
         amount: expense.amount?.toString() || "",
-        taxRateId: matchingTaxRate?.id || "no_tax",
+        taxRateId: "no_tax", // Set default first, will be updated in tax matching effect
       });
+    }
+  }, [expense]);
+
+  // Handle tax rate matching separately after taxRates are loaded
+  useEffect(() => {
+    console.log("ExpenseDetailsForm - tax rates loaded:", taxRates);
+    console.log("ExpenseDetailsForm - current expense:", expense);
+    
+    if (expense && taxRates.length > 0) {
+      // Calculate the total tax percentage from existing tax data
+      const totalTaxPercentage = (expense.cgstPercentage || 0) + (expense.sgstPercentage || 0);
+      console.log("Total tax percentage from expense:", totalTaxPercentage);
+      
+      // Find matching tax rate
+      const matchingTaxRate = taxRates.find(tax => tax.percentage === totalTaxPercentage);
+      console.log("Matching tax rate found:", matchingTaxRate);
+      
+      // Update only the tax rate ID in form data
+      setFormData(prev => ({
+        ...prev,
+        taxRateId: matchingTaxRate?.id || "no_tax",
+      }));
     }
   }, [expense, taxRates]);
 
