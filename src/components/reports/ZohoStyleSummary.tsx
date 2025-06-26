@@ -18,12 +18,12 @@ export const ZohoStyleSummary = ({
   onOverdueInvoicesClick
 }: ZohoStyleSummaryProps) => {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left Column - Receivables and Payables */}
-      <div className="lg:col-span-2">
-        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Left Column - Receivables and Payables (spans 2 rows) */}
+      <div className="lg:row-span-2">
+        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 h-full">
           <CardHeader className="pb-4">
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <TrendingUp className="h-5 w-5 mr-2 text-blue-600" />
@@ -36,7 +36,7 @@ export const ZohoStyleSummary = ({
                 </div>
               </div>
               
-              <div className="flex items-center justify-between border-t border-blue-200 pt-4">
+              <div className="flex items-center justify-between border-t border-blue-200 pt-6">
                 <div className="flex items-center">
                   <TrendingDown className="h-5 w-5 mr-2 text-blue-600" />
                   <CardTitle className="text-lg font-semibold text-blue-800">
@@ -52,8 +52,8 @@ export const ZohoStyleSummary = ({
         </Card>
       </div>
 
-      {/* Right Column - Overdue Items */}
-      <div className="space-y-4">
+      {/* Right Column Top - Overdue Invoices */}
+      <div>
         <Card 
           className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors"
           onClick={onOverdueInvoicesClick}
@@ -66,7 +66,7 @@ export const ZohoStyleSummary = ({
             <div className="text-xs text-orange-600">→</div>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold text-orange-900 mb-2">
+            <div className="text-3xl font-bold text-orange-900 mb-2">
               {overdueInvoices}
             </div>
             <div className="text-xs text-orange-700">
@@ -74,17 +74,20 @@ export const ZohoStyleSummary = ({
             </div>
           </CardContent>
         </Card>
+      </div>
 
+      {/* Right Column Bottom - Pending Bills */}
+      <div>
         <Card className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-yellow-800 flex items-center">
               <AlertCircle className="h-4 w-4 mr-2" />
-              Overdue Bills
+              Pending Bills
             </CardTitle>
             <div className="text-xs text-yellow-600">→</div>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold text-yellow-900 mb-2">
+            <div className="text-3xl font-bold text-yellow-900 mb-2">
               {overdueBills}
             </div>
             <div className="text-xs text-yellow-700">
