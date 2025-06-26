@@ -50,16 +50,20 @@ export const EditExpenseDialog = ({
 
   useEffect(() => {
     if (expense) {
+      // Calculate the tax rate ID based on existing tax percentages
+      const totalTaxPercentage = expense.cgstPercentage + expense.sgstPercentage;
+      const matchingTaxRate = taxRates.find(tax => tax.percentage === totalTaxPercentage);
+      
       setFormData({
         vendorName: expense.vendorName,
         billNumber: expense.billNumber,
         date: expense.date,
         category: expense.category,
         amount: expense.amount.toString(),
-        taxRateId: "", // We'll need to calculate this based on tax percentages
+        taxRateId: matchingTaxRate?.id || "",
       });
     }
-  }, [expense]);
+  }, [expense, taxRates]);
 
   const calculateTaxAmounts = () => {
     const baseAmount = parseFloat(formData.amount) || 0;
@@ -70,6 +74,8 @@ export const EditExpenseDialog = ({
     
     return { taxAmount, totalAmount, taxPercentage };
   };
+
+  const { taxAmount, totalAmount, taxPercentage } = calculateTaxAmounts();
 
   const handleUpdateExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,18 +132,21 @@ export const EditExpenseDialog = ({
           <TabsContent value="details" className="space-y-4">
             <form onSubmit={handleUpdateExpense} className="space-y-4">
               <div>
-                <Label htmlFor="vendorName">Payee</Label>
+                <Label htmlFor="vendorName">
+                  Payee <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="vendorName"
                   value={formData.vendorName}
                   onChange={(e) => setFormData({ ...formData, vendorName: e.target.value })}
                   disabled={expense.isPaid}
+                  required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="billNumber">Invoice No</Label>
+                  <Label htmlFor="billNumber">Invoice No (Optional)</Label>
                   <Input
                     id="billNumber"
                     value={formData.billNumber}
@@ -146,7 +155,9 @@ export const EditExpenseDialog = ({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="date">Date</Label>
+                  <Label htmlFor="date">
+                    Date <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="date"
                     type="date"
@@ -159,7 +170,9 @@ export const EditExpenseDialog = ({
               </div>
 
               <div>
-                <Label htmlFor="category">Expense Category</Label>
+                <Label htmlFor="category">
+                  Expense Category <span className="text-red-500">*</span>
+                </Label>
                 <Select 
                   value={formData.category} 
                   onValueChange={(value) => setFormData({ ...formData, category: value })}
@@ -178,17 +191,55 @@ export const EditExpenseDialog = ({
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="amount">Amount</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  disabled={expense.isPaid}
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="amount">
+                    Amount <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    disabled={expense.isPaid}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="tax">
+                    Tax <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="flex items-center space-x-2">
+                    <Select 
+                      value={formData.taxRateId} 
+                      onValueChange={(value) => setFormData({ ...formData, taxRateId: value })}
+                      disabled={expense.isPaid}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select tax rate" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="no_tax">No Tax</SelectItem>
+                        {taxRates.map((tax) => (
+                          <SelectItem key={tax.id} value={tax.id}>
+                            {tax.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {taxAmount > 0 && (
+                      <span className="text-sm text-gray-600 whitespace-nowrap">₹{taxAmount.toFixed(2)}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Total Amount:</span>
+                  <span className="font-bold text-lg">₹{totalAmount.toFixed(2)}</span>
+                </div>
               </div>
 
               {expense.isPaid && (

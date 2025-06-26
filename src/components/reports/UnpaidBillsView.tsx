@@ -22,6 +22,7 @@ export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
   };
 
   const unpaidExpenses = expenses.filter(expense => !expense.isPaid);
+  const totalUnpaidAmount = unpaidExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -37,7 +38,13 @@ export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
           </Button>
         </div>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Unpaid Bills</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Pending Bills</h2>
+          <div className="flex items-center text-red-600 font-bold text-xl">
+            <IndianRupee className="h-5 w-5 mr-1" />
+            <span>₹{totalUnpaidAmount.toLocaleString()}</span>
+          </div>
+        </div>
 
         <div className="space-y-4">
           {unpaidExpenses.map((expense) => (
@@ -71,7 +78,7 @@ export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
 
           {unpaidExpenses.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">No unpaid bills found</p>
+              <p className="text-gray-500 text-lg">No pending bills found</p>
               <p className="text-sm text-gray-400 mt-2">All expenses are paid!</p>
             </div>
           )}
