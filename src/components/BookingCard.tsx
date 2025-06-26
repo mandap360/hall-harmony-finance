@@ -11,20 +11,24 @@ interface BookingCardProps {
 
 export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => {
   const formatDate = (dateString: string) => {
+    // Parse the date string directly without timezone conversion issues
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata' // Explicitly set timezone for Indian users
     });
   };
 
   const formatTime = (dateString: string) => {
+    // Parse the date string directly without timezone conversion issues
     const date = new Date(dateString);
     return date.toLocaleTimeString('en-IN', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
+      timeZone: 'Asia/Kolkata' // Explicitly set timezone for Indian users
     });
   };
 
