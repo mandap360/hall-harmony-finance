@@ -11,6 +11,8 @@ interface PaymentSummaryCardProps {
 }
 
 export const PaymentSummaryCard = ({ booking }: PaymentSummaryCardProps) => {
+  // Calculate additional income from payments that are not rent/advance
+  const additionalIncome = booking.paidAmount - booking.advance;
   const remainingAmount = booking.rent - booking.paidAmount;
 
   return (
@@ -18,28 +20,40 @@ export const PaymentSummaryCard = ({ booking }: PaymentSummaryCardProps) => {
       <CardHeader>
         <CardTitle className="text-amber-700">Payment Summary</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium">Rent Finalized:</span>
-          <div className="flex items-center text-lg font-semibold">
-            <IndianRupee className="h-4 w-4" />
-            {booking.rent}
+      <CardContent>
+        <div className="flex justify-between items-center text-sm">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <span className="text-gray-600 mr-1">Rent Finalized:</span>
+              <div className="flex items-center font-semibold">
+                <IndianRupee className="h-3 w-3" />
+                {booking.rent}
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <span className="text-gray-600 mr-1">Rent Received:</span>
+              <div className="flex items-center font-semibold text-green-600">
+                <IndianRupee className="h-3 w-3" />
+                {booking.paidAmount}
+              </div>
+            </div>
+            
+            {additionalIncome > 0 && (
+              <div className="flex items-center">
+                <span className="text-gray-600 mr-1">Additional Income:</span>
+                <div className="flex items-center font-semibold text-purple-600">
+                  <IndianRupee className="h-3 w-3" />
+                  {additionalIncome}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-        
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium">Rent Received:</span>
-          <div className="flex items-center text-lg font-semibold text-green-600">
-            <IndianRupee className="h-4 w-4" />
-            {booking.paidAmount}
-          </div>
-        </div>
-        
-        <div className="border-t pt-3">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">Balance Remaining:</span>
-            <div className={`flex items-center text-lg font-bold ${remainingAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              <IndianRupee className="h-4 w-4" />
+          
+          <div className="flex items-center">
+            <span className="text-gray-600 mr-1">Balance:</span>
+            <div className={`flex items-center font-bold ${remainingAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <IndianRupee className="h-3 w-3" />
               {remainingAmount}
             </div>
           </div>

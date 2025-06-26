@@ -8,6 +8,7 @@ interface ZohoStyleSummaryProps {
   overdueInvoices: number;
   overdueBills: number;
   onOverdueInvoicesClick?: () => void;
+  onPendingBillsClick?: () => void;
 }
 
 export const ZohoStyleSummary = ({
@@ -15,7 +16,8 @@ export const ZohoStyleSummary = ({
   totalPayables,
   overdueInvoices,
   overdueBills,
-  onOverdueInvoicesClick
+  onOverdueInvoicesClick,
+  onPendingBillsClick
 }: ZohoStyleSummaryProps) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -74,7 +76,10 @@ export const ZohoStyleSummary = ({
 
       {/* Right Column Bottom - Pending Bills */}
       <div>
-        <Card className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200 h-full">
+        <Card 
+          className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200 h-full cursor-pointer hover:bg-yellow-100 transition-colors"
+          onClick={onPendingBillsClick}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-yellow-800 flex items-center">
               <AlertCircle className="h-4 w-4 mr-2" />

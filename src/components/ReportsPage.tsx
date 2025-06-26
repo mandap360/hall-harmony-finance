@@ -9,6 +9,7 @@ import { BankingSummaryCard } from "@/components/reports/BankingSummaryCard";
 import { IncomeListView } from "@/components/reports/IncomeListView";
 import { ExpenseListView } from "@/components/reports/ExpenseListView";
 import { VendorPayablesView } from "@/components/reports/VendorPayablesView";
+import { UnpaidBillsView } from "@/components/reports/UnpaidBillsView";
 import { AccountTransactions } from "@/components/AccountTransactions";
 import { Account } from "@/hooks/useAccounts";
 
@@ -115,6 +116,10 @@ export const ReportsPage = () => {
     return <VendorPayablesView onBack={() => setCurrentView("dashboard")} />;
   }
 
+  if (currentView === "unpaid-bills") {
+    return <UnpaidBillsView onBack={() => setCurrentView("dashboard")} />;
+  }
+
   // Calculate overdue invoices and bills for display
   const overdueInvoices = bookings.filter(booking => booking.rent > booking.paidAmount).length;
   const overdueBills = expenses.filter(expense => !expense.isPaid).length;
@@ -134,6 +139,7 @@ export const ReportsPage = () => {
           overdueInvoices={overdueInvoices}
           overdueBills={overdueBills}
           onOverdueInvoicesClick={() => setCurrentView("payables")}
+          onPendingBillsClick={() => setCurrentView("unpaid-bills")}
         />
 
         {/* Sales & Expense Summary */}

@@ -103,7 +103,7 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="eventName">Event Name *</Label>
+        <Label htmlFor="eventName">Event Name <span className="text-red-500">*</span></Label>
         <Input
           id="eventName"
           value={formData.eventName}
@@ -113,7 +113,7 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="clientName">Client Name *</Label>
+        <Label htmlFor="clientName">Client Name <span className="text-red-500">*</span></Label>
         <Input
           id="clientName"
           value={formData.clientName}
@@ -123,7 +123,7 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="phoneNumber">Phone Number *</Label>
+        <Label htmlFor="phoneNumber">Phone Number <span className="text-red-500">*</span></Label>
         <Input
           id="phoneNumber"
           value={formData.phoneNumber}
@@ -134,7 +134,7 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="startDate">Start Date *</Label>
+          <Label htmlFor="startDate">Start Date <span className="text-red-500">*</span></Label>
           <Input
             id="startDate"
             type="date"
@@ -144,7 +144,7 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="startTime">Start Time *</Label>
+          <Label htmlFor="startTime">Start Time <span className="text-red-500">*</span></Label>
           <Input
             id="startTime"
             type="time"
@@ -157,7 +157,7 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="endDate">End Date *</Label>
+          <Label htmlFor="endDate">End Date <span className="text-red-500">*</span></Label>
           <Input
             id="endDate"
             type="date"
@@ -167,7 +167,7 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="endTime">End Time *</Label>
+          <Label htmlFor="endTime">End Time <span className="text-red-500">*</span></Label>
           <Input
             id="endTime"
             type="time"
@@ -179,7 +179,7 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="rent">Rent Finalized *</Label>
+        <Label htmlFor="rent">Rent Finalized <span className="text-red-500">*</span></Label>
         <Input
           id="rent"
           type="number"
