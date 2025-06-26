@@ -102,14 +102,14 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="vendor">Vendor</Label>
+              <Label htmlFor="vendor">Payee *</Label>
               <Select value={formData.vendorId} onValueChange={handleVendorChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select vendor" />
+                  <SelectValue placeholder="Select payee" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="add_vendor" className="text-blue-600 font-medium">
-                    + Add Vendor
+                    + Add Payee
                   </SelectItem>
                   {vendors.map((vendor) => (
                     <SelectItem key={vendor.id} value={vendor.id}>
@@ -121,7 +121,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
             </div>
 
             <div>
-              <Label htmlFor="billNumber">Bill Number</Label>
+              <Label htmlFor="billNumber">Invoice No</Label>
               <Input
                 id="billNumber"
                 value={formData.billNumber}
@@ -130,7 +130,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
             </div>
 
             <div>
-              <Label htmlFor="date">Bill Date</Label>
+              <Label htmlFor="date">Date *</Label>
               <Input
                 id="date"
                 type="date"

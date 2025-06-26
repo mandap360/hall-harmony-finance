@@ -1,3 +1,4 @@
+
 import { Calendar, User, Phone, IndianRupee, Edit, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,8 +11,15 @@ interface BookingCardProps {
 
 export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => {
   const formatDate = (dateString: string) => {
-    // Parse the date string and display in local timezone
-    const date = new Date(dateString);
+    // Create date object from the ISO string but treat it as local time
+    const dateParts = dateString.replace('T', ' ').replace('Z', '').split(/[-\s:]/);
+    const date = new Date(
+      parseInt(dateParts[0]), 
+      parseInt(dateParts[1]) - 1, 
+      parseInt(dateParts[2]), 
+      parseInt(dateParts[3] || '0'), 
+      parseInt(dateParts[4] || '0')
+    );
     return date.toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'short',
@@ -20,8 +28,15 @@ export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => 
   };
 
   const formatTime = (dateString: string) => {
-    // Parse the date string and display in local timezone
-    const date = new Date(dateString);
+    // Create date object from the ISO string but treat it as local time
+    const dateParts = dateString.replace('T', ' ').replace('Z', '').split(/[-\s:]/);
+    const date = new Date(
+      parseInt(dateParts[0]), 
+      parseInt(dateParts[1]) - 1, 
+      parseInt(dateParts[2]), 
+      parseInt(dateParts[3] || '0'), 
+      parseInt(dateParts[4] || '0')
+    );
     return date.toLocaleTimeString('en-IN', {
       hour: '2-digit',
       minute: '2-digit',
