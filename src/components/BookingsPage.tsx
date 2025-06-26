@@ -14,11 +14,11 @@ export const BookingsPage = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState("upcoming");
+  const [selectedQuarter, setSelectedQuarter] = useState("upcoming");
 
-  // Generate month options for the current financial year (April to March)
-  const monthOptions = useMemo(() => {
-    const months = [
+  // Generate quarter options for the current financial year (April to March)
+  const quarterOptions = useMemo(() => {
+    const quarters = [
       { label: "Upcoming", value: "upcoming" }
     ];
     
@@ -30,24 +30,43 @@ export const BookingsPage = () => {
     // If we're in Jan-Mar, FY started previous year, otherwise current year
     const fyStartYear = currentMonth >= 3 ? currentYear : currentYear - 1;
     
-    // Add months from April to March
-    const monthNames = [
-      "April", "May", "June", "July", "August", "September",
-      "October", "November", "December", "January", "February", "March"
-    ];
+    // Add quarters
+    quarters.push(
+      { label: `Q1 (Apr-Jun ${fyStartYear})`, value: `Q1-${fyStartYear}` },
+      { label: `Q2 (Jul-Sep ${fyStartYear})`, value: `Q2-${fyStartYear}` },
+      { label: `Q3 (Oct-Dec ${fyStartYear})`, value: `Q3-${fyStartYear}` },
+      { label: `Q4 (Jan-Mar ${fyStartYear + 1})`, value: `Q4-${fyStartYear}` }
+    );
     
-    monthNames.forEach((monthName, index) => {
-      // April-December are in fyStartYear, Jan-March are in fyStartYear+1
-      const year = index < 9 ? fyStartYear : fyStartYear + 1;
-      const monthNumber = index < 9 ? index + 4 : index - 8; // April=4, May=5, ..., Jan=1, Feb=2, Mar=3
-      const monthValue = `${year}-${String(monthNumber).padStart(2, '0')}`;
-      months.push({ label: `${monthName} ${year}`, value: monthValue });
-    });
-    
-    return months;
+    return quarters;
   }, []);
 
-  // Filter bookings based on search term and month
+  // Helper function to check if a date falls within a quarter
+  const isDateInQuarter = (dateString: string, quarterValue: string) => {
+    if (quarterValue === "upcoming") return false;
+    
+    const date = new Date(dateString);
+    const month = date.getMonth();
+    const year = date.getFullYear();
+    
+    const [quarter, fyStartYear] = quarterValue.split('-');
+    const fyStart = parseInt(fyStartYear);
+    
+    switch (quarter) {
+      case 'Q1': // April-June
+        return (month >= 3 && month <= 5) && year === fyStart;
+      case 'Q2': // July-September  
+        return (month >= 6 && month <= 8) && year === fyStart;
+      case 'Q3': // October-December
+        return (month >= 9 && month <= 11) && year === fyStart;
+      case 'Q4': // January-March
+        return (month >= 0 && month <= 2) && year === fyStart + 1;
+      default:
+        return false;
+    }
+  };
+
+  // Filter bookings based on search term and quarter
   const filteredBookings = useMemo(() => {
     let filtered = bookings.filter(booking => {
       // Search filter
@@ -60,8 +79,8 @@ export const BookingsPage = () => {
       return matchesSearch;
     });
 
-    // Month/upcoming filter
-    if (selectedMonth === "upcoming") {
+    // Quarter/upcoming filter
+    if (selectedQuarter === "upcoming") {
       const now = new Date();
       filtered = filtered
         .filter(booking => new Date(booking.startDate) >= now)
@@ -69,12 +88,12 @@ export const BookingsPage = () => {
         .slice(0, 10); // Show only 10 upcoming bookings
     } else {
       filtered = filtered.filter(booking => 
-        booking.startDate.startsWith(selectedMonth)
+        isDateInQuarter(booking.startDate, selectedQuarter)
       );
     }
 
     return filtered;
-  }, [bookings, searchTerm, selectedMonth]);
+  }, [bookings, searchTerm, selectedQuarter]);
 
   const handleEditBooking = (booking) => {
     setEditingBooking(booking);
@@ -101,15 +120,15 @@ export const BookingsPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
       <BookingFilters
         searchTerm={searchTerm}
-        selectedMonth={selectedMonth}
+        selectedMonth={selectedQuarter}
         onSearchChange={setSearchTerm}
-        onMonthChange={setSelectedMonth}
-        monthOptions={monthOptions}
+        onMonthChange={setSelectedQuarter}
+        monthOptions={quarterOptions}
       />
 
       <div className="p-4">
         {filteredBookings.length === 0 ? (
-          <BookingEmptyState searchTerm={searchTerm} selectedMonth={selectedMonth} />
+          <BookingEmptyState searchTerm={searchTerm} selectedMonth={selectedQuarter} />
         ) : (
           <BookingGrid
             bookings={filteredBookings}

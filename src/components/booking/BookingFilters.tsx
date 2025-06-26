@@ -31,13 +31,13 @@ export const BookingFilters = ({
           />
         </div>
         <Select value={selectedMonth} onValueChange={onMonthChange}>
-          <SelectTrigger className="w-32 text-sm">
-            <SelectValue placeholder="Month" />
+          <SelectTrigger className="w-40 text-sm">
+            <SelectValue placeholder="Quarter" />
           </SelectTrigger>
           <SelectContent>
-            {monthOptions.map((month) => (
-              <SelectItem key={month.value} value={month.value}>
-                {month.label}
+            {monthOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
               </SelectItem>
             ))}
           </SelectContent>
