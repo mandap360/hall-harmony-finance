@@ -29,17 +29,23 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
   const expenseCategories = getExpenseCategories();
 
   useEffect(() => {
+    console.log("ExpenseDetailsForm - expense data:", expense);
+    console.log("Available tax rates:", taxRates);
+    
     if (expense) {
       // Calculate the tax rate ID based on existing tax percentages
       const totalTaxPercentage = expense.cgstPercentage + expense.sgstPercentage;
       const matchingTaxRate = taxRates.find(tax => tax.percentage === totalTaxPercentage);
       
+      console.log("Total tax percentage:", totalTaxPercentage);
+      console.log("Matching tax rate:", matchingTaxRate);
+      
       setFormData({
-        vendorName: expense.vendorName,
-        billNumber: expense.billNumber,
-        date: expense.date,
-        category: expense.category,
-        amount: expense.amount.toString(),
+        vendorName: expense.vendorName || "",
+        billNumber: expense.billNumber || "",
+        date: expense.date || "",
+        category: expense.category || "",
+        amount: expense.amount?.toString() || "",
         taxRateId: matchingTaxRate?.id || "",
       });
     }
@@ -59,7 +65,7 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.amount || !formData.category) return;
+    if (!formData.amount || !formData.category || !formData.vendorName) return;
 
     const { taxAmount, totalAmount, taxPercentage } = calculateTaxAmounts();
 
@@ -77,6 +83,8 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
       totalAmount,
     });
   };
+
+  console.log("Current form data:", formData);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -169,7 +177,7 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
                 <SelectValue placeholder="Select tax rate" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="no_tax">No Tax</SelectItem>
+                <SelectItem value="">No Tax</SelectItem>
                 {taxRates.map((tax) => (
                   <SelectItem key={tax.id} value={tax.id}>
                     {tax.name}

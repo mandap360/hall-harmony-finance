@@ -1,5 +1,5 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ExpenseDetailsForm } from "./ExpenseDetailsForm";
 import { PaymentRecordForm } from "./PaymentRecordForm";
@@ -34,9 +34,12 @@ export const EditExpenseDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Expense</DialogTitle>
+          <DialogDescription>
+            Edit expense details or record payment for {expense.vendorName}
+          </DialogDescription>
         </DialogHeader>
         
         <Tabs defaultValue="details" className="w-full">
@@ -47,7 +50,7 @@ export const EditExpenseDialog = ({
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="details" className="space-y-4">
+          <TabsContent value="details" className="space-y-4 mt-4">
             <ExpenseDetailsForm
               expense={expense}
               onUpdateExpense={handleUpdateExpense}
@@ -55,7 +58,7 @@ export const EditExpenseDialog = ({
             />
           </TabsContent>
 
-          <TabsContent value="payment" className="space-y-4">
+          <TabsContent value="payment" className="space-y-4 mt-4">
             <PaymentRecordForm
               expense={expense}
               onRecordPayment={handleRecordPayment}
