@@ -11,7 +11,6 @@ import { IncomeListView } from "@/components/reports/IncomeListView";
 import { ExpenseListView } from "@/components/reports/ExpenseListView";
 import { VendorPayablesView } from "@/components/reports/VendorPayablesView";
 import { UnpaidBillsView } from "@/components/reports/UnpaidBillsView";
-import { CategoryBreakdownView } from "@/components/reports/CategoryBreakdownView";
 import { AccountTransactions } from "@/components/AccountTransactions";
 import { Account } from "@/hooks/useAccounts";
 
@@ -147,16 +146,6 @@ export const ReportsPage = () => {
     return <UnpaidBillsView onBack={() => setCurrentView("dashboard")} />;
   }
 
-  if (currentView === "category-breakdown") {
-    return (
-      <CategoryBreakdownView 
-        incomeByCategory={incomeByCategory}
-        expensesByCategory={expensesByCategory}
-        onBack={() => setCurrentView("dashboard")}
-      />
-    );
-  }
-
   // Calculate overdue invoices and bills for display
   const overdueInvoices = bookings.filter(booking => booking.rent > booking.paidAmount).length;
   const overdueBills = expenses.filter(expense => !expense.isPaid).length;
@@ -186,14 +175,13 @@ export const ReportsPage = () => {
           accounts={accounts}
         />
 
-        {/* Sales & Expense Summary with More option */}
+        {/* Sales & Expense Summary with dropdown functionality */}
         <SalesExpenseSummary 
           totalIncome={totalIncome}
           totalExpenses={totalExpenses}
           profit={totalIncome - totalExpenses}
-          onIncomeClick={() => setCurrentView("income")}
-          onExpenseClick={() => setCurrentView("expenses")}
-          onMoreClick={() => setCurrentView("category-breakdown")}
+          incomeByCategory={incomeByCategory}
+          expensesByCategory={expensesByCategory}
         />
       </div>
     </div>
