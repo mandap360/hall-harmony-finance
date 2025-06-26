@@ -20,11 +20,11 @@ export const ZohoStyleSummary = ({
   onPendingBillsClick
 }: ZohoStyleSummaryProps) => {
   return (
-    <div className="grid grid-cols-1 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Receivables and Payables */}
       <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <TrendingUp className="h-5 w-5 mr-2 text-blue-600" />
@@ -66,22 +66,24 @@ export const ZohoStyleSummary = ({
         </CardContent>
       </Card>
 
-      {/* Overdue Invoices */}
-      <Card 
-        className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors"
-        onClick={onOverdueInvoicesClick}
-      >
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <span className="text-lg font-semibold text-orange-800">Overdue Invoices</span>
+      {/* Overdue Invoices - Full Width */}
+      <div className="md:col-span-2">
+        <Card 
+          className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors"
+          onClick={onOverdueInvoicesClick}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <span className="text-lg font-semibold text-orange-800">Overdue Invoices</span>
+              </div>
+              <div className="text-2xl font-bold text-orange-900">
+                {overdueInvoices}
+              </div>
             </div>
-            <div className="text-2xl font-bold text-orange-900">
-              {overdueInvoices}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
