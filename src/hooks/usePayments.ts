@@ -34,7 +34,13 @@ export const usePayments = () => {
       const { data, error } = await query;
       if (error) throw error;
 
-      setPayments(data || []);
+      // Type the data properly by casting payment_type to the expected union type
+      const typedPayments: Payment[] = (data || []).map(payment => ({
+        ...payment,
+        payment_type: payment.payment_type as 'advance' | 'rent' | 'additional'
+      }));
+
+      setPayments(typedPayments);
     } catch (error) {
       console.error('Error fetching payments:', error);
       toast({
@@ -103,13 +109,19 @@ export const usePayments = () => {
         }
       }
 
-      setPayments(prev => [data, ...prev]);
+      // Type the returned data properly
+      const typedPayment: Payment = {
+        ...data,
+        payment_type: data.payment_type as 'advance' | 'rent' | 'additional'
+      };
+
+      setPayments(prev => [typedPayment, ...prev]);
       toast({
         title: "Success",
         description: "Payment added successfully",
       });
 
-      return data;
+      return typedPayment;
     } catch (error) {
       console.error('Error adding payment:', error);
       toast({

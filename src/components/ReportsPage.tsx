@@ -230,7 +230,7 @@ export const ReportsPage = () => {
         <BankingSummaryCard
           cashInHand={bankingSummary.cashInHand}
           bankBalance={bankingSummary.bankBalance}
-          totalBalance={bankingSummary.totalBalance}
+          totalBalance={bankingSummary.totalBankBalance}
           onAccountClick={handleAccountClick}
           accounts={accounts.filter(acc => acc.account_type === 'operational')}
         />
