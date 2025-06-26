@@ -118,78 +118,80 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
           onOpeningBalanceClick={() => setShowOpeningBalanceDialog(true)}
         />
 
-        {/* Date Range Filter */}
-        <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
-          <div className="flex items-center gap-4">
-            <div className="text-sm font-medium text-gray-700">Date Range:</div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "justify-start text-left font-normal",
-                    !startDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "PP") : "Start date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={setStartDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "justify-start text-left font-normal",
-                    !endDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "PP") : "End date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={setEndDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-
-            {(startDate || endDate) && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setStartDate(undefined);
-                  setEndDate(undefined);
-                }}
-              >
-                Clear
-              </Button>
-            )}
-          </div>
-        </div>
-
         {/* Combined Filter and Balance Row */}
         <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
           <div className="flex items-center justify-between gap-4">
-            <div className="flex-shrink-0">
-              <TransactionFilter 
-                filter={transactionFilter}
-                onFilterChange={setTransactionFilter}
-              />
+            <div className="flex items-center gap-4">
+              <div className="flex-shrink-0">
+                <TransactionFilter 
+                  filter={transactionFilter}
+                  onFilterChange={setTransactionFilter}
+                />
+              </div>
+              
+              {/* Date Range Filter */}
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "justify-start text-left font-normal",
+                        !startDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, "PP") : "Start date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "justify-start text-left font-normal",
+                        !endDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, "PP") : "End date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={setEndDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {(startDate || endDate) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setStartDate(undefined);
+                      setEndDate(undefined);
+                    }}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
             </div>
             
             <div className="flex items-center gap-6 text-sm">

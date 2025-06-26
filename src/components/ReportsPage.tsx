@@ -86,10 +86,9 @@ export const ReportsPage = () => {
       acc.cashInHand += account.balance;
     } else if (account.account_type === 'operational' && account.sub_type === 'bank') {
       acc.bankBalance += account.balance;
-      acc.totalBankBalance += account.balance;
     }
     return acc;
-  }, { cashInHand: 0, bankBalance: 0, totalBankBalance: 0 });
+  }, { cashInHand: 0, bankBalance: 0 });
 
   const handleAccountClick = (account: Account) => {
     setSelectedAccount(account);
@@ -128,6 +127,15 @@ export const ReportsPage = () => {
           <p className="text-gray-600">Current Financial Year Overview</p>
         </div>
 
+        {/* Zoho Books Style Summary */}
+        <ZohoStyleSummary
+          totalReceivables={totalReceivables}
+          totalPayables={totalPayables}
+          overdueInvoices={overdueInvoices}
+          overdueBills={overdueBills}
+          onOverdueInvoicesClick={() => setCurrentView("payables")}
+        />
+
         {/* Sales & Expense Summary */}
         <SalesExpenseSummary 
           totalIncome={totalIncome}
@@ -137,20 +145,10 @@ export const ReportsPage = () => {
           onExpenseClick={() => setCurrentView("expenses")}
         />
 
-        {/* Zoho Books Style Summary */}
-        <ZohoStyleSummary
-          totalReceivables={totalReceivables}
-          totalPayables={totalPayables}
-          overdueInvoices={overdueInvoices}
-          overdueBills={overdueBills}
-          onPayablesClick={() => setCurrentView("payables")}
-        />
-
         {/* Banking Summary */}
         <BankingSummaryCard 
           cashInHand={bankingSummary.cashInHand}
           bankBalance={bankingSummary.bankBalance}
-          totalBalance={bankingSummary.totalBankBalance}
           onAccountClick={handleAccountClick}
           accounts={accounts}
         />

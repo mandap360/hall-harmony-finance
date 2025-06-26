@@ -1,11 +1,10 @@
 
-import { CreditCard, Banknote, DollarSign } from "lucide-react";
+import { CreditCard, Banknote } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface BankingSummaryCardProps {
   cashInHand: number;
   bankBalance: number;
-  totalBalance: number;
   onAccountClick?: (account: any) => void;
   accounts?: any[];
 }
@@ -13,7 +12,6 @@ interface BankingSummaryCardProps {
 export const BankingSummaryCard = ({ 
   cashInHand, 
   bankBalance, 
-  totalBalance, 
   onAccountClick,
   accounts = []
 }: BankingSummaryCardProps) => {
@@ -27,7 +25,7 @@ export const BankingSummaryCard = ({
         Banking Summary
       </h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card 
           className="bg-gradient-to-r from-green-500 to-green-600 text-white cursor-pointer hover:from-green-600 hover:to-green-700 transition-all"
           onClick={() => cashAccount && onAccountClick?.(cashAccount)}
@@ -54,18 +52,6 @@ export const BankingSummaryCard = ({
           <CardContent>
             <div className="text-2xl font-bold">
               ₹{bankBalance.toLocaleString()}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium opacity-90">Total Balance</CardTitle>
-            <DollarSign className="h-4 w-4 opacity-90" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ₹{totalBalance.toLocaleString()}
             </div>
           </CardContent>
         </Card>
