@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -199,7 +200,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="rent">Rent *</Label>
+            <Label htmlFor="rent">Rent Finalized *</Label>
             <Input
               id="rent"
               type="number"

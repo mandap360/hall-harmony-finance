@@ -89,7 +89,6 @@ export type Database = {
       }
       bookings: {
         Row: {
-          advance: number
           client_name: string
           created_at: string | null
           end_datetime: string
@@ -97,12 +96,12 @@ export type Database = {
           id: string
           organization_id: string | null
           phone_number: string | null
+          rent_finalized: number
+          rent_received: number
           start_datetime: string
-          total_rent: number
           updated_at: string | null
         }
         Insert: {
-          advance?: number
           client_name: string
           created_at?: string | null
           end_datetime: string
@@ -110,12 +109,12 @@ export type Database = {
           id?: string
           organization_id?: string | null
           phone_number?: string | null
+          rent_finalized: number
+          rent_received?: number
           start_datetime: string
-          total_rent: number
           updated_at?: string | null
         }
         Update: {
-          advance?: number
           client_name?: string
           created_at?: string | null
           end_datetime?: string
@@ -123,8 +122,9 @@ export type Database = {
           id?: string
           organization_id?: string | null
           phone_number?: string | null
+          rent_finalized?: number
+          rent_received?: number
           start_datetime?: string
-          total_rent?: number
           updated_at?: string | null
         }
         Relationships: [

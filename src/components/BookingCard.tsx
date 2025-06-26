@@ -23,7 +23,8 @@ export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => 
     const date = new Date(dateString);
     return date.toLocaleTimeString('en-IN', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: true
     });
   };
 
@@ -44,9 +45,9 @@ export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => 
     }
   };
 
-  // Calculate additional income from all additional payments (including categories)
+  // Calculate additional income from payments only (not from categories)
   const additionalIncome = (booking.payments || [])
-    .filter(payment => payment.type === 'additional')
+    .filter(payment => payment.type === 'additional' && !payment.description?.includes('categories'))
     .reduce((sum, payment) => sum + payment.amount, 0);
 
   return (
@@ -96,7 +97,7 @@ export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => 
               <IndianRupee className="h-4 w-4" />
               <span className="text-sm font-semibold">{booking.rent}</span>
             </div>
-            <p className="text-xs text-gray-500">Rent</p>
+            <p className="text-xs text-gray-500">Rent Finalized</p>
           </div>
           
           <div className="text-center">
@@ -104,7 +105,7 @@ export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => 
               <IndianRupee className="h-4 w-4" />
               <span className="text-sm font-semibold">{booking.advance || 0}</span>
             </div>
-            <p className="text-xs text-gray-500">Advance</p>
+            <p className="text-xs text-gray-500">Rent Received</p>
           </div>
           
           <div className="text-center">

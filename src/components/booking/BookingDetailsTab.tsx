@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAccounts } from "@/hooks/useAccounts";
 import { useBookings } from "@/hooks/useBookings";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,7 +14,6 @@ interface BookingDetailsTabProps {
 }
 
 export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetailsTabProps) => {
-  const { accounts } = useAccounts();
   const { bookings } = useBookings();
   const { toast } = useToast();
   
@@ -29,8 +26,7 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
     endDate: booking.endDate?.split('T')[0] || "",
     endTime: booking.endDate?.split('T')[1]?.slice(0, 5) || "",
     rent: booking.rent?.toString() || "",
-    notes: booking.notes || "",
-    paymentMode: booking.payment_mode || ""
+    notes: booking.notes || ""
   });
 
   const checkForOverlap = (newStart: string, newEnd: string, excludeId: string) => {
@@ -94,8 +90,7 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
       startDate: startDateTime,
       endDate: endDateTime,
       rent: parseInt(formData.rent),
-      notes: formData.notes,
-      payment_mode: formData.paymentMode || null
+      notes: formData.notes
     };
 
     onSubmit(updatedBooking);
@@ -184,7 +179,7 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="rent">Rent *</Label>
+        <Label htmlFor="rent">Rent Finalized *</Label>
         <Input
           id="rent"
           type="number"
@@ -192,22 +187,6 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
           onChange={(e) => handleChange("rent", e.target.value)}
           required
         />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="paymentMode">Payment Mode</Label>
-        <Select value={formData.paymentMode} onValueChange={(value) => handleChange("paymentMode", value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select payment mode" />
-          </SelectTrigger>
-          <SelectContent>
-            {accounts.map((account) => (
-              <SelectItem key={account.id} value={account.id}>
-                {account.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       <div className="space-y-2">

@@ -52,21 +52,11 @@ export const useBookings = () => {
         console.error('Error fetching payments:', paymentsError);
       }
 
-      // Fetch additional income from additional_income table for display purposes
-      const { data: additionalIncomeData, error: additionalIncomeError } = await supabase
-        .from('additional_income')
-        .select('*');
-
-      if (additionalIncomeError) {
-        console.error('Error fetching additional income:', additionalIncomeError);
-      }
-
       console.log("Bookings data:", bookingsData);
       console.log("Payments data:", paymentsData);
-      console.log("Additional income data:", additionalIncomeData);
 
       const transformedBookings: Booking[] = (bookingsData || []).map(booking => {
-        // Get all payments for this booking from the payments table
+        // Get all payments for this booking from the payments table only
         const bookingPayments = (paymentsData || []).filter(payment => payment.booking_id === booking.id);
         
         // Calculate advance from advance/rent payments
@@ -75,17 +65,13 @@ export const useBookings = () => {
         );
         const advanceFromPayments = advancePayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
         
-        // Get additional income from payments table (payments with type 'additional')
-        const additionalPayments = bookingPayments.filter(payment => payment.payment_type === 'additional');
-        
-        // Calculate total additional income from both sources
-        const additionalIncomeFromCategories = (additionalIncomeData || [])
-          .filter(income => income.booking_id === booking.id)
-          .reduce((sum, income) => sum + Number(income.amount), 0);
-        
-        const additionalIncomeFromPayments = additionalPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+        // Get additional income from payments table only (exclude category allocations)
+        const additionalPayments = bookingPayments.filter(payment => 
+          payment.payment_type === 'additional' && 
+          !payment.description?.includes('categories')
+        );
 
-        // Transform all payments for display
+        // Transform payments for display
         const allPayments = bookingPayments.map(payment => ({
           id: payment.id,
           amount: Number(payment.amount),
@@ -93,17 +79,6 @@ export const useBookings = () => {
           type: payment.payment_type || 'rent',
           description: payment.description || ''
         }));
-
-        // Add a virtual payment entry for category-based additional income for display
-        if (additionalIncomeFromCategories > 0) {
-          allPayments.push({
-            id: `categories-${booking.id}`,
-            amount: additionalIncomeFromCategories,
-            date: new Date().toISOString().split('T')[0],
-            type: 'additional',
-            description: 'Income from categories'
-          });
-        }
 
         const totalPaidAmount = allPayments.reduce((sum, payment) => sum + payment.amount, 0);
 
@@ -114,8 +89,8 @@ export const useBookings = () => {
           phoneNumber: booking.phone_number || '',
           startDate: booking.start_datetime,
           endDate: booking.end_datetime,
-          rent: Number(booking.total_rent),
-          advance: Math.max(Number(booking.advance), advanceFromPayments),
+          rent: Number(booking.rent_finalized),
+          advance: Math.max(Number(booking.rent_received), advanceFromPayments),
           notes: '',
           paidAmount: totalPaidAmount,
           payments: allPayments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -150,8 +125,8 @@ export const useBookings = () => {
           phone_number: bookingData.phoneNumber,
           start_datetime: bookingData.startDate,
           end_datetime: bookingData.endDate,
-          total_rent: bookingData.rent,
-          advance: bookingData.advance
+          rent_finalized: bookingData.rent,
+          rent_received: bookingData.advance
         })
         .select()
         .single();
@@ -196,8 +171,8 @@ export const useBookings = () => {
           phone_number: updatedBooking.phoneNumber,
           start_datetime: updatedBooking.startDate,
           end_datetime: updatedBooking.endDate,
-          total_rent: updatedBooking.rent,
-          advance: updatedBooking.advance
+          rent_finalized: updatedBooking.rent,
+          rent_received: updatedBooking.advance
         })
         .eq('id', updatedBooking.id);
 
