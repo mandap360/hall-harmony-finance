@@ -42,8 +42,8 @@ export const ExpenseFilters = ({
 }: ExpenseFiltersProps) => {
   return (
     <div className="bg-white border-b">
-      {/* Filter Toggle Button */}
-      <div className="p-4 border-b">
+      {/* Filter Toggle Button - Moved to Right */}
+      <div className="p-4 border-b flex justify-end">
         <Button
           variant="outline"
           onClick={onToggleFilters}

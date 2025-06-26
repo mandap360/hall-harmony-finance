@@ -19,21 +19,6 @@ export const SalesExpenseSummary = ({
 }: SalesExpenseSummaryProps) => {
   return (
     <div className="space-y-4">
-      {/* Monthly Chart Placeholder */}
-      <Card className="bg-white">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Monthly Overview
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-32 bg-gradient-to-r from-blue-50 to-orange-50 rounded-lg flex items-center justify-center">
-            <div className="text-gray-500 text-sm">Chart visualization area</div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Income and Expense Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card 

@@ -4,7 +4,7 @@ import { useBookings } from "@/hooks/useBookings";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { SalesExpenseSummary } from "@/components/reports/SalesExpenseSummary";
-import { ReceivablesPayablesCard } from "@/components/reports/ReceivablesPayablesCard";
+import { ZohoStyleSummary } from "@/components/reports/ZohoStyleSummary";
 import { BankingSummaryCard } from "@/components/reports/BankingSummaryCard";
 import { IncomeListView } from "@/components/reports/IncomeListView";
 import { ExpenseListView } from "@/components/reports/ExpenseListView";
@@ -116,6 +116,10 @@ export const ReportsPage = () => {
     return <VendorPayablesView onBack={() => setCurrentView("dashboard")} />;
   }
 
+  // Calculate overdue invoices and bills for display
+  const overdueInvoices = bookings.filter(booking => booking.rent > booking.paidAmount).length;
+  const overdueBills = expenses.filter(expense => !expense.isPaid).length;
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -133,23 +137,23 @@ export const ReportsPage = () => {
           onExpenseClick={() => setCurrentView("expenses")}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Receivables & Payables */}
-          <ReceivablesPayablesCard 
-            totalReceivables={totalReceivables}
-            totalPayables={totalPayables}
-            onPayablesClick={() => setCurrentView("payables")}
-          />
+        {/* Zoho Books Style Summary */}
+        <ZohoStyleSummary
+          totalReceivables={totalReceivables}
+          totalPayables={totalPayables}
+          overdueInvoices={overdueInvoices}
+          overdueBills={overdueBills}
+          onPayablesClick={() => setCurrentView("payables")}
+        />
 
-          {/* Banking Summary */}
-          <BankingSummaryCard 
-            cashInHand={bankingSummary.cashInHand}
-            bankBalance={bankingSummary.bankBalance}
-            totalBalance={bankingSummary.totalBankBalance}
-            onAccountClick={handleAccountClick}
-            accounts={accounts}
-          />
-        </div>
+        {/* Banking Summary */}
+        <BankingSummaryCard 
+          cashInHand={bankingSummary.cashInHand}
+          bankBalance={bankingSummary.bankBalance}
+          totalBalance={bankingSummary.totalBankBalance}
+          onAccountClick={handleAccountClick}
+          accounts={accounts}
+        />
       </div>
     </div>
   );
