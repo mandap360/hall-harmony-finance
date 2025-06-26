@@ -21,10 +21,10 @@ export const ZohoStyleSummary = ({
 }: ZohoStyleSummaryProps) => {
   return (
     <div className="grid grid-cols-1 gap-4">
-      {/* Single row with all three metrics */}
+      {/* Receivables and Payables */}
       <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <TrendingUp className="h-5 w-5 mr-2 text-blue-600" />
@@ -44,24 +44,29 @@ export const ZohoStyleSummary = ({
                 ₹{totalPayables.toLocaleString()}
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
 
-            <div 
-              className="flex items-center justify-between cursor-pointer hover:bg-blue-200 rounded-lg p-2 transition-colors"
-              onClick={onPendingBillsClick}
-            >
-              <div className="flex items-center">
-                <AlertCircle className="h-5 w-5 mr-2 text-blue-600" />
-                <span className="text-lg font-semibold text-blue-800">Pending Bills</span>
-              </div>
-              <div className="text-2xl font-bold text-blue-900">
-                {overdueBills}
-              </div>
+      {/* Pending Bills */}
+      <Card 
+        className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200 cursor-pointer hover:bg-purple-100 transition-colors"
+        onClick={onPendingBillsClick}
+      >
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2 text-purple-600" />
+              <span className="text-lg font-semibold text-purple-800">Pending Bills</span>
+            </div>
+            <div className="text-2xl font-bold text-purple-900">
+              {overdueBills}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Overdue Invoices row */}
+      {/* Overdue Invoices */}
       <Card 
         className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors"
         onClick={onOverdueInvoicesClick}
