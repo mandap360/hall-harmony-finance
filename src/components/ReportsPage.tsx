@@ -6,7 +6,6 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { SalesExpenseSummary } from "@/components/reports/SalesExpenseSummary";
 import { ReceivablesPayablesCard } from "@/components/reports/ReceivablesPayablesCard";
 import { BankingSummaryCard } from "@/components/reports/BankingSummaryCard";
-import { DetailedReports } from "@/components/reports/DetailedReports";
 import { IncomeListView } from "@/components/reports/IncomeListView";
 import { ExpenseListView } from "@/components/reports/ExpenseListView";
 import { VendorPayablesView } from "@/components/reports/VendorPayablesView";
@@ -80,17 +79,14 @@ export const ReportsPage = () => {
 
   // Calculate banking summary
   const bankingSummary = accounts.reduce((acc, account) => {
-    if (account.accountType === 'cash') {
+    if (account.account_type === 'operational' && account.sub_type === 'cash') {
       acc.cashInHand += account.balance;
-    } else if (account.accountType === 'bank') {
+    } else if (account.account_type === 'operational' && account.sub_type === 'bank') {
       acc.bankBalance += account.balance;
       acc.totalBankBalance += account.balance;
     }
     return acc;
   }, { cashInHand: 0, bankBalance: 0, totalBankBalance: 0 });
-
-  // Calculate profit
-  const profit = totalIncome - totalExpenses;
 
   if (currentView === "income") {
     return <IncomeListView onBack={() => setCurrentView("dashboard")} />;
@@ -116,7 +112,7 @@ export const ReportsPage = () => {
         <SalesExpenseSummary 
           totalIncome={totalIncome}
           totalExpenses={totalExpenses}
-          profit={profit}
+          profit={totalIncome - totalExpenses}
           onIncomeClick={() => setCurrentView("income")}
           onExpenseClick={() => setCurrentView("expenses")}
         />
@@ -130,11 +126,12 @@ export const ReportsPage = () => {
           />
 
           {/* Banking Summary */}
-          <BankingSummaryCard bankingSummary={bankingSummary} />
+          <BankingSummaryCard 
+            cashInHand={bankingSummary.cashInHand}
+            bankBalance={bankingSummary.bankBalance}
+            totalBalance={bankingSummary.totalBankBalance}
+          />
         </div>
-
-        {/* Detailed Reports */}
-        <DetailedReports />
       </div>
     </div>
   );
