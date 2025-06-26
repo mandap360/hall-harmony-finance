@@ -9,6 +9,10 @@ import { ReceivablesPayablesCard } from "@/components/reports/ReceivablesPayable
 import { BankingSummaryCard } from "@/components/reports/BankingSummaryCard";
 import { SalesExpenseSummary } from "@/components/reports/SalesExpenseSummary";
 import { DetailedReports } from "@/components/reports/DetailedReports";
+import { UnpaidBillsView } from "@/components/reports/UnpaidBillsView";
+import { IncomeListView } from "@/components/reports/IncomeListView";
+import { ExpenseListView } from "@/components/reports/ExpenseListView";
+import { AccountTransactions } from "@/components/AccountTransactions";
 
 export const ReportsPage = () => {
   const { bookings } = useBookings();
@@ -16,6 +20,8 @@ export const ReportsPage = () => {
   const { accounts } = useAccounts();
   const [additionalIncomeCategories, setAdditionalIncomeCategories] = useState<any[]>([]);
   const [showDetailedReports, setShowDetailedReports] = useState(false);
+  const [currentView, setCurrentView] = useState("reports");
+  const [selectedAccount, setSelectedAccount] = useState<any>(null);
 
   // Fetch additional income categories breakdown
   useEffect(() => {
@@ -167,19 +173,68 @@ export const ReportsPage = () => {
     };
   }, [accounts]);
 
+  const handlePayablesClick = () => {
+    setCurrentView("unpaid-bills");
+  };
+
+  const handleIncomeClick = () => {
+    setCurrentView("income-list");
+  };
+
+  const handleExpenseClick = () => {
+    setCurrentView("expense-list");
+  };
+
+  const handleAccountClick = (account: any) => {
+    setSelectedAccount(account);
+    setCurrentView("account-transactions");
+  };
+
+  const handleBackToReports = () => {
+    setCurrentView("reports");
+    setSelectedAccount(null);
+  };
+
+  if (currentView === "unpaid-bills") {
+    return <UnpaidBillsView onBack={handleBackToReports} />;
+  }
+
+  if (currentView === "income-list") {
+    return <IncomeListView onBack={handleBackToReports} />;
+  }
+
+  if (currentView === "expense-list") {
+    return <ExpenseListView onBack={handleBackToReports} />;
+  }
+
+  if (currentView === "account-transactions" && selectedAccount) {
+    return (
+      <AccountTransactions 
+        account={selectedAccount} 
+        onBack={handleBackToReports} 
+      />
+    );
+  }
+
   return (
     <div className="p-4 space-y-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
       {/* Receivables & Payables */}
-      <ReceivablesPayablesCard
-        totalReceivables={totalReceivables}
-        totalPayables={totalPayables}
-      />
+      <div onClick={handlePayablesClick} className="cursor-pointer">
+        <ReceivablesPayablesCard
+          totalReceivables={totalReceivables}
+          totalPayables={totalPayables}
+        />
+      </div>
 
-      <BankingSummaryCard
-        cashInHand={bankingSummary.cashInHand}
-        bankBalance={bankingSummary.bankBalance}
-        totalBalance={bankingSummary.totalBankBalance}
-      />
+      <div onClick={() => {}} className="cursor-pointer">
+        <BankingSummaryCard
+          cashInHand={bankingSummary.cashInHand}
+          bankBalance={bankingSummary.bankBalance}
+          totalBalance={bankingSummary.totalBalance}
+          onAccountClick={handleAccountClick}
+          accounts={accounts.filter(acc => acc.account_type === 'operational')}
+        />
+      </div>
 
       {/* Sales & Expense */}
       <div className="space-y-4">
@@ -188,11 +243,15 @@ export const ReportsPage = () => {
           Sales & Expense
         </h2>
 
-        <SalesExpenseSummary
-          totalIncome={financialData.totalIncome}
-          totalExpenses={financialData.totalExpenses}
-          profit={financialData.profit}
-        />
+        <div onClick={() => {}}>
+          <SalesExpenseSummary
+            totalIncome={financialData.totalIncome}
+            totalExpenses={financialData.totalExpenses}
+            profit={financialData.profit}
+            onIncomeClick={handleIncomeClick}
+            onExpenseClick={handleExpenseClick}
+          />
+        </div>
 
         {/* More Button */}
         <div className="flex justify-center">

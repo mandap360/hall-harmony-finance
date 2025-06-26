@@ -6,12 +6,23 @@ interface SalesExpenseSummaryProps {
   totalIncome: number;
   totalExpenses: number;
   profit: number;
+  onIncomeClick?: () => void;
+  onExpenseClick?: () => void;
 }
 
-export const SalesExpenseSummary = ({ totalIncome, totalExpenses, profit }: SalesExpenseSummaryProps) => {
+export const SalesExpenseSummary = ({ 
+  totalIncome, 
+  totalExpenses, 
+  profit,
+  onIncomeClick,
+  onExpenseClick
+}: SalesExpenseSummaryProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <Card className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
+      <Card 
+        className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white cursor-pointer hover:from-emerald-600 hover:to-teal-700 transition-all"
+        onClick={onIncomeClick}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium opacity-90">Total Income</CardTitle>
           <TrendingUp className="h-4 w-4 opacity-90" />
@@ -24,7 +35,10 @@ export const SalesExpenseSummary = ({ totalIncome, totalExpenses, profit }: Sale
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-r from-red-500 to-pink-600 text-white">
+      <Card 
+        className="bg-gradient-to-r from-red-500 to-pink-600 text-white cursor-pointer hover:from-red-600 hover:to-pink-700 transition-all"
+        onClick={onExpenseClick}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium opacity-90">Total Expenses</CardTitle>
           <TrendingDown className="h-4 w-4 opacity-90" />

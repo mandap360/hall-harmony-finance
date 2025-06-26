@@ -12,12 +12,13 @@ import type { Expense } from "@/hooks/useExpenses";
 
 interface ExpenseListProps {
   expenses: Expense[];
+  onExpenseUpdated?: () => void;
 }
 
-export const ExpenseList = ({ expenses }: ExpenseListProps) => {
+export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) => {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const { markAsPaid, deleteExpense, refetch } = useExpenses();
+  const { markAsPaid, deleteExpense } = useExpenses();
   const { addTransaction } = useTransactions();
 
   const handleRecordPayment = async (expenseId: string, accountId: string, paymentDate: string) => {
@@ -39,8 +40,10 @@ export const ExpenseList = ({ expenses }: ExpenseListProps) => {
         transaction_date: paymentDate
       });
 
-      // Refresh the expenses list to show updated status
-      await refetch();
+      // Trigger refresh
+      if (onExpenseUpdated) {
+        onExpenseUpdated();
+      }
       
       setShowPaymentDialog(false);
       setSelectedExpense(null);
@@ -52,7 +55,10 @@ export const ExpenseList = ({ expenses }: ExpenseListProps) => {
   const handleDeleteExpense = async (expenseId: string) => {
     try {
       await deleteExpense(expenseId);
-      await refetch();
+      // Trigger refresh
+      if (onExpenseUpdated) {
+        onExpenseUpdated();
+      }
     } catch (error) {
       console.error('Error deleting expense:', error);
     }

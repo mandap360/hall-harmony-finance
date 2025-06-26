@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -120,7 +121,7 @@ export const ExpensePage = () => {
         {filteredExpenses.length === 0 ? (
           <ExpenseEmptyState onRefresh={refetch} />
         ) : (
-          <ExpenseList expenses={filteredExpenses} />
+          <ExpenseList expenses={filteredExpenses} onExpenseUpdated={refetch} />
         )}
       </div>
 

@@ -5,12 +5,13 @@ import { useToast } from "@/hooks/use-toast";
 
 export interface Payment {
   id: string;
-  bookingId: string;
+  booking_id: string;
   amount: number;
-  paymentDate: string;
-  paymentType: string;
+  payment_date: string;
+  payment_type: 'advance' | 'rent' | 'additional';
   description?: string;
-  createdAt: string;
+  payment_mode?: string;
+  created_at: string;
 }
 
 export const usePayments = () => {
@@ -31,20 +32,9 @@ export const usePayments = () => {
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
 
-      const transformedPayments: Payment[] = (data || []).map(payment => ({
-        id: payment.id,
-        bookingId: payment.booking_id,
-        amount: Number(payment.amount),
-        paymentDate: payment.payment_date,
-        paymentType: payment.payment_type,
-        description: payment.description,
-        createdAt: payment.created_at
-      }));
-
-      setPayments(transformedPayments);
+      setPayments(data || []);
     } catch (error) {
       console.error('Error fetching payments:', error);
       toast({
@@ -57,25 +47,69 @@ export const usePayments = () => {
     }
   };
 
-  const addPayment = async (paymentData: Omit<Payment, 'id' | 'createdAt'>) => {
+  const addPayment = async (paymentData: Omit<Payment, 'id' | 'created_at'>) => {
     try {
-      const { error } = await supabase
+      // First, get the booking details to create proper transaction description
+      const { data: booking, error: bookingError } = await supabase
+        .from('bookings')
+        .select('event_name, start_datetime, end_datetime')
+        .eq('id', paymentData.booking_id)
+        .single();
+
+      if (bookingError) {
+        console.error('Error fetching booking details:', bookingError);
+      }
+
+      const { data, error } = await supabase
         .from('payments')
-        .insert({
-          booking_id: paymentData.bookingId,
-          amount: paymentData.amount,
-          payment_date: paymentData.paymentDate,
-          payment_type: paymentData.paymentType,
-          description: paymentData.description
-        });
+        .insert([paymentData])
+        .select()
+        .single();
 
       if (error) throw error;
 
-      await fetchPayments();
+      // Add corresponding transaction if payment_mode is provided
+      if (paymentData.payment_mode) {
+        const formatDate = (dateString: string) => {
+          return new Date(dateString).toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          });
+        };
+
+        let transactionDescription = `Payment - ${paymentData.payment_type}`;
+        
+        if (booking) {
+          const startDate = formatDate(booking.start_datetime);
+          const endDate = formatDate(booking.end_datetime);
+          transactionDescription = `Payment - ${booking.event_name} (${startDate} - ${endDate})`;
+        }
+
+        const { error: transactionError } = await supabase
+          .from('transactions')
+          .insert({
+            account_id: paymentData.payment_mode,
+            transaction_type: 'credit',
+            amount: paymentData.amount,
+            description: transactionDescription,
+            reference_type: 'payment',
+            reference_id: data.id,
+            transaction_date: paymentData.payment_date
+          });
+
+        if (transactionError) {
+          console.error('Error creating transaction:', transactionError);
+        }
+      }
+
+      setPayments(prev => [data, ...prev]);
       toast({
         title: "Success",
         description: "Payment added successfully",
       });
+
+      return data;
     } catch (error) {
       console.error('Error adding payment:', error);
       toast({
@@ -83,13 +117,18 @@ export const usePayments = () => {
         description: "Failed to add payment",
         variant: "destructive",
       });
+      throw error;
     }
   };
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
 
   return {
     payments,
     loading,
     addPayment,
-    fetchPayments
+    fetchPayments,
   };
 };

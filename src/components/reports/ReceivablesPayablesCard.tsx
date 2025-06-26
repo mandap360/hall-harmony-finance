@@ -11,7 +11,7 @@ export const ReceivablesPayablesCard = ({
   totalPayables 
 }: ReceivablesPayablesCardProps) => {
   return (
-    <div className="bg-white rounded-lg shadow-sm border p-6">
+    <div className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
         Receivables & Payables
       </h3>
@@ -27,7 +27,7 @@ export const ReceivablesPayablesCard = ({
           </div>
         </div>
         
-        <div className="text-center p-4 bg-red-50 rounded-lg">
+        <div className="text-center p-4 bg-red-50 rounded-lg cursor-pointer hover:bg-red-100 transition-colors">
           <div className="flex items-center justify-center mb-2">
             <TrendingDown className="h-5 w-5 text-red-600 mr-1" />
             <span className="text-sm font-medium text-red-800">Payables</span>

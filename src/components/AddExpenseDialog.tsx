@@ -60,7 +60,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
       ...formData,
       vendorName: selectedVendor?.businessName || "",
       amount: parseFloat(formData.amount),
-      cgstAmount: taxAmount / 2, // Split tax equally between CGST and SGST for backwards compatibility
+      cgstAmount: taxAmount / 2,
       sgstAmount: taxAmount / 2,
       cgstPercentage: taxPercentage / 2,
       sgstPercentage: taxPercentage / 2,
@@ -122,26 +122,28 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
               </Select>
             </div>
 
-            <div>
-              <Label htmlFor="billNumber">Invoice No (Optional)</Label>
-              <Input
-                id="billNumber"
-                value={formData.billNumber}
-                onChange={(e) => setFormData({ ...formData, billNumber: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="date">
-                Date <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                required
-              />
+            {/* Invoice No and Date in same line */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="billNumber">Invoice No (Optional)</Label>
+                <Input
+                  id="billNumber"
+                  value={formData.billNumber}
+                  onChange={(e) => setFormData({ ...formData, billNumber: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="date">
+                  Date <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  required
+                />
+              </div>
             </div>
 
             <div>
@@ -162,44 +164,46 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
               </Select>
             </div>
 
-            <div>
-              <Label htmlFor="amount">
-                Amount <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="tax">
-                Tax <span className="text-red-500">*</span>
-              </Label>
-              <div className="flex items-center space-x-2">
-                <Select 
-                  value={formData.taxRateId} 
-                  onValueChange={(value) => setFormData({ ...formData, taxRateId: value })}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select tax rate" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no_tax">No Tax</SelectItem>
-                    {taxRates.map((tax) => (
-                      <SelectItem key={tax.id} value={tax.id}>
-                        {tax.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {taxAmount > 0 && (
-                  <span className="text-sm text-gray-600">₹{taxAmount.toFixed(2)}</span>
-                )}
+            {/* Amount and Tax in same line */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="amount">
+                  Amount <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="tax">
+                  Tax <span className="text-red-500">*</span>
+                </Label>
+                <div className="flex items-center space-x-2">
+                  <Select 
+                    value={formData.taxRateId} 
+                    onValueChange={(value) => setFormData({ ...formData, taxRateId: value })}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select tax rate" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no_tax">No Tax</SelectItem>
+                      {taxRates.map((tax) => (
+                        <SelectItem key={tax.id} value={tax.id}>
+                          {tax.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {taxAmount > 0 && (
+                    <span className="text-sm text-gray-600 whitespace-nowrap">₹{taxAmount.toFixed(2)}</span>
+                  )}
+                </div>
               </div>
             </div>
 

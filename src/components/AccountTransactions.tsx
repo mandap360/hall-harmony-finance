@@ -11,6 +11,7 @@ import { AccountBalanceCard } from "@/components/account/AccountBalanceCard";
 import { TransactionHeaders } from "@/components/account/TransactionHeaders";
 import { OpeningBalanceRow } from "@/components/account/OpeningBalanceRow";
 import { TransactionRow } from "@/components/account/TransactionRow";
+import { TransactionFilter } from "@/components/account/TransactionFilter";
 
 interface AccountTransactionsProps {
   account: Account;
@@ -23,6 +24,7 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showOpeningBalanceDialog, setShowOpeningBalanceDialog] = useState(false);
   const [currentAccount, setCurrentAccount] = useState(account);
+  const [transactionFilter, setTransactionFilter] = useState("all");
 
   // Update current account when accounts change
   useEffect(() => {
@@ -49,6 +51,12 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
     setShowOpeningBalanceDialog(false);
   };
 
+  // Filter transactions based on selected filter
+  const filteredTransactions = transactions.filter(transaction => {
+    if (transactionFilter === "all") return true;
+    return transaction.transaction_type === transactionFilter;
+  });
+
   // Calculate money in and money out totals
   const moneyIn = transactions.reduce((sum, tx) => 
     tx.transaction_type === 'credit' ? sum + tx.amount : sum, 0
@@ -59,17 +67,19 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
   );
 
   // Calculate running balance for each transaction starting from opening balance
-  const transactionsWithBalance = transactions.map((transaction, index) => {
+  const transactionsWithBalance = filteredTransactions.map((transaction, index) => {
     // Start with opening balance
     let runningBalance = currentAccount.opening_balance || 0;
     
     // Add all transactions up to current index (transactions are sorted newest first)
-    for (let i = transactions.length - 1; i >= index; i--) {
+    for (let i = transactions.length - 1; i >= 0; i--) {
       const tx = transactions[i];
-      if (tx.transaction_type === 'credit') {
-        runningBalance += tx.amount;
-      } else {
-        runningBalance -= tx.amount;
+      if (tx.transaction_date <= transaction.transaction_date) {
+        if (tx.transaction_type === 'credit') {
+          runningBalance += tx.amount;
+        } else {
+          runningBalance -= tx.amount;
+        }
       }
     }
     
@@ -102,6 +112,12 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
           moneyOut={moneyOut}
         />
 
+        {/* Transaction Filter */}
+        <TransactionFilter 
+          filter={transactionFilter}
+          onFilterChange={setTransactionFilter}
+        />
+
         {/* Transaction Headers */}
         {(transactions.length > 0 || (currentAccount.opening_balance || 0) > 0) && (
           <TransactionHeaders />
@@ -119,10 +135,15 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
           ))}
         </div>
 
-        {transactions.length === 0 && (
+        {filteredTransactions.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">No transactions found</p>
-            <p className="text-gray-400 text-sm mt-2">Click the + button to add your first transaction</p>
+            <p className="text-gray-400 text-sm mt-2">
+              {transactionFilter === "all" 
+                ? "Click the + button to add your first transaction"
+                : `No ${transactionFilter === "credit" ? "money in" : "money out"} transactions found`
+              }
+            </p>
           </div>
         )}
       </div>
