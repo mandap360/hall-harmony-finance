@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -14,17 +13,23 @@ export interface Payment {
   created_at: string;
 }
 
-export const usePayments = () => {
+export const usePayments = (bookingId?: string) => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const fetchPayments = async (bookingId?: string) => {
+  const fetchPayments = async () => {
     try {
-      setLoading(true);
       let query = supabase
         .from('payments')
-        .select('*')
+        .select(`
+          *,
+          bookings:booking_id (
+            event_name,
+            start_datetime,
+            end_datetime
+          )
+        `)
         .order('payment_date', { ascending: false });
 
       if (bookingId) {
@@ -32,15 +37,13 @@ export const usePayments = () => {
       }
 
       const { data, error } = await query;
+
       if (error) throw error;
-
-      // Type the data properly by casting payment_type to the expected union type
-      const typedPayments: Payment[] = (data || []).map(payment => ({
+      
+      setPayments((data as any[])?.map(payment => ({
         ...payment,
-        payment_type: payment.payment_type as 'advance' | 'rent' | 'additional'
-      }));
-
-      setPayments(typedPayments);
+        payment_type: payment.payment_type as 'rent' | 'advance' | 'additional'
+      })) || []);
     } catch (error) {
       console.error('Error fetching payments:', error);
       toast({
@@ -55,73 +58,35 @@ export const usePayments = () => {
 
   const addPayment = async (paymentData: Omit<Payment, 'id' | 'created_at'>) => {
     try {
-      // First, get the booking details to create proper transaction description
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
-        .select('event_name, start_datetime, end_datetime')
-        .eq('id', paymentData.booking_id)
-        .single();
-
-      if (bookingError) {
-        console.error('Error fetching booking details:', bookingError);
-      }
-
       const { data, error } = await supabase
         .from('payments')
         .insert([paymentData])
-        .select()
+        .select(`
+          *,
+          bookings:booking_id (
+            event_name,
+            start_datetime,
+            end_datetime
+          )
+        `)
         .single();
 
       if (error) throw error;
 
-      // Add corresponding transaction if payment_mode is provided
-      if (paymentData.payment_mode) {
-        const formatDate = (dateString: string) => {
-          return new Date(dateString).toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-          });
-        };
-
-        let transactionDescription = `Payment - ${paymentData.payment_type}`;
-        
-        if (booking) {
-          const startDate = formatDate(booking.start_datetime);
-          const endDate = formatDate(booking.end_datetime);
-          transactionDescription = `Payment - ${booking.event_name} (${startDate} - ${endDate})`;
-        }
-
-        const { error: transactionError } = await supabase
-          .from('transactions')
-          .insert({
-            account_id: paymentData.payment_mode,
-            transaction_type: 'credit',
-            amount: paymentData.amount,
-            description: transactionDescription,
-            reference_type: 'payment',
-            reference_id: data.id,
-            transaction_date: paymentData.payment_date
-          });
-
-        if (transactionError) {
-          console.error('Error creating transaction:', transactionError);
-        }
-      }
-
-      // Type the returned data properly
-      const typedPayment: Payment = {
-        ...data,
-        payment_type: data.payment_type as 'advance' | 'rent' | 'additional'
-      };
-
-      setPayments(prev => [typedPayment, ...prev]);
+      setPayments(prev => [{ 
+        ...data, 
+        payment_type: data.payment_type as 'rent' | 'advance' | 'additional'
+      }, ...prev]);
+      
+      // Create transaction entry
+      await createTransactionFromPayment(data);
+      
       toast({
         title: "Success",
         description: "Payment added successfully",
       });
 
-      return typedPayment;
+      return data;
     } catch (error) {
       console.error('Error adding payment:', error);
       toast({
@@ -133,6 +98,67 @@ export const usePayments = () => {
     }
   };
 
+  const createTransactionFromPayment = async (payment: any) => {
+    try {
+      // Get the default cash account
+      const { data: accounts, error: accountsError } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('sub_type', 'cash')
+        .eq('is_default', true)
+        .single();
+
+      if (accountsError) {
+        console.error('Error fetching default cash account:', accountsError);
+        return;
+      }
+
+      const booking = payment.bookings;
+      
+      // Function to format date range
+      const formatDateRange = (startDate: string, endDate: string) => {
+        const start = new Date(startDate).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+        const end = new Date(endDate).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+        
+        if (start === end) {
+          return start;
+        } else {
+          return `${start} - ${end}`;
+        }
+      };
+
+      const description = booking 
+        ? `${payment.payment_type === 'advance' ? 'Advance' : payment.payment_type === 'rent' ? 'Rent' : 'Additional'} payment for ${booking.event_name} (${formatDateRange(booking.start_datetime, booking.end_datetime)})`
+        : `${payment.payment_type} payment`;
+
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert([{
+          account_id: accounts.id,
+          transaction_type: 'credit',
+          amount: payment.amount,
+          description: description,
+          reference_type: 'payment',
+          reference_id: payment.id,
+          transaction_date: payment.payment_date
+        }]);
+
+      if (transactionError) {
+        console.error('Error creating transaction:', transactionError);
+      }
+    } catch (error) {
+      console.error('Error in createTransactionFromPayment:', error);
+    }
+  };
+
   useEffect(() => {
     fetchPayments();
   }, []);
@@ -141,6 +167,7 @@ export const usePayments = () => {
     payments,
     loading,
     addPayment,
-    fetchPayments,
+    deletePayment,
+    refreshPayments: fetchPayments,
   };
 };

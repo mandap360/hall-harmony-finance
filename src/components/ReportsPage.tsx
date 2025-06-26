@@ -135,13 +135,15 @@ export const ReportsPage = () => {
 
     const totalIncome = totalPaidAmount + totalAdditionalCategoryIncome + totalAdditionalAdvance;
 
-    // Calculate expenses by category for current FY
+    // Calculate expenses by category for current FY - only paid expenses
     const expensesByCategory: Record<string, number> = {};
     let totalExpenses = 0;
 
     currentFYExpenses.forEach(expense => {
-      expensesByCategory[expense.category] = (expensesByCategory[expense.category] || 0) + expense.totalAmount;
-      totalExpenses += expense.totalAmount;
+      if (expense.isPaid) {
+        expensesByCategory[expense.category] = (expensesByCategory[expense.category] || 0) + expense.totalAmount;
+        totalExpenses += expense.totalAmount;
+      }
     });
 
     const profit = totalIncome - totalExpenses;

@@ -47,17 +47,31 @@ export const IncomeListView = ({ onBack }: IncomeListViewProps) => {
     }
   });
 
+  // Function to format date range
+  const formatDateRange = (startDate: string, endDate: string) => {
+    const start = formatDate(startDate);
+    const end = formatDate(endDate);
+    
+    if (start === end) {
+      return start;
+    } else {
+      return `${start} - ${end}`;
+    }
+  };
+
   // Create income entries from payments
   const incomeEntries = currentFYBookings
     .filter(booking => (booking.payments?.length || 0) > 0)
     .flatMap(booking => 
       booking.payments?.map(payment => ({
         date: payment.date,
-        description: `${payment.type === 'advance' ? 'Advance' : payment.type === 'rent' ? 'Rent' : 'Additional'} payment from ${booking.clientName} for ${booking.eventName} (${formatDate(booking.startDate)} - ${formatDate(booking.endDate)})`,
+        description: `${payment.type === 'advance' ? 'Advance' : payment.type === 'rent' ? 'Rent' : 'Additional'} payment for ${booking.eventName} (${formatDateRange(booking.startDate, booking.endDate)})`,
         amount: payment.amount
       })) || []
     )
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const totalIncome = incomeEntries.reduce((sum, entry) => sum + entry.amount, 0);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -73,7 +87,13 @@ export const IncomeListView = ({ onBack }: IncomeListViewProps) => {
           </Button>
         </div>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Income Entries</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Income</h2>
+          <div className="flex items-center text-green-600">
+            <IndianRupee className="h-5 w-5 mr-1" />
+            <span className="font-bold text-xl">₹{totalIncome.toLocaleString()}</span>
+          </div>
+        </div>
 
         {incomeEntries.length > 0 ? (
           <div className="bg-white rounded-lg shadow-sm border overflow-hidden">

@@ -28,6 +28,8 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
     return acc;
   }, {} as Record<string, { totalAmount: number; expenses: any[] }>);
 
+  const totalPayables = Object.values(vendorPayables).reduce((sum, vendor) => sum + vendor.totalAmount, 0);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
       day: '2-digit',
@@ -97,7 +99,13 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
           </Button>
         </div>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Payables by Vendor</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Payables</h2>
+          <div className="flex items-center text-red-600">
+            <IndianRupee className="h-5 w-5 mr-1" />
+            <span className="font-bold text-xl">₹{totalPayables.toLocaleString()}</span>
+          </div>
+        </div>
 
         <div className="space-y-4">
           {Object.entries(vendorPayables).map(([vendorName, data]) => (

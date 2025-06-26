@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { ArrowLeft, Calendar, IndianRupee, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useExpenses } from "@/hooks/useExpenses";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -36,19 +35,25 @@ export const ExpenseListView = ({ onBack }: ExpenseListViewProps) => {
 
   const currentFY = getCurrentFY();
   
-  const currentFYExpenses = expenses
+  // Only show paid expenses
+  const currentFYPaidExpenses = expenses
     .filter((expense) => {
       const expenseDate = new Date(expense.date);
       const expenseYear = expenseDate.getFullYear();
       const expenseMonth = expenseDate.getMonth();
       
+      let isCurrentFY = false;
       if (expenseMonth >= 3) {
-        return expenseYear === currentFY.startYear;
+        isCurrentFY = expenseYear === currentFY.startYear;
       } else {
-        return expenseYear === currentFY.endYear;
+        isCurrentFY = expenseYear === currentFY.endYear;
       }
+      
+      return isCurrentFY && expense.isPaid;
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const totalExpense = currentFYPaidExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -64,21 +69,27 @@ export const ExpenseListView = ({ onBack }: ExpenseListViewProps) => {
           </Button>
         </div>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Expense Entries</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Expense</h2>
+          <div className="flex items-center text-red-600">
+            <IndianRupee className="h-5 w-5 mr-1" />
+            <span className="font-bold text-xl">₹{totalExpense.toLocaleString()}</span>
+          </div>
+        </div>
 
-        {currentFYExpenses.length > 0 ? (
+        {currentFYPaidExpenses.length > 0 ? (
           <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-32">Date</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead>Payee</TableHead>
+                  <TableHead>Expense Category</TableHead>
                   <TableHead className="w-32 text-right">Amount</TableHead>
-                  <TableHead className="w-20 text-center">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentFYExpenses.map((expense) => (
+                {currentFYPaidExpenses.map((expense) => (
                   <TableRow key={expense.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center">
@@ -87,14 +98,15 @@ export const ExpenseListView = ({ onBack }: ExpenseListViewProps) => {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-gray-700">
-                      <div className="flex items-start">
-                        <Building className="h-4 w-4 mr-2 text-gray-400 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <div className="font-medium">{expense.category}</div>
-                          <div className="text-gray-500">
-                            Bill #{expense.billNumber} from {expense.vendorName}
-                          </div>
-                        </div>
+                      <div className="font-medium">{expense.vendorName}</div>
+                      <div className="text-gray-500 text-xs">
+                        Bill #{expense.billNumber}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-700">
+                      <div className="flex items-center">
+                        <Building className="h-4 w-4 mr-2 text-gray-400" />
+                        {expense.category}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -103,14 +115,6 @@ export const ExpenseListView = ({ onBack }: ExpenseListViewProps) => {
                         ₹{expense.totalAmount.toLocaleString()}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
-                      <Badge 
-                        variant={expense.isPaid ? "default" : "secondary"} 
-                        className={expense.isPaid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}
-                      >
-                        {expense.isPaid ? "Paid" : "Unpaid"}
-                      </Badge>
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -118,7 +122,7 @@ export const ExpenseListView = ({ onBack }: ExpenseListViewProps) => {
           </div>
         ) : (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No expense entries found</p>
+            <p className="text-gray-500 text-lg">No paid expense entries found</p>
           </div>
         )}
       </div>
