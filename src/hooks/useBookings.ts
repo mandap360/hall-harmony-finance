@@ -20,6 +20,7 @@ export interface Booking {
     date: string;
     type: string;
     description: string;
+    payment_mode?: string;
   }>;
 }
 
@@ -78,7 +79,8 @@ export const useBookings = () => {
           amount: Number(payment.amount),
           date: payment.payment_date,
           type: payment.payment_type || 'rent',
-          description: payment.description || ''
+          description: payment.description || '',
+          payment_mode: payment.payment_mode
         }));
 
         const totalPaidAmount = allPayments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -221,7 +223,7 @@ export const useBookings = () => {
     }
   };
 
-  const addPayment = async (bookingId: string, amount: number, date: string, type: string = 'rent', description?: string) => {
+  const addPayment = async (bookingId: string, amount: number, date: string, type: string = 'rent', description?: string, paymentMode?: string) => {
     try {
       await supabase
         .from('payments')
@@ -230,7 +232,8 @@ export const useBookings = () => {
           amount: amount,
           payment_date: date,
           payment_type: type,
-          description: description
+          description: description,
+          payment_mode: paymentMode
         });
 
       await fetchBookings();

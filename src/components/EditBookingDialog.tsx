@@ -13,7 +13,7 @@ interface EditBookingDialogProps {
   onOpenChange: (open: boolean) => void;
   booking: any;
   onSubmit: (booking: any) => void;
-  onAddPayment?: (bookingId: string, amount: number, date: string, type: string, description?: string) => Promise<void>;
+  onAddPayment?: (bookingId: string, amount: number, date: string, type: string, description?: string, paymentMode?: string) => Promise<void>;
 }
 
 export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit, onAddPayment }: EditBookingDialogProps) => {
@@ -34,9 +34,9 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit, onAdd
     const amount = parseInt(paymentData.amount);
     
     try {
-      // Add payment to database
+      // Add payment to database with payment_mode
       if (onAddPayment) {
-        await onAddPayment(booking.id, amount, paymentData.date, paymentData.type, paymentData.description);
+        await onAddPayment(booking.id, amount, paymentData.date, paymentData.type, paymentData.description, paymentData.accountId);
       }
 
       // Add corresponding transaction to the selected account

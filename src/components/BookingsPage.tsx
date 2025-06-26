@@ -104,8 +104,8 @@ export const BookingsPage = () => {
     setEditingBooking(null);
   };
 
-  const handleAddPayment = async (bookingId: string, amount: number, date: string, type: string, description?: string) => {
-    await addPayment(bookingId, amount, date, type, description);
+  const handleAddPayment = async (bookingId: string, amount: number, date: string, type: string, description?: string, paymentMode?: string) => {
+    await addPayment(bookingId, amount, date, type, description, paymentMode);
   };
 
   if (loading) {
