@@ -1,5 +1,4 @@
 
-import { PaymentSummaryCard } from "./PaymentSummaryCard";
 import { AddPaymentForm } from "./AddPaymentForm";
 import { PaymentHistoryCard } from "./PaymentHistoryCard";
 
@@ -20,7 +19,6 @@ export const PaymentsTab = ({ booking, onAddPayment }: PaymentsTabProps) => {
 
   return (
     <div className="space-y-4">
-      <PaymentSummaryCard booking={booking} />
       <AddPaymentForm onAddPayment={onAddPayment} />
       <PaymentHistoryCard payments={allPayments} />
     </div>
