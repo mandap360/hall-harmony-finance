@@ -48,37 +48,37 @@ export const ZohoStyleSummary = ({
         </CardContent>
       </Card>
 
-      {/* Pending Bills */}
+      {/* Overdue Invoices */}
       <Card 
-        className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200 cursor-pointer hover:bg-purple-100 transition-colors"
-        onClick={onPendingBillsClick}
+        className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors"
+        onClick={onOverdueInvoicesClick}
       >
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 mr-2 text-purple-600" />
-              <span className="text-lg font-semibold text-purple-800">Pending Bills</span>
+              <span className="text-lg font-semibold text-orange-800">Overdue Invoices</span>
             </div>
-            <div className="text-2xl font-bold text-purple-900">
-              {overdueBills}
+            <div className="text-2xl font-bold text-orange-900">
+              {overdueInvoices}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Overdue Invoices - Full Width */}
+      {/* Pending Bills */}
       <div className="md:col-span-2">
         <Card 
-          className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors"
-          onClick={onOverdueInvoicesClick}
+          className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200 cursor-pointer hover:bg-purple-100 transition-colors"
+          onClick={onPendingBillsClick}
         >
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <span className="text-lg font-semibold text-orange-800">Overdue Invoices</span>
+                <AlertCircle className="h-5 w-5 mr-2 text-purple-600" />
+                <span className="text-lg font-semibold text-purple-800">Pending Bills</span>
               </div>
-              <div className="text-2xl font-bold text-orange-900">
-                {overdueInvoices}
+              <div className="text-2xl font-bold text-purple-900">
+                {overdueBills}
               </div>
             </div>
           </CardContent>
