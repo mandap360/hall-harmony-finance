@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useBookings } from "@/hooks/useBookings";
 import { useExpenses } from "@/hooks/useExpenses";
@@ -175,10 +174,8 @@ export const ReportsPage = () => {
           onPendingBillsClick={() => setCurrentView("unpaid-bills")}
         />
 
-        {/* Banking Summary - Moved above Sales & Expense */}
+        {/* Banking Summary - Show all operational accounts */}
         <BankingSummaryCard 
-          cashInHand={bankingSummary.cashInHand}
-          bankBalance={bankingSummary.bankBalance}
           onAccountClick={handleAccountClick}
           accounts={accounts}
         />

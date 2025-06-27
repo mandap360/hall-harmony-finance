@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,7 @@ interface AdditionalIncomeTabProps {
 
 export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabProps) => {
   const { toast } = useToast();
-  const { additionalIncomes, loading, fetchAdditionalIncomes, addAdditionalIncome, deleteAdditionalIncome } = useAdditionalIncome();
+  const { additionalIncomes, loading, fetchAdditionalIncomes, addAdditionalIncome } = useAdditionalIncome();
   const { getIncomeCategories } = useCategories();
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -189,10 +188,6 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
     }
   };
 
-  const handleDeleteAllocation = async (id: string) => {
-    await deleteAdditionalIncome(id);
-  };
-
   if (loading) {
     return <p>Loading additional income data...</p>;
   }
@@ -257,14 +252,6 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
                     <span className="font-medium">{income.category}</span>
                     <span className="text-gray-600 ml-2">₹{income.amount.toLocaleString()}</span>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDeleteAllocation(income.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    Remove
-                  </Button>
                 </div>
               ))}
             </div>
@@ -272,6 +259,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
         </Card>
       )}
 
+      {/* Summary Card */}
       <Card>
         <CardHeader>
           <CardTitle className="text-amber-700">Summary</CardTitle>
