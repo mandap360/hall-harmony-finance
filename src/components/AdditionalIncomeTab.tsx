@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -210,7 +211,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
   // Handle refund
   const handleRefund = async (refundAmount: number, accountId: string, description: string) => {
     try {
-      // Create negative entry in additional_income table
+      // Step 1: Create negative entry in additional_income table
       const { error: incomeError } = await supabase
         .from('additional_income')
         .insert([{
@@ -221,7 +222,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
 
       if (incomeError) throw incomeError;
 
-      // Create debit transaction in the selected account
+      // Step 2: Create debit transaction in the selected account
       await addTransaction({
         account_id: accountId,
         transaction_type: 'debit',
@@ -231,6 +232,20 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
         reference_id: bookingId,
         transaction_date: new Date().toISOString().split('T')[0]
       });
+
+      // Step 3: Add refund entry to booking's payment history
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert([{
+          booking_id: bookingId,
+          amount: -refundAmount,
+          payment_date: new Date().toISOString().split('T')[0],
+          payment_type: 'refund',
+          description: description,
+          payment_mode: accountId
+        }]);
+
+      if (paymentError) throw paymentError;
 
       // Refresh the saved category breakdown to include the refund
       const { data, error } = await supabase
