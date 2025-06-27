@@ -141,14 +141,14 @@ export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
                           <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
                             <div className="flex items-center">
                               <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                              <span>{new Date(expense.expenseDate).toLocaleDateString()}</span>
+                              <span>{new Date(expense.date).toLocaleDateString()}</span>
                             </div>
                             <Badge variant="destructive" className="text-xs">
                               Unpaid
                             </Badge>
                           </div>
                           
-                          {expense.gstPercentage > 0 && (
+                          {(expense.cgstPercentage > 0 || expense.sgstPercentage > 0) && (
                             <div className="mt-2 pt-2 border-t border-gray-100">
                               <div className="text-xs text-gray-600 space-y-1">
                                 <div className="flex justify-between">
@@ -156,7 +156,7 @@ export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
                                   <span>₹{expense.amount.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span>GST ({expense.gstPercentage}%):</span>
+                                  <span>GST ({expense.cgstPercentage + expense.sgstPercentage}%):</span>
                                   <span>₹{((expense.totalAmount - expense.amount)).toLocaleString()}</span>
                                 </div>
                               </div>
