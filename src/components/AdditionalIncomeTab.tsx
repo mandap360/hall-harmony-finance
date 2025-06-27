@@ -1,14 +1,15 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, IndianRupee, AlertCircle } from "lucide-react";
+import { Plus, Trash2, IndianRupee, AlertCircle, RefreshCw } from "lucide-react";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
+import { useTransactions } from "@/hooks/useTransactions";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { AdditionalIncomeRefundDialog } from "@/components/AdditionalIncomeRefundDialog";
 
 interface AdditionalIncomeTabProps {
   bookingId: string;
@@ -23,6 +24,7 @@ interface IncomeCategory {
 
 export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabProps) => {
   const { incomeCategories } = useIncomeCategories();
+  const { addTransaction } = useTransactions();
   const { toast } = useToast();
   
   // Calculate total additional income from payments (excluding category-based income)
@@ -35,6 +37,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
   const [savedCategoryBreakdown, setSavedCategoryBreakdown] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
   
   // Fetch existing income category breakdown
   useEffect(() => {
@@ -204,6 +207,55 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
     }
   };
   
+  // Handle refund
+  const handleRefund = async (refundAmount: number, accountId: string, description: string) => {
+    try {
+      // Create negative entry in additional_income table
+      const { error: incomeError } = await supabase
+        .from('additional_income')
+        .insert([{
+          booking_id: bookingId,
+          category: 'Additional Income Refund',
+          amount: -refundAmount
+        }]);
+
+      if (incomeError) throw incomeError;
+
+      // Create debit transaction in the selected account
+      await addTransaction({
+        account_id: accountId,
+        transaction_type: 'debit',
+        amount: refundAmount,
+        description: description,
+        reference_type: 'additional_income_refund',
+        reference_id: bookingId,
+        transaction_date: new Date().toISOString().split('T')[0]
+      });
+
+      // Refresh the saved category breakdown to include the refund
+      const { data, error } = await supabase
+        .from('additional_income')
+        .select('*')
+        .eq('booking_id', bookingId);
+      
+      if (!error && data) {
+        setSavedCategoryBreakdown(data);
+      }
+
+      toast({
+        title: "Refund processed",
+        description: `₹${refundAmount.toLocaleString()} has been refunded successfully`,
+      });
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process refund",
+        variant: "destructive",
+      });
+    }
+  };
+  
   return (
     <div className="space-y-6">
       {/* Summary Card */}
@@ -224,9 +276,20 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
                 ✓ Categories allocated: ₹{savedAmount.toLocaleString()}
               </p>
               {availableToAllocate > 0 && (
-                <p className="text-xs text-orange-600">
-                  Available to allocate: ₹{availableToAllocate.toLocaleString()}
-                </p>
+                <>
+                  <p className="text-xs text-orange-600">
+                    Available to allocate: ₹{availableToAllocate.toLocaleString()}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowRefundDialog(true)}
+                    className="mt-2 text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Refund
+                  </Button>
+                </>
               )}
               {availableToAllocate === 0 && totalAllocated === additionalIncome && (
                 <p className="text-xs text-green-600">
@@ -364,19 +427,34 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
               <div key={item.id} className="flex justify-between items-center p-3 bg-amber-50 rounded-lg border border-amber-100">
                 <div>
                   <p className="font-medium text-gray-800">{item.category}</p>
-                  <div className="flex items-center text-amber-700 mt-1">
+                  <div className={`flex items-center mt-1 ${Number(item.amount) < 0 ? 'text-red-700' : 'text-amber-700'}`}>
                     <IndianRupee className="h-4 w-4" />
-                    <span className="font-semibold">{Number(item.amount).toLocaleString()}</span>
+                    <span className="font-semibold">
+                      {Number(item.amount) < 0 ? '-' : ''}
+                      {Math.abs(Number(item.amount)).toLocaleString()}
+                    </span>
+                    {Number(item.amount) < 0 && (
+                      <span className="ml-1 text-xs">(Refund)</span>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
           </div>
           {availableToAllocate > 0 && (
-            <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
+            <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-200 flex justify-between items-center">
               <p className="text-sm text-orange-700">
                 <strong>Available to allocate:</strong> ₹{availableToAllocate.toLocaleString()} can still be allocated to categories
               </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRefundDialog(true)}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Refund
+              </Button>
             </div>
           )}
         </Card>
@@ -391,6 +469,15 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
           </p>
         </div>
       )}
+
+      {/* Refund Dialog */}
+      <AdditionalIncomeRefundDialog
+        open={showRefundDialog}
+        onOpenChange={setShowRefundDialog}
+        maxRefundAmount={availableToAllocate}
+        bookingId={bookingId}
+        onRefund={handleRefund}
+      />
     </div>
   );
 };

@@ -19,33 +19,35 @@ export const ReportsPage = () => {
   const [currentView, setCurrentView] = useState("dashboard");
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [incomeData, setIncomeData] = useState<any>(null);
+  const [expenseData, setExpenseData] = useState<any>(null);
   const { bookings } = useBookings();
   const { expenses } = useExpenses();
   const { accounts } = useAccounts();
 
-  // Calculate income data asynchronously
+  // Calculate income and expense data asynchronously
   useEffect(() => {
-    const fetchIncomeData = async () => {
+    const fetchFinancialData = async () => {
       if (bookings.length > 0) {
-        const data = await calculateIncomeData(bookings);
-        setIncomeData(data);
+        const incomeResult = await calculateIncomeData(bookings);
+        setIncomeData(incomeResult);
+        
+        // Extract refund data from bookings
+        const bookingRefunds = bookings.flatMap(booking => 
+          (booking.payments || [])
+            .filter(payment => payment.type === 'refund')
+            .map(payment => ({
+              amount: Math.abs(payment.amount),
+              date: payment.date,
+              description: payment.description || `Refund for ${booking.eventName}`
+            }))
+        );
+
+        const expenseResult = await calculateExpenseData(expenses, bookingRefunds);
+        setExpenseData(expenseResult);
       }
     };
-    fetchIncomeData();
-  }, [bookings]);
-  
-  // Extract refund data from bookings
-  const bookingRefunds = bookings.flatMap(booking => 
-    (booking.payments || [])
-      .filter(payment => payment.type === 'refund')
-      .map(payment => ({
-        amount: Math.abs(payment.amount),
-        date: payment.date,
-        description: payment.description || `Refund for ${booking.eventName}`
-      }))
-  );
-
-  const expenseData = calculateExpenseData(expenses, bookingRefunds);
+    fetchFinancialData();
+  }, [bookings, expenses]);
 
   // Calculate banking summary
   const bankingSummary = accounts.reduce((acc, account) => {
@@ -92,8 +94,8 @@ export const ReportsPage = () => {
   const overdueInvoices = bookings.filter(booking => booking.rent > booking.paidAmount).length;
   const overdueBills = expenses.filter(expense => !expense.isPaid).length;
 
-  // Show loading state while income data is being calculated
-  if (!incomeData) {
+  // Show loading state while data is being calculated
+  if (!incomeData || !expenseData) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-6xl mx-auto space-y-6">

@@ -1,10 +1,11 @@
 
-import { useState, useMemo } from "react";
-import { ArrowLeft, FileText, Calendar, IndianRupee, Building2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, Building2, FileText, IndianRupee, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useExpenses } from "@/hooks/useExpenses";
+import { useVendors } from "@/hooks/useVendors";
+import { useState } from "react";
 
 interface UnpaidBillsViewProps {
   onBack: () => void;
@@ -12,246 +13,171 @@ interface UnpaidBillsViewProps {
 
 export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
   const { expenses } = useExpenses();
-  const [selectedVendor, setSelectedVendor] = useState<string>("");
+  const { vendors } = useVendors();
+  const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
 
-  // Group unpaid expenses by vendor
-  const vendorData = useMemo(() => {
-    const unpaidExpenses = expenses.filter(expense => !expense.isPaid);
-    
-    const groupedByVendor = unpaidExpenses.reduce((acc, expense) => {
-      const vendorName = expense.vendorName || 'Unknown Vendor';
-      if (!acc[vendorName]) {
-        acc[vendorName] = {
-          name: vendorName,
-          bills: [],
-          totalAmount: 0,
-          billCount: 0
-        };
-      }
-      acc[vendorName].bills.push(expense);
-      acc[vendorName].totalAmount += Number(expense.totalAmount || expense.amount);
-      acc[vendorName].billCount += 1;
-      return acc;
-    }, {} as Record<string, {
-      name: string;
-      bills: any[];
-      totalAmount: number;
-      billCount: number;
-    }>);
-
-    return Object.values(groupedByVendor);
-  }, [expenses]);
-
-  // Calculate totals across all vendors
-  const totals = useMemo(() => {
-    return vendorData.reduce((acc, vendor) => {
-      acc.totalAmount += vendor.totalAmount;
-      acc.totalBills += vendor.billCount;
-      return acc;
-    }, { totalAmount: 0, totalBills: 0 });
-  }, [vendorData]);
-
-  // Set first vendor as selected by default
-  useState(() => {
-    if (vendorData.length > 0 && !selectedVendor) {
-      setSelectedVendor(vendorData[0].name);
+  const unpaidExpenses = expenses.filter(expense => !expense.isPaid);
+  
+  // Group expenses by vendor
+  const expensesByVendor = unpaidExpenses.reduce((acc, expense) => {
+    if (!acc[expense.vendorName]) {
+      acc[expense.vendorName] = [];
     }
-  });
+    acc[expense.vendorName].push(expense);
+    return acc;
+  }, {} as Record<string, typeof unpaidExpenses>);
 
-  // Get bills for selected vendor
-  const selectedVendorData = vendorData.find(vendor => vendor.name === selectedVendor);
-  const selectedVendorBills = selectedVendorData?.bills || [];
-
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
+  const vendorNames = Object.keys(expensesByVendor);
+  const selectedVendorExpenses = selectedVendor ? expensesByVendor[selectedVendor] || [] : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onBack}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Reports</span>
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Pending Bills</h1>
-              <p className="text-gray-600">Vendor-wise unpaid bills overview</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center mb-4 sm:mb-6">
+          <Button
+            variant="ghost"
+            onClick={onBack}
+            className="mr-4 text-gray-600 hover:text-gray-800"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Reports
+          </Button>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Unpaid Bills</h1>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Card className="bg-gradient-to-r from-red-50 to-red-100 border-red-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-red-700">Total Unpaid Amount</CardTitle>
-            </CardHeader>
+        {vendorNames.length === 0 ? (
+          <Card className="text-center py-12">
             <CardContent>
-              <div className="text-2xl font-bold text-red-900">
-                {formatAmount(totals.totalAmount)}
-              </div>
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Unpaid Bills</h3>
+              <p className="text-gray-500">All bills have been paid!</p>
             </CardContent>
           </Card>
-          
-          <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-orange-700">Total Unpaid Bills</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-900">
-                {totals.totalBills}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column - Vendor Summary */}
-          <div className="lg:col-span-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
-                  <Building2 className="h-5 w-5 mr-2 text-blue-600" />
-                  Vendors ({vendorData.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {vendorData.map((vendor) => (
-                    <div
-                      key={vendor.name}
-                      onClick={() => setSelectedVendor(vendor.name)}
-                      className={`p-4 cursor-pointer border-l-4 transition-all ${
-                        selectedVendor === vendor.name
-                          ? 'bg-blue-50 border-blue-500 shadow-sm'
-                          : 'bg-white border-gray-200 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900 mb-1">
-                            {vendor.name}
+        ) : (
+          <div className="grid grid-cols-12 gap-2 sm:gap-4 h-[calc(100vh-8rem)]">
+            {/* Vendor List - Always on left */}
+            <div className="col-span-4 md:col-span-5">
+              <Card className="h-full">
+                <CardHeader className="pb-2 sm:pb-4">
+                  <CardTitle className="text-base sm:text-lg flex items-center">
+                    <Building2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
+                    <span className="hidden sm:inline">Vendors</span>
+                    <span className="sm:hidden">Vendors</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-2 sm:p-6 pt-0">
+                  <div className="space-y-2 max-h-[70vh] overflow-y-auto">
+                    {vendorNames.map((vendorName) => {
+                      const vendorExpenses = expensesByVendor[vendorName];
+                      const totalAmount = vendorExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0);
+                      const billCount = vendorExpenses.length;
+                      
+                      return (
+                        <div
+                          key={vendorName}
+                          onClick={() => setSelectedVendor(vendorName)}
+                          className={`p-2 sm:p-3 rounded-lg border cursor-pointer transition-colors ${
+                            selectedVendor === vendorName
+                              ? 'bg-blue-50 border-blue-200'
+                              : 'bg-white border-gray-200 hover:bg-gray-50'
+                          }`}
+                        >
+                          <h3 className="font-medium text-gray-900 text-sm sm:text-base truncate" title={vendorName}>
+                            {vendorName}
                           </h3>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600">
-                            <div className="flex items-center">
-                              <FileText className="h-4 w-4 mr-1" />
-                              {vendor.billCount} bill{vendor.billCount !== 1 ? 's' : ''}
+                          <div className="flex items-center justify-between mt-1">
+                            <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                              <IndianRupee className="h-3 w-3 sm:h-4 sm:w-4" />
+                              <span className="font-medium">{totalAmount.toLocaleString()}</span>
+                            </div>
+                            <Badge variant="secondary" className="text-xs">
+                              {billCount} bill{billCount !== 1 ? 's' : ''}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Bills List - Always on right */}
+            <div className="col-span-8 md:col-span-7">
+              <Card className="h-full">
+                <CardHeader className="pb-2 sm:pb-4">
+                  <CardTitle className="text-base sm:text-lg flex items-center">
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-red-600" />
+                    <span className="hidden sm:inline">
+                      {selectedVendor ? `Bills from ${selectedVendor}` : 'Select a vendor to view bills'}
+                    </span>
+                    <span className="sm:hidden">
+                      {selectedVendor ? 'Bills' : 'Select vendor'}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-2 sm:p-6 pt-0">
+                  {selectedVendor ? (
+                    <div className="space-y-2 sm:space-y-3 max-h-[70vh] overflow-y-auto">
+                      {selectedVendorExpenses.map((expense) => (
+                        <div key={expense.id} className="p-2 sm:p-4 bg-white border border-gray-200 rounded-lg">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">
+                                Bill #{expense.billNumber}
+                              </h4>
+                              <p className="text-xs sm:text-sm text-gray-600 truncate">
+                                {expense.vendorName}
+                              </p>
+                            </div>
+                            <div className="flex items-center text-red-600 ml-2">
+                              <IndianRupee className="h-3 w-3 sm:h-4 sm:w-4" />
+                              <span className="font-bold text-sm sm:text-base">
+                                {expense.totalAmount.toLocaleString()}
+                              </span>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-semibold text-red-600">
-                            {formatAmount(vendor.totalAmount)}
+                          
+                          <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
+                            <div className="flex items-center">
+                              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                              <span>{new Date(expense.expenseDate).toLocaleDateString()}</span>
+                            </div>
+                            <Badge variant="destructive" className="text-xs">
+                              Unpaid
+                            </Badge>
                           </div>
+                          
+                          {expense.gstPercentage > 0 && (
+                            <div className="mt-2 pt-2 border-t border-gray-100">
+                              <div className="text-xs text-gray-600 space-y-1">
+                                <div className="flex justify-between">
+                                  <span>Amount:</span>
+                                  <span>₹{expense.amount.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>GST ({expense.gstPercentage}%):</span>
+                                  <span>₹{((expense.totalAmount - expense.amount)).toLocaleString()}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      <div className="text-center">
+                        <Building2 className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 sm:mb-4 text-gray-300" />
+                        <p className="text-sm sm:text-base">Select a vendor to view their unpaid bills</p>
                       </div>
                     </div>
-                  ))}
-                  {vendorData.length === 0 && (
-                    <div className="p-8 text-center text-gray-500">
-                      <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <h3 className="font-medium text-gray-900 mb-2">No Pending Bills</h3>
-                      <p className="text-sm">All bills have been paid.</p>
-                    </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-
-          {/* Right Column - Bill Details */}
-          <div className="lg:col-span-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  {selectedVendor ? `Bills for ${selectedVendor}` : 'Select a vendor'}
-                  {selectedVendorData && (
-                    <span className="text-sm font-normal text-gray-600 ml-2">
-                      ({selectedVendorData.billCount} bill{selectedVendorData.billCount !== 1 ? 's' : ''})
-                    </span>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {selectedVendorBills.length > 0 ? (
-                  <div className="space-y-4">
-                    {selectedVendorBills.map((bill) => (
-                      <Card key={bill.id} className="border border-gray-200">
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <h3 className="font-medium text-gray-900">
-                                  Bill #{bill.billNumber}
-                                </h3>
-                                <Badge variant="destructive" className="text-xs">
-                                  Unpaid
-                                </Badge>
-                              </div>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                                <div className="flex items-center">
-                                  <Calendar className="h-4 w-4 mr-2" />
-                                  <span>Date: {formatDate(bill.expenseDate)}</span>
-                                </div>
-                                <div className="flex items-center">
-                                  <FileText className="h-4 w-4 mr-2" />
-                                  <span>Category: {bill.category?.name || 'Uncategorized'}</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="text-right">
-                              <div className="text-lg font-semibold text-red-600 flex items-center">
-                                <IndianRupee className="h-4 w-4" />
-                                {(bill.totalAmount || bill.amount).toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <h3 className="font-medium text-gray-900 mb-2">
-                      {selectedVendor ? 'No bills found' : 'Select a vendor'}
-                    </h3>
-                    <p className="text-sm">
-                      {selectedVendor 
-                        ? 'This vendor has no pending bills.'
-                        : 'Choose a vendor from the left to view their pending bills.'
-                      }
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
