@@ -14,9 +14,10 @@ interface Transaction {
 interface TransactionRowProps {
   transaction: Transaction;
   runningBalance: number;
+  showBalance?: boolean;
 }
 
-export const TransactionRow = ({ transaction, runningBalance }: TransactionRowProps) => {
+export const TransactionRow = ({ transaction, runningBalance, showBalance = true }: TransactionRowProps) => {
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -36,7 +37,9 @@ export const TransactionRow = ({ transaction, runningBalance }: TransactionRowPr
 
   return (
     <Card className="p-4">
-      <div className="grid grid-cols-5 gap-4 items-center">
+      <div className={`grid gap-4 items-center ${
+        showBalance ? 'grid-cols-5' : 'grid-cols-4'
+      }`}>
         <div className="text-sm font-medium text-gray-900">
           {formatDate(transaction.transaction_date)}
         </div>
@@ -64,13 +67,15 @@ export const TransactionRow = ({ transaction, runningBalance }: TransactionRowPr
             </div>
           )}
         </div>
-        <div className="text-right">
-          <span className={`font-semibold ${
-            runningBalance >= 0 ? 'text-green-600' : 'text-red-600'
-          }`}>
-            {formatAmount(runningBalance)}
-          </span>
-        </div>
+        {showBalance && (
+          <div className="text-right">
+            <span className={`font-semibold ${
+              runningBalance >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {formatAmount(runningBalance)}
+            </span>
+          </div>
+        )}
       </div>
     </Card>
   );

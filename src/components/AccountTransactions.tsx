@@ -19,9 +19,16 @@ import { format } from "date-fns";
 interface AccountTransactionsProps {
   account: Account;
   onBack: () => void;
+  showFilters?: boolean;
+  showBalance?: boolean;
 }
 
-export const AccountTransactions = ({ account, onBack }: AccountTransactionsProps) => {
+export const AccountTransactions = ({ 
+  account, 
+  onBack, 
+  showFilters = true, 
+  showBalance = true 
+}: AccountTransactionsProps) => {
   const { transactions, loading, addTransaction, refreshTransactions } = useTransactions(account.id);
   const { refreshAccounts, accounts } = useAccounts();
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -56,8 +63,43 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
     setShowOpeningBalanceDialog(false);
   };
 
+  // Calculate running balances for all transactions chronologically
+  const calculateRunningBalances = () => {
+    // Sort all transactions chronologically (oldest first)
+    const sortedTransactions = [...transactions].sort((a, b) => {
+      const dateA = new Date(a.transaction_date);
+      const dateB = new Date(b.transaction_date);
+      if (dateA.getTime() === dateB.getTime()) {
+        // If same date, sort by created_at
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      return dateA.getTime() - dateB.getTime();
+    });
+
+    // Calculate running balance for each transaction
+    let runningBalance = currentAccount.opening_balance || 0;
+    const transactionsWithBalance = sortedTransactions.map(transaction => {
+      // Apply this transaction to the running balance
+      if (transaction.transaction_type === 'credit') {
+        runningBalance += transaction.amount;
+      } else {
+        runningBalance -= transaction.amount;
+      }
+      
+      return {
+        transaction,
+        runningBalance
+      };
+    });
+
+    return transactionsWithBalance;
+  };
+
+  // Get transactions with running balances
+  const transactionsWithBalance = calculateRunningBalances();
+
   // Filter transactions based on selected filter and date range
-  const filteredTransactions = transactions.filter(transaction => {
+  const filteredTransactionsWithBalance = transactionsWithBalance.filter(({ transaction }) => {
     if (transactionFilter !== "all" && transaction.transaction_type !== transactionFilter) {
       return false;
     }
@@ -67,7 +109,7 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
     if (endDate && transactionDate > endDate) return false;
     
     return true;
-  });
+  }).reverse(); // Show newest first in the UI
 
   // Calculate money in and money out totals
   const moneyIn = transactions.reduce((sum, tx) => 
@@ -78,28 +120,10 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
     tx.transaction_type === 'debit' ? sum + tx.amount : sum, 0
   );
 
-  // Calculate running balance for each transaction starting from opening balance
-  const transactionsWithBalance = filteredTransactions.map((transaction, index) => {
-    // Start with opening balance
-    let runningBalance = currentAccount.opening_balance || 0;
-    
-    // Add all transactions up to current index (transactions are sorted newest first)
-    for (let i = transactions.length - 1; i >= 0; i--) {
-      const tx = transactions[i];
-      if (tx.transaction_date <= transaction.transaction_date) {
-        if (tx.transaction_type === 'credit') {
-          runningBalance += tx.amount;
-        } else {
-          runningBalance -= tx.amount;
-        }
-      }
-    }
-    
-    return {
-      transaction,
-      runningBalance
-    };
-  });
+  // Get current balance (latest transaction's running balance or opening balance)
+  const currentBalance = transactionsWithBalance.length > 0 
+    ? transactionsWithBalance[transactionsWithBalance.length - 1].runningBalance 
+    : (currentAccount.opening_balance || 0);
 
   if (loading) {
     return (
@@ -121,84 +145,86 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
         {/* Combined Filter and Balance Row */}
         <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <TransactionFilter 
-                  filter={transactionFilter}
-                  onFilterChange={setTransactionFilter}
-                />
-              </div>
-              
-              {/* Date Range Filter */}
-              <div className="flex items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
+            {showFilters && (
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0">
+                  <TransactionFilter 
+                    filter={transactionFilter}
+                    onFilterChange={setTransactionFilter}
+                  />
+                </div>
+                
+                {/* Date Range Filter */}
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "PP") : "Start date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "PP") : "End date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {(startDate || endDate) && (
                     <Button
                       variant="outline"
                       size="sm"
-                      className={cn(
-                        "justify-start text-left font-normal",
-                        !startDate && "text-muted-foreground"
-                      )}
+                      onClick={() => {
+                        setStartDate(undefined);
+                        setEndDate(undefined);
+                      }}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, "PP") : "Start date"}
+                      Clear
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={setStartDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "justify-start text-left font-normal",
-                        !endDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, "PP") : "End date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={setEndDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-
-                {(startDate || endDate) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setStartDate(undefined);
-                      setEndDate(undefined);
-                    }}
-                  >
-                    Clear
-                  </Button>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             
             <div className="flex items-center gap-6 text-sm">
               <div className="text-center">
                 <div className="text-gray-500 text-xs">Current Balance</div>
                 <div className="font-bold text-xl text-blue-600">
-                  ₹{(transactionsWithBalance[0]?.runningBalance || currentAccount.opening_balance || 0).toLocaleString()}
+                  ₹{currentBalance.toLocaleString()}
                 </div>
               </div>
               <div className="text-center">
@@ -219,26 +245,30 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
 
         {/* Transaction Headers */}
         {(transactions.length > 0 || (currentAccount.opening_balance || 0) > 0) && (
-          <TransactionHeaders />
+          <TransactionHeaders showBalance={showBalance} />
         )}
 
         {/* Opening Balance Row */}
         {(currentAccount.opening_balance || 0) > 0 && (
-          <OpeningBalanceRow openingBalance={currentAccount.opening_balance || 0} />
+          <OpeningBalanceRow 
+            openingBalance={currentAccount.opening_balance || 0} 
+            showBalance={showBalance}
+          />
         )}
 
         {/* Transactions List */}
         <div className="space-y-2">
-          {transactionsWithBalance.map(({ transaction, runningBalance }) => (
+          {filteredTransactionsWithBalance.map(({ transaction, runningBalance }) => (
             <TransactionRow 
               key={transaction.id} 
               transaction={transaction} 
               runningBalance={runningBalance}
+              showBalance={showBalance}
             />
           ))}
         </div>
 
-        {filteredTransactions.length === 0 && (
+        {filteredTransactionsWithBalance.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">No transactions found</p>
             <p className="text-gray-400 text-sm mt-2">

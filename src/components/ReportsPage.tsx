@@ -54,7 +54,9 @@ export const ReportsPage = () => {
     return (
       <AccountTransactions 
         account={selectedAccount} 
-        onBack={() => setSelectedAccount(null)} 
+        onBack={() => setSelectedAccount(null)}
+        showFilters={true}
+        showBalance={false}
       />
     );
   }

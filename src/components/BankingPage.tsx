@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAccounts, Account } from "@/hooks/useAccounts";
 import { AddAccountDialog } from "@/components/AddAccountDialog";
@@ -47,7 +46,9 @@ export const BankingPage = () => {
     return (
       <AccountTransactions 
         account={selectedAccount} 
-        onBack={() => setSelectedAccount(null)} 
+        onBack={() => setSelectedAccount(null)}
+        showFilters={false}
+        showBalance={true}
       />
     );
   }
