@@ -8,14 +8,15 @@ interface Transaction {
   description?: string;
   transaction_type: 'credit' | 'debit';
   amount: number;
-  balanceAfter: number;
+  balanceAfter?: number;
 }
 
 interface TransactionRowProps {
   transaction: Transaction;
+  runningBalance: number;
 }
 
-export const TransactionRow = ({ transaction }: TransactionRowProps) => {
+export const TransactionRow = ({ transaction, runningBalance }: TransactionRowProps) => {
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -65,9 +66,9 @@ export const TransactionRow = ({ transaction }: TransactionRowProps) => {
         </div>
         <div className="text-right">
           <span className={`font-semibold ${
-            transaction.balanceAfter >= 0 ? 'text-green-600' : 'text-red-600'
+            runningBalance >= 0 ? 'text-green-600' : 'text-red-600'
           }`}>
-            {formatAmount(transaction.balanceAfter)}
+            {formatAmount(runningBalance)}
           </span>
         </div>
       </div>

@@ -36,13 +36,22 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
     const refundAmountNum = parseFloat(refundAmount);
     const selectedAccount = accounts.find(acc => acc.id === paymentMode);
 
+    // Format function date for transaction description
+    const functionDate = booking ? new Date(booking.startDate).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }) : '';
+
+    const transactionDescription = `Rent Refund (Cancellation) - ${booking.eventName} for ${functionDate}`;
+
     // Add transaction record for the refund
     try {
       await addTransaction({
         account_id: paymentMode,
         transaction_type: 'debit',
         amount: refundAmountNum,
-        description: description || `Rent Refund (Cancellation) - ${booking.eventName}`,
+        description: description || transactionDescription,
         reference_type: 'booking_refund',
         reference_id: booking.id,
         transaction_date: new Date().toISOString().split('T')[0]
@@ -53,7 +62,7 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
         bookingId: booking.id,
         amount: refundAmountNum,
         paymentMode: selectedAccount?.name || paymentMode,
-        description: description || `Rent Refund (Cancellation) - ${booking.eventName}`,
+        description: description || transactionDescription,
       });
 
       // Reset form

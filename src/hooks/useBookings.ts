@@ -152,6 +152,21 @@ export const useBookings = () => {
     description: string;
   }) => {
     try {
+      // Get booking details to include function date in description
+      const { data: booking } = await supabase
+        .from('bookings')
+        .select('event_name, start_datetime')
+        .eq('id', refundData.bookingId)
+        .single();
+
+      const functionDate = booking ? new Date(booking.start_datetime).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      }) : '';
+
+      const refundDescription = `Rent Refund (Cancellation) - ${booking?.event_name || 'Event'} for ${functionDate}`;
+
       // Add a negative payment record to represent the refund
       await supabase
         .from('payments')
@@ -160,7 +175,7 @@ export const useBookings = () => {
           amount: -Math.abs(refundData.amount), // Ensure negative amount
           payment_date: new Date().toISOString().split('T')[0],
           payment_type: 'refund',
-          description: refundData.description,
+          description: refundDescription,
           payment_mode: refundData.paymentMode
         });
 
@@ -292,6 +307,21 @@ export const useBookings = () => {
 
   const addPayment = async (bookingId: string, amount: number, date: string, type: string = 'rent', description?: string, paymentMode?: string) => {
     try {
+      // Get booking details to include function date in description
+      const { data: booking } = await supabase
+        .from('bookings')
+        .select('event_name, start_datetime')
+        .eq('id', bookingId)
+        .single();
+
+      const functionDate = booking ? new Date(booking.start_datetime).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      }) : '';
+
+      const paymentDescription = description || `Payment for ${booking?.event_name || 'Event'} on ${functionDate}`;
+
       await supabase
         .from('payments')
         .insert({
@@ -299,7 +329,7 @@ export const useBookings = () => {
           amount: amount,
           payment_date: date,
           payment_type: type,
-          description: description,
+          description: paymentDescription,
           payment_mode: paymentMode
         });
 
