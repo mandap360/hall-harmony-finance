@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -208,22 +207,10 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
     }
   };
   
-  // Handle refund
+  // Handle refund - This should directly reduce the total additional income
   const handleRefund = async (refundAmount: number, accountId: string, description: string) => {
     try {
-      // Step 1: Create negative entry in additional_income table with unique category name
-      const timestamp = new Date().getTime();
-      const { error: incomeError } = await supabase
-        .from('additional_income')
-        .insert([{
-          booking_id: bookingId,
-          category: `Additional Income Refund - ${timestamp}`,
-          amount: -refundAmount
-        }]);
-
-      if (incomeError) throw incomeError;
-
-      // Step 2: Create debit transaction in the selected account
+      // Step 1: Create debit transaction in the selected account
       await addTransaction({
         account_id: accountId,
         transaction_type: 'debit',
@@ -234,34 +221,27 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
         transaction_date: new Date().toISOString().split('T')[0]
       });
 
-      // Step 3: Add refund entry to booking's payment history
+      // Step 2: Add negative refund entry to booking's payment history to reduce total additional income
       const { error: paymentError } = await supabase
         .from('payments')
         .insert([{
           booking_id: bookingId,
-          amount: -refundAmount,
+          amount: -refundAmount, // Negative amount to reduce total additional income
           payment_date: new Date().toISOString().split('T')[0],
-          payment_type: 'refund',
-          description: description,
+          payment_type: 'additional', // Keep it as additional type but negative amount
+          description: `Additional Income Refund - ${description}`,
           payment_mode: accountId
         }]);
 
       if (paymentError) throw paymentError;
 
-      // Refresh the saved category breakdown to include the refund
-      const { data, error } = await supabase
-        .from('additional_income')
-        .select('*')
-        .eq('booking_id', bookingId);
-      
-      if (!error && data) {
-        setSavedCategoryBreakdown(data);
-      }
-
       toast({
         title: "Refund processed",
         description: `₹${refundAmount.toLocaleString()} has been refunded successfully`,
       });
+      
+      // The parent component should refresh booking data to reflect the changes
+      // This will automatically update the additionalIncome calculation
     } catch (error) {
       console.error('Error processing refund:', error);
       toast({
@@ -303,7 +283,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
                     className="mt-2 text-red-600 border-red-200 hover:bg-red-50"
                   >
                     <RefreshCw className="h-3 w-3 mr-1" />
-                    Refund
+                    Refund Available Amount
                   </Button>
                 </>
               )}
@@ -469,7 +449,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
                 className="text-red-600 border-red-200 hover:bg-red-50"
               >
                 <RefreshCw className="h-3 w-3 mr-1" />
-                Refund
+                Refund Available Amount
               </Button>
             </div>
           )}
