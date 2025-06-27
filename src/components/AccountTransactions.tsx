@@ -96,8 +96,8 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
     }
     
     return {
-      ...transaction,
-      balanceAfter: runningBalance
+      transaction,
+      runningBalance
     };
   });
 
@@ -198,7 +198,7 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
               <div className="text-center">
                 <div className="text-gray-500 text-xs">Current Balance</div>
                 <div className="font-bold text-xl text-blue-600">
-                  ₹{(transactionsWithBalance[0]?.balanceAfter || currentAccount.opening_balance || 0).toLocaleString()}
+                  ₹{(transactionsWithBalance[0]?.runningBalance || currentAccount.opening_balance || 0).toLocaleString()}
                 </div>
               </div>
               <div className="text-center">
@@ -229,8 +229,12 @@ export const AccountTransactions = ({ account, onBack }: AccountTransactionsProp
 
         {/* Transactions List */}
         <div className="space-y-2">
-          {transactionsWithBalance.map((transaction) => (
-            <TransactionRow key={transaction.id} transaction={transaction} />
+          {transactionsWithBalance.map(({ transaction, runningBalance }) => (
+            <TransactionRow 
+              key={transaction.id} 
+              transaction={transaction} 
+              runningBalance={runningBalance}
+            />
           ))}
         </div>
 
