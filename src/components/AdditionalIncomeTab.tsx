@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAdditionalIncome } from "@/hooks/useAdditionalIncome";
+import { useCategories } from "@/hooks/useCategories";
 import { AdditionalIncomeRefundDialog } from "@/components/AdditionalIncomeRefundDialog";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,8 +19,9 @@ interface AdditionalIncomeTabProps {
 export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabProps) => {
   const { toast } = useToast();
   const { additionalIncomes, loading, fetchAdditionalIncomes, addAdditionalIncome, deleteAdditionalIncome } = useAdditionalIncome();
+  const { getIncomeCategories } = useCategories();
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("");
+  const [categoryId, setCategoryId] = useState("");
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
 
   // Fetch additional incomes when component mounts or bookingId changes
@@ -61,11 +64,12 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
   }, [bookingId, additionalIncomes]);
 
   const availableToAllocate = totalAdditionalIncome - allocatedAmount;
+  const incomeCategories = getIncomeCategories();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!amount || !category) {
+    if (!amount || !categoryId) {
       toast({
         title: "Error",
         description: "Amount and category are required",
@@ -85,8 +89,19 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
       return;
     }
 
+    // Find the selected category name
+    const selectedCategory = incomeCategories.find(cat => cat.id === categoryId);
+    if (!selectedCategory) {
+      toast({
+        title: "Error",
+        description: "Please select a valid category",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const success = await addAdditionalIncome(bookingId, category, parsedAmount);
+      const success = await addAdditionalIncome(bookingId, selectedCategory.name, parsedAmount);
       
       if (success) {
         toast({
@@ -94,7 +109,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
           description: "Category allocation added successfully",
         });
         setAmount("");
-        setCategory("");
+        setCategoryId("");
       }
     } catch (error) {
       console.error('Error allocating category:', error);
@@ -185,10 +200,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader>
-          <CardTitle className="text-amber-700">Allocate Additional Income to Categories</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="amount">Amount to Allocate</Label>
@@ -206,15 +218,19 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                type="text"
-                placeholder="Enter category name"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                required
-              />
+              <Label htmlFor="category">Income Category</Label>
+              <Select value={categoryId} onValueChange={setCategoryId} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select income category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {incomeCategories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button 
               type="submit" 
