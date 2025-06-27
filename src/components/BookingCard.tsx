@@ -1,3 +1,4 @@
+
 import { Calendar, User, Phone, IndianRupee, Edit, Clock, X, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -94,7 +95,9 @@ export const BookingCard = ({ booking, onEdit, onCancel, onProcessRefund }: Book
   };
 
   const canProcessRefund = () => {
-    return booking.status === 'cancelled' && booking.advance > 0;
+    // Show refund button for cancelled bookings that have any payments (advance or additional payments)
+    const totalPaid = booking.advance + (booking.additionalIncome || 0);
+    return booking.status === 'cancelled' && totalPaid > 0;
   };
 
   const hasRefundProcessed = () => {
@@ -157,6 +160,7 @@ export const BookingCard = ({ booking, onEdit, onCancel, onProcessRefund }: Book
               size="sm"
               onClick={() => onProcessRefund(booking)}
               className="text-green-600 hover:text-green-700 hover:bg-green-50"
+              title="Process Refund"
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
