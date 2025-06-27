@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useTransactions } from "@/hooks/useTransactions";
+import { useToast } from "@/hooks/use-toast";
 
 interface RefundDialogProps {
   open: boolean;
@@ -24,8 +24,9 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
   const [refundAmount, setRefundAmount] = useState("");
   const [paymentMode, setPaymentMode] = useState("");
   const [description, setDescription] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
   const { accounts } = useAccounts();
-  const { addTransaction } = useTransactions();
+  const { toast } = useToast();
 
   const totalPaid = booking?.advance || 0;
 
@@ -45,33 +46,42 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
 
     const transactionDescription = `Rent Refund (Cancellation) - ${booking.eventName} for ${functionDate}`;
 
-    // Add transaction record for the refund
-    try {
-      await addTransaction({
-        account_id: paymentMode,
-        transaction_type: 'debit',
-        amount: refundAmountNum,
-        description: description || transactionDescription,
-        reference_type: 'booking_refund',
-        reference_id: booking.id,
-        transaction_date: new Date().toISOString().split('T')[0]
-      });
+    setIsProcessing(true);
+    console.log('Processing refund:', {
+      bookingId: booking.id,
+      amount: refundAmountNum,
+      paymentMode: selectedAccount?.name || paymentMode,
+      description: description || transactionDescription,
+    });
 
-      // Process the refund in the booking system
-      onRefund({
+    try {
+      // Process the refund through the booking system
+      await onRefund({
         bookingId: booking.id,
         amount: refundAmountNum,
         paymentMode: selectedAccount?.name || paymentMode,
         description: description || transactionDescription,
       });
 
-      // Reset form
+      // Reset form and close dialog
       setRefundAmount("");
       setPaymentMode("");
       setDescription("");
       onOpenChange(false);
+      
+      toast({
+        title: "Success",
+        description: "Refund processed successfully",
+      });
     } catch (error) {
       console.error('Error processing refund:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process refund. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -105,6 +115,7 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
               onChange={(e) => setRefundAmount(e.target.value)}
               placeholder="Enter refund amount"
               required
+              disabled={isProcessing}
             />
           </div>
 
@@ -112,7 +123,7 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
             <Label htmlFor="paymentMode">
               Payment Method <span className="text-red-500">*</span>
             </Label>
-            <Select value={paymentMode} onValueChange={setPaymentMode} required>
+            <Select value={paymentMode} onValueChange={setPaymentMode} required disabled={isProcessing}>
               <SelectTrigger>
                 <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
@@ -133,14 +144,17 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Refund description"
+              disabled={isProcessing}
             />
           </div>
 
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isProcessing}>
               Cancel
             </Button>
-            <Button type="submit">Process Refund</Button>
+            <Button type="submit" disabled={isProcessing}>
+              {isProcessing ? "Processing..." : "Process Refund"}
+            </Button>
           </div>
         </form>
       </DialogContent>

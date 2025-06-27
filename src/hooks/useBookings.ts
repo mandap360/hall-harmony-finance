@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -151,6 +150,8 @@ export const useBookings = () => {
     paymentMode: string;
     description: string;
   }) => {
+    console.log('Starting refund processing:', refundData);
+    
     try {
       // Get booking details to include function date in description
       const { data: booking } = await supabase
@@ -167,8 +168,10 @@ export const useBookings = () => {
 
       const refundDescription = `Rent Refund (Cancellation) - ${booking?.event_name || 'Event'} for ${functionDate}`;
 
-      // Add a negative payment record to represent the refund
-      await supabase
+      console.log('Processing refund with description:', refundDescription);
+
+      // Step 1: Add a negative payment record to represent the refund
+      const { data: paymentData, error: paymentError } = await supabase
         .from('payments')
         .insert({
           booking_id: refundData.bookingId,
@@ -177,9 +180,48 @@ export const useBookings = () => {
           payment_type: 'refund',
           description: refundDescription,
           payment_mode: refundData.paymentMode
-        });
+        })
+        .select()
+        .single();
 
+      if (paymentError) {
+        console.error('Error adding payment record:', paymentError);
+        throw paymentError;
+      }
+
+      console.log('Payment record created:', paymentData);
+
+      // Step 2: Add corresponding transaction record for account balance tracking
+      const { data: transactionData, error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          account_id: refundData.paymentMode,
+          transaction_type: 'debit',
+          amount: Math.abs(refundData.amount), // Positive amount for debit transaction
+          description: refundDescription,
+          reference_type: 'booking_refund',
+          reference_id: refundData.bookingId,
+          transaction_date: new Date().toISOString().split('T')[0]
+        })
+        .select()
+        .single();
+
+      if (transactionError) {
+        console.error('Error adding transaction record:', transactionError);
+        // If transaction fails, we should rollback the payment
+        await supabase
+          .from('payments')
+          .delete()
+          .eq('id', paymentData.id);
+        throw transactionError;
+      }
+
+      console.log('Transaction record created:', transactionData);
+
+      // Refresh bookings data to show the updated state
       await fetchBookings();
+      
+      console.log('Refund processed successfully');
       toast({
         title: "Success",
         description: "Refund processed successfully",
@@ -188,15 +230,12 @@ export const useBookings = () => {
       console.error('Error processing refund:', error);
       toast({
         title: "Error",
-        description: "Failed to process refund",
+        description: "Failed to process refund. Please try again.",
         variant: "destructive",
       });
+      throw error; // Re-throw to let the calling component handle it
     }
   };
-
-  useEffect(() => {
-    fetchBookings();
-  }, []);
 
   const addBooking = async (bookingData: Omit<Booking, 'id' | 'payments' | 'paidAmount' | 'additionalIncome' | 'status'>) => {
     try {

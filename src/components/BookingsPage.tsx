@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -118,9 +117,17 @@ export const BookingsPage = () => {
   };
 
   const handleRefund = async (refundData: any) => {
-    // Process refund
-    await processRefund(refundData);
-    setRefundingBooking(null);
+    try {
+      console.log('BookingsPage: Processing refund:', refundData);
+      // Process refund - this will now handle both payments and transactions atomically
+      await processRefund(refundData);
+      setRefundingBooking(null);
+      setShowRefundDialog(false);
+    } catch (error) {
+      console.error('BookingsPage: Refund failed:', error);
+      // Error is already handled in processRefund function with toast
+      // Keep dialog open so user can try again
+    }
   };
 
   const handleAddPayment = async (bookingId: string, amount: number, date: string, type: string, description?: string, paymentMode?: string) => {
@@ -188,7 +195,10 @@ export const BookingsPage = () => {
       {refundingBooking && (
         <RefundDialog
           open={showRefundDialog}
-          onOpenChange={setShowRefundDialog}
+          onOpenChange={(open) => {
+            setShowRefundDialog(open);
+            if (!open) setRefundingBooking(null);
+          }}
           booking={refundingBooking}
           onRefund={handleRefund}
         />
