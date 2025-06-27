@@ -211,12 +211,13 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
   // Handle refund
   const handleRefund = async (refundAmount: number, accountId: string, description: string) => {
     try {
-      // Step 1: Create negative entry in additional_income table
+      // Step 1: Create negative entry in additional_income table with unique category name
+      const timestamp = new Date().getTime();
       const { error: incomeError } = await supabase
         .from('additional_income')
         .insert([{
           booking_id: bookingId,
-          category: 'Additional Income Refund',
+          category: `Additional Income Refund - ${timestamp}`,
           amount: -refundAmount
         }]);
 
