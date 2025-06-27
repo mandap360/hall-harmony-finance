@@ -91,11 +91,9 @@ export type Database = {
         Row: {
           client_name: string
           created_at: string | null
-          deleted_at: string | null
           end_datetime: string
           event_name: string
           id: string
-          is_deleted: boolean | null
           organization_id: string | null
           phone_number: string | null
           rent_finalized: number
@@ -107,11 +105,9 @@ export type Database = {
         Insert: {
           client_name: string
           created_at?: string | null
-          deleted_at?: string | null
           end_datetime: string
           event_name: string
           id?: string
-          is_deleted?: boolean | null
           organization_id?: string | null
           phone_number?: string | null
           rent_finalized: number
@@ -123,11 +119,9 @@ export type Database = {
         Update: {
           client_name?: string
           created_at?: string | null
-          deleted_at?: string | null
           end_datetime?: string
           event_name?: string
           id?: string
-          is_deleted?: boolean | null
           organization_id?: string | null
           phone_number?: string | null
           rent_finalized?: number

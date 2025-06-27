@@ -14,6 +14,9 @@ import { AccountTransactions } from "@/components/AccountTransactions";
 import { Account } from "@/hooks/useAccounts";
 import { calculateIncomeData } from "@/components/reports/IncomeCalculator";
 import { calculateExpenseData } from "@/components/reports/ExpenseCalculator";
+import { TrendingUp, FileText, PlusCircle, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export const ReportsPage = () => {
   const [currentView, setCurrentView] = useState("dashboard");
@@ -44,6 +47,10 @@ export const ReportsPage = () => {
 
         const expenseResult = await calculateExpenseData(expenses, bookingRefunds);
         setExpenseData(expenseResult);
+      } else {
+        // Set empty data when no bookings exist
+        setIncomeData({ totalIncome: 0, totalReceivables: 0, incomeByCategory: [] });
+        setExpenseData({ totalExpenses: 0, totalPayables: 0, expensesByCategory: [] });
       }
     };
     fetchFinancialData();
@@ -90,10 +97,6 @@ export const ReportsPage = () => {
     return <UnpaidBillsView onBack={() => setCurrentView("dashboard")} />;
   }
 
-  // Calculate overdue invoices and bills for display
-  const overdueInvoices = bookings.filter(booking => booking.rent > booking.paidAmount).length;
-  const overdueBills = expenses.filter(expense => !expense.isPaid).length;
-
   // Show loading state while data is being calculated
   if (!incomeData || !expenseData) {
     return (
@@ -107,6 +110,53 @@ export const ReportsPage = () => {
       </div>
     );
   }
+
+  // Check if there's no data to display
+  const hasNoData = bookings.length === 0 && expenses.length === 0;
+
+  if (hasNoData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md mx-auto text-center">
+          <Card className="p-8 shadow-lg">
+            <div className="mb-6">
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <TrendingUp className="h-8 w-8 text-blue-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Welcome to Financial Reports
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Start by adding your first booking or expense to see comprehensive financial insights and analytics.
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center text-sm text-gray-500 bg-gray-50 p-3 rounded">
+                <Calendar className="h-4 w-4 mr-2" />
+                <span>Add bookings to track income</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-500 bg-gray-50 p-3 rounded">
+                <FileText className="h-4 w-4 mr-2" />
+                <span>Record expenses to monitor spending</span>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <p className="text-xs text-gray-400">
+                Once you have data, you'll see detailed reports including profit/loss analysis, 
+                category breakdowns, and account summaries.
+              </p>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate overdue invoices and bills for display
+  const overdueInvoices = bookings.filter(booking => booking.rent > booking.paidAmount).length;
+  const overdueBills = expenses.filter(expense => !expense.isPaid).length;
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">

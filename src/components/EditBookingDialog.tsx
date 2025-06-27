@@ -16,6 +16,44 @@ interface EditBookingDialogProps {
   onAddPayment?: (bookingId: string, amount: number, date: string, type: string, description?: string, paymentMode?: string) => Promise<void>;
 }
 
+// Helper function to format transaction descriptions
+const formatTransactionDescription = (
+  paymentType: string,
+  startDate: string,
+  endDate: string,
+  eventName: string,
+  isRefund: boolean = false
+): string => {
+  const startDateFormatted = new Date(startDate).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+  
+  const endDateFormatted = new Date(endDate).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+
+  const isSameDate = startDateFormatted === endDateFormatted;
+  const dateRange = isSameDate ? endDateFormatted : `${startDateFormatted} & ${endDateFormatted}`;
+
+  if (isRefund) {
+    if (paymentType === 'additional') {
+      return `Additional Income Refund for ${dateRange}`;
+    } else {
+      return `Rent Refund for ${dateRange}`;
+    }
+  } else {
+    if (paymentType === 'additional') {
+      return `Additional Income for ${dateRange}`;
+    } else {
+      return `Rent for ${dateRange}`;
+    }
+  }
+};
+
 export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking, onSubmit, onAddPayment }: EditBookingDialogProps) => {
   const [activeTab, setActiveTab] = useState("details");
   const [currentBooking, setCurrentBooking] = useState(initialBooking);
@@ -56,9 +94,17 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
     const amount = parseInt(paymentData.amount);
     
     try {
+      // Create standardized description
+      const transactionDescription = formatTransactionDescription(
+        paymentData.type, 
+        currentBooking.startDate, 
+        currentBooking.endDate,
+        currentBooking.eventName
+      );
+
       // Add payment to database with payment_mode
       if (onAddPayment) {
-        await onAddPayment(currentBooking.id, amount, paymentData.date, paymentData.type, paymentData.description, paymentData.accountId);
+        await onAddPayment(currentBooking.id, amount, paymentData.date, paymentData.type, transactionDescription, paymentData.accountId);
       }
 
       // Add corresponding transaction to the selected account
@@ -66,7 +112,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
         account_id: paymentData.accountId,
         transaction_type: 'credit',
         amount: amount,
-        description: `${paymentData.type} payment for ${currentBooking.client_name} - ${currentBooking.event_name} (${new Date(currentBooking.end_datetime).toLocaleDateString()})`,
+        description: transactionDescription,
         reference_type: 'booking_payment',
         reference_id: currentBooking.id,
         transaction_date: paymentData.date

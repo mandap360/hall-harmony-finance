@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +26,43 @@ export interface Booking {
   }>;
 }
 
+// Helper function to format transaction descriptions
+const formatTransactionDescription = (
+  paymentType: string,
+  startDate: string,
+  endDate: string,
+  isRefund: boolean = false
+): string => {
+  const startDateFormatted = new Date(startDate).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+  
+  const endDateFormatted = new Date(endDate).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+
+  const isSameDate = startDateFormatted === endDateFormatted;
+  const dateRange = isSameDate ? endDateFormatted : `${startDateFormatted} & ${endDateFormatted}`;
+
+  if (isRefund) {
+    if (paymentType === 'additional') {
+      return `Additional Income Refund for ${dateRange}`;
+    } else {
+      return `Rent Refund for ${dateRange}`;
+    }
+  } else {
+    if (paymentType === 'additional') {
+      return `Additional Income for ${dateRange}`;
+    } else {
+      return `Rent for ${dateRange}`;
+    }
+  }
+};
+
 export const useBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,7 +76,6 @@ export const useBookings = () => {
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select('*')
-        .eq('is_deleted', false)
         .order('start_datetime', { ascending: true });
 
       if (bookingsError) {
@@ -153,20 +190,16 @@ export const useBookings = () => {
     console.log('Starting refund processing:', refundData);
     
     try {
-      // Get booking details to include function date in description
+      // Get booking details to create proper description
       const { data: booking } = await supabase
         .from('bookings')
-        .select('event_name, start_datetime')
+        .select('start_datetime, end_datetime')
         .eq('id', refundData.bookingId)
         .single();
 
-      const functionDate = booking ? new Date(booking.start_datetime).toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      }) : '';
-
-      const refundDescription = `Rent Refund (Cancellation) - ${booking?.event_name || 'Event'} for ${functionDate}`;
+      const refundDescription = booking 
+        ? formatTransactionDescription('rent', booking.start_datetime, booking.end_datetime, true)
+        : 'Rent Refund';
 
       console.log('Processing refund with description:', refundDescription);
 
@@ -317,49 +350,18 @@ export const useBookings = () => {
     }
   };
 
-  const deleteBooking = async (bookingId: string) => {
-    try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({
-          is_deleted: true,
-          deleted_at: new Date().toISOString()
-        })
-        .eq('id', bookingId);
-
-      if (error) throw error;
-
-      await fetchBookings();
-      toast({
-        title: "Success",
-        description: "Booking deleted successfully",
-      });
-    } catch (error) {
-      console.error('Error deleting booking:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete booking",
-        variant: "destructive",
-      });
-    }
-  };
-
   const addPayment = async (bookingId: string, amount: number, date: string, type: string = 'rent', description?: string, paymentMode?: string) => {
     try {
-      // Get booking details to include function date in description
+      // Get booking details to create proper description
       const { data: booking } = await supabase
         .from('bookings')
-        .select('event_name, start_datetime')
+        .select('start_datetime, end_datetime')
         .eq('id', bookingId)
         .single();
 
-      const functionDate = booking ? new Date(booking.start_datetime).toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      }) : '';
-
-      const paymentDescription = description || `Payment for ${booking?.event_name || 'Event'} on ${functionDate}`;
+      const paymentDescription = description || (booking 
+        ? formatTransactionDescription(type, booking.start_datetime, booking.end_datetime)
+        : `Payment for ${type}`);
 
       await supabase
         .from('payments')
@@ -396,7 +398,6 @@ export const useBookings = () => {
     loading,
     addBooking,
     updateBooking,
-    deleteBooking,
     cancelBooking,
     processRefund,
     addPayment,

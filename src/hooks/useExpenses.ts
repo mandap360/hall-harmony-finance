@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -232,6 +231,72 @@ export const useExpenses = () => {
     }
   };
 
+  const recordPayment = async (expenseId: string, paymentData: { 
+    amount: number; 
+    date: string; 
+    accountId: string; 
+    description?: string; 
+  }) => {
+    try {
+      // Get expense details to create proper description
+      const { data: expense } = await supabase
+        .from('expenses')
+        .select(`
+          *,
+          expense_categories!inner(name)
+        `)
+        .eq('id', expenseId)
+        .single();
+
+      if (!expense) {
+        throw new Error('Expense not found');
+      }
+
+      // Use only the vendor name as description for expense payments
+      const transactionDescription = expense.vendor_name;
+
+      // Update expense as paid
+      const { error: updateError } = await supabase
+        .from('expenses')
+        .update({ 
+          is_paid: true,
+          payment_date: paymentData.date,
+          account_id: paymentData.accountId
+        })
+        .eq('id', expenseId);
+
+      if (updateError) throw updateError;
+
+      // Add transaction record
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          account_id: paymentData.accountId,
+          transaction_type: 'debit',
+          amount: paymentData.amount,
+          description: transactionDescription,
+          reference_type: 'expense_payment',
+          reference_id: expenseId,
+          transaction_date: paymentData.date
+        });
+
+      if (transactionError) throw transactionError;
+
+      await fetchExpenses();
+      toast({
+        title: "Success",
+        description: "Payment recorded successfully",
+      });
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to record payment",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     expenses,
     loading,
@@ -239,6 +304,7 @@ export const useExpenses = () => {
     updateExpense,
     deleteExpense,
     markAsPaid,
+    recordPayment,
     refetch: fetchExpenses
   };
 };
