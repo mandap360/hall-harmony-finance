@@ -8,48 +8,15 @@ import { useToast } from "@/hooks/use-toast";
 import { useAdditionalIncome } from "@/hooks/useAdditionalIncome";
 import { AdditionalIncomeRefundDialog } from "@/components/AdditionalIncomeRefundDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useTransactions } from "@/hooks/useTransactions";
-import { useAccounts } from "@/hooks/useAccounts";
 
 interface AdditionalIncomeTabProps {
   bookingId: string;
   booking: any;
 }
 
-// Helper function to format transaction descriptions
-const formatTransactionDescription = (
-  paymentType: string,
-  startDate: string,
-  endDate: string,
-  isRefund: boolean = false
-): string => {
-  const startDateFormatted = new Date(startDate).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
-  
-  const endDateFormatted = new Date(endDate).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
-
-  const isSameDate = startDateFormatted === endDateFormatted;
-  const dateRange = isSameDate ? endDateFormatted : `${startDateFormatted} & ${endDateFormatted}`;
-
-  if (isRefund) {
-    return `Additional Income Refund for ${dateRange}`;
-  } else {
-    return `Additional Income for ${dateRange}`;
-  }
-};
-
 export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabProps) => {
   const { toast } = useToast();
-  const { additionalIncomes, loading, fetchAdditionalIncomes, addAdditionalIncome } = useAdditionalIncome();
-  const { addTransaction } = useTransactions();
-  const { refreshAccounts } = useAccounts();
+  const { additionalIncomes, loading, fetchAdditionalIncomes, addAdditionalIncome, deleteAdditionalIncome } = useAdditionalIncome();
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
@@ -61,8 +28,39 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
     }
   }, [bookingId, fetchAdditionalIncomes]);
 
-  const totalAdditionalIncome = additionalIncomes.reduce((sum, item) => sum + item.amount, 0);
-  const availableToAllocate = totalAdditionalIncome;
+  // Calculate totals from payments table instead of additional_income table
+  const [totalAdditionalIncome, setTotalAdditionalIncome] = useState(0);
+  const [allocatedAmount, setAllocatedAmount] = useState(0);
+
+  useEffect(() => {
+    const fetchPaymentData = async () => {
+      if (!bookingId) return;
+
+      try {
+        // Get additional income payments from payments table
+        const { data: payments, error } = await supabase
+          .from('payments')
+          .select('amount')
+          .eq('booking_id', bookingId)
+          .eq('payment_type', 'additional');
+
+        if (error) throw error;
+
+        const total = (payments || []).reduce((sum, payment) => sum + Number(payment.amount), 0);
+        setTotalAdditionalIncome(total);
+
+        // Calculate allocated amount from additional_income table
+        const allocated = additionalIncomes.reduce((sum, item) => sum + item.amount, 0);
+        setAllocatedAmount(allocated);
+      } catch (error) {
+        console.error('Error fetching payment data:', error);
+      }
+    };
+
+    fetchPaymentData();
+  }, [bookingId, additionalIncomes]);
+
+  const availableToAllocate = totalAdditionalIncome - allocatedAmount;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,26 +74,33 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
       return;
     }
 
+    const parsedAmount = parseFloat(amount);
+    
+    if (parsedAmount > availableToAllocate) {
+      toast({
+        title: "Error",
+        description: `Cannot allocate more than available amount (₹${availableToAllocate.toLocaleString()})`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const parsedAmount = parseFloat(amount);
       const success = await addAdditionalIncome(bookingId, category, parsedAmount);
       
       if (success) {
-        // Dispatch event to notify parent components
-        window.dispatchEvent(new CustomEvent('booking-updated'));
-
         toast({
           title: "Success",
-          description: "Additional income added successfully",
+          description: "Category allocation added successfully",
         });
         setAmount("");
         setCategory("");
       }
     } catch (error) {
-      console.error('Error adding additional income:', error);
+      console.error('Error allocating category:', error);
       toast({
         title: "Error",
-        description: "Failed to add additional income",
+        description: "Failed to allocate category",
         variant: "destructive",
       });
     }
@@ -104,12 +109,21 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
   const handleRefund = async (refundAmount: number, accountId: string, description: string) => {
     try {
       // Create standardized refund description
-      const refundDescription = formatTransactionDescription(
-        'additional',
-        booking.startDate,
-        booking.endDate,
-        true
-      );
+      const startDateFormatted = new Date(booking.startDate).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+      
+      const endDateFormatted = new Date(booking.endDate).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+
+      const isSameDate = startDateFormatted === endDateFormatted;
+      const dateRange = isSameDate ? endDateFormatted : `${startDateFormatted} & ${endDateFormatted}`;
+      const refundDescription = `Additional Income Refund for ${dateRange}`;
 
       // Add negative payment to reduce additional income
       const { error: paymentError } = await supabase
@@ -126,18 +140,21 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
       if (paymentError) throw paymentError;
 
       // Add debit transaction to the selected account
-      await addTransaction({
-        account_id: accountId,
-        transaction_type: 'debit',
-        amount: refundAmount,
-        description: refundDescription,
-        reference_type: 'additional_income_refund',
-        reference_id: bookingId,
-        transaction_date: new Date().toISOString().split('T')[0]
-      });
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          account_id: accountId,
+          transaction_type: 'debit',
+          amount: refundAmount,
+          description: refundDescription,
+          reference_type: 'additional_income_refund',
+          reference_id: bookingId,
+          transaction_date: new Date().toISOString().split('T')[0]
+        });
+
+      if (transactionError) throw transactionError;
 
       // Refresh data
-      await refreshAccounts();
       await fetchAdditionalIncomes(bookingId);
       
       // Dispatch event to notify parent components
@@ -157,46 +174,87 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
     }
   };
 
+  const handleDeleteAllocation = async (id: string) => {
+    await deleteAdditionalIncome(id);
+  };
+
   if (loading) {
-    return <p>Loading additional income...</p>;
+    return <p>Loading additional income data...</p>;
   }
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-amber-700">Add Additional Income</CardTitle>
+          <CardTitle className="text-amber-700">Allocate Additional Income to Categories</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount</Label>
+              <Label htmlFor="amount">Amount to Allocate</Label>
               <Input
                 id="amount"
                 type="number"
                 placeholder="Enter amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                max={availableToAllocate}
                 required
               />
+              <p className="text-sm text-gray-600">
+                Available to allocate: ₹{availableToAllocate.toLocaleString()}
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Input
                 id="category"
                 type="text"
-                placeholder="Enter category"
+                placeholder="Enter category name"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 required
               />
             </div>
-            <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700">
-              Add Income
+            <Button 
+              type="submit" 
+              className="w-full bg-amber-600 hover:bg-amber-700"
+              disabled={availableToAllocate <= 0}
+            >
+              Allocate to Category
             </Button>
           </form>
         </CardContent>
       </Card>
+
+      {/* Allocated Categories */}
+      {additionalIncomes.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-amber-700">Allocated Categories</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {additionalIncomes.map((income) => (
+                <div key={income.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                  <div>
+                    <span className="font-medium">{income.category}</span>
+                    <span className="text-gray-600 ml-2">₹{income.amount.toLocaleString()}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteAllocation(income.id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -207,6 +265,10 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
             <span>Total Additional Income:</span>
             <span>₹{totalAdditionalIncome.toLocaleString()}</span>
           </div>
+          <div className="flex justify-between">
+            <span>Allocated to Categories:</span>
+            <span>₹{allocatedAmount.toLocaleString()}</span>
+          </div>
           <div className="flex justify-between font-semibold">
             <span>Available to Allocate:</span>
             <span>₹{availableToAllocate.toLocaleString()}</span>
@@ -216,7 +278,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
             disabled={availableToAllocate <= 0}
             className="w-full bg-red-600 hover:bg-red-700 text-white"
           >
-            Process Refund
+            Process Refund (₹{availableToAllocate.toLocaleString()})
           </Button>
         </CardContent>
       </Card>

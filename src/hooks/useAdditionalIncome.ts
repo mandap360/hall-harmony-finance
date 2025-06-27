@@ -1,5 +1,5 @@
 
-import React from "react";
+import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,11 +12,11 @@ export interface AdditionalIncome {
 }
 
 export const useAdditionalIncome = () => {
-  const [additionalIncomes, setAdditionalIncomes] = React.useState<AdditionalIncome[]>([]);
-  const [loading, setLoading] = React.useState(false);
+  const [additionalIncomes, setAdditionalIncomes] = useState<AdditionalIncome[]>([]);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const fetchAdditionalIncomes = React.useCallback(async (bookingId: string) => {
+  const fetchAdditionalIncomes = useCallback(async (bookingId: string) => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -28,10 +28,10 @@ export const useAdditionalIncome = () => {
       if (error) throw error;
       setAdditionalIncomes(data || []);
     } catch (error) {
-      console.error('Error fetching additional incomes:', error);
+      console.error('Error fetching additional income categories:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch additional incomes",
+        description: "Failed to fetch additional income categories",
         variant: "destructive",
       });
     } finally {
@@ -66,16 +66,12 @@ export const useAdditionalIncome = () => {
       }
 
       setAdditionalIncomes(prev => [data, ...prev]);
-      toast({
-        title: "Success",
-        description: "Additional income added successfully",
-      });
       return true;
     } catch (error) {
-      console.error('Error adding additional income:', error);
+      console.error('Error adding additional income category:', error);
       toast({
         title: "Error",
-        description: "Failed to add additional income",
+        description: "Failed to add additional income category",
         variant: "destructive",
       });
       return false;
@@ -94,13 +90,13 @@ export const useAdditionalIncome = () => {
       setAdditionalIncomes(prev => prev.filter(income => income.id !== id));
       toast({
         title: "Success",
-        description: "Additional income deleted successfully",
+        description: "Category allocation removed successfully",
       });
     } catch (error) {
-      console.error('Error deleting additional income:', error);
+      console.error('Error deleting additional income category:', error);
       toast({
         title: "Error",
-        description: "Failed to delete additional income",
+        description: "Failed to remove category allocation",
         variant: "destructive",
       });
     }
