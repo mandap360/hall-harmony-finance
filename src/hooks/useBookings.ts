@@ -116,6 +116,66 @@ export const useBookings = () => {
     }
   };
 
+  const cancelBooking = async (bookingId: string) => {
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          status: 'cancelled'
+        })
+        .eq('id', bookingId);
+
+      if (error) throw error;
+
+      await fetchBookings();
+      toast({
+        title: "Success",
+        description: "Booking cancelled successfully",
+      });
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel booking",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const processRefund = async (refundData: {
+    bookingId: string;
+    amount: number;
+    paymentMode: string;
+    description: string;
+  }) => {
+    try {
+      // Add a negative payment record to represent the refund
+      await supabase
+        .from('payments')
+        .insert({
+          booking_id: refundData.bookingId,
+          amount: -Math.abs(refundData.amount), // Ensure negative amount
+          payment_date: new Date().toISOString().split('T')[0],
+          payment_type: 'refund',
+          description: refundData.description,
+          payment_mode: refundData.paymentMode
+        });
+
+      await fetchBookings();
+      toast({
+        title: "Success",
+        description: "Refund processed successfully",
+      });
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process refund",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     fetchBookings();
   }, []);
@@ -263,6 +323,8 @@ export const useBookings = () => {
     addBooking,
     updateBooking,
     deleteBooking,
+    cancelBooking,
+    processRefund,
     addPayment,
     refetch: fetchBookings
   };

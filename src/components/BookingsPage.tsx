@@ -4,15 +4,18 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { EditBookingDialog } from "@/components/EditBookingDialog";
+import { RefundDialog } from "@/components/booking/RefundDialog";
 import { useBookings } from "@/hooks/useBookings";
 import { BookingFilters } from "@/components/booking/BookingFilters";
 import { BookingGrid } from "@/components/booking/BookingGrid";
 import { BookingEmptyState } from "@/components/booking/BookingEmptyState";
 
 export const BookingsPage = () => {
-  const { bookings, loading, addBooking, updateBooking, addPayment } = useBookings();
+  const { bookings, loading, addBooking, updateBooking, cancelBooking, processRefund, addPayment } = useBookings();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
+  const [cancellingBooking, setCancellingBooking] = useState(null);
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedQuarter, setSelectedQuarter] = useState("upcoming");
 
@@ -104,6 +107,33 @@ export const BookingsPage = () => {
     setEditingBooking(null);
   };
 
+  const handleCancelBooking = async (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    // Check if there are any payments to refund
+    const totalPaid = booking.advance || 0;
+    
+    if (totalPaid > 0) {
+      // Show refund dialog
+      setCancellingBooking(booking);
+      setShowRefundDialog(true);
+    } else {
+      // Just cancel the booking without refund
+      await cancelBooking(bookingId);
+    }
+  };
+
+  const handleRefund = async (refundData: any) => {
+    // Process refund first
+    await processRefund(refundData);
+    
+    // Then cancel the booking
+    await cancelBooking(refundData.bookingId);
+    
+    setCancellingBooking(null);
+  };
+
   const handleAddPayment = async (bookingId: string, amount: number, date: string, type: string, description?: string, paymentMode?: string) => {
     await addPayment(bookingId, amount, date, type, description, paymentMode);
   };
@@ -133,7 +163,7 @@ export const BookingsPage = () => {
           <BookingGrid
             bookings={filteredBookings}
             onEdit={handleEditBooking}
-            onDelete={() => {}} // Remove delete functionality
+            onCancel={handleCancelBooking}
           />
         )}
       </div>
@@ -162,6 +192,15 @@ export const BookingsPage = () => {
           booking={editingBooking}
           onSubmit={handleUpdateBooking}
           onAddPayment={handleAddPayment}
+        />
+      )}
+
+      {cancellingBooking && (
+        <RefundDialog
+          open={showRefundDialog}
+          onOpenChange={setShowRefundDialog}
+          booking={cancellingBooking}
+          onRefund={handleRefund}
         />
       )}
     </div>

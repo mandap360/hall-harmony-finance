@@ -1,16 +1,17 @@
 
-import { Calendar, User, Phone, IndianRupee, Edit, Clock, Trash2 } from "lucide-react";
+import { Calendar, User, Phone, IndianRupee, Edit, Clock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface BookingCardProps {
   booking: any;
   onEdit: (booking: any) => void;
-  onDelete: (bookingId: any) => void;
+  onCancel?: (bookingId: string) => void;
 }
 
-export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => {
+export const BookingCard = ({ booking, onEdit, onCancel }: BookingCardProps) => {
   const formatDate = (dateString: string) => {
     // Create date object from the ISO string but treat it as local time
     const dateParts = dateString.replace('T', ' ').replace('Z', '').split(/[-\s:]/);
@@ -62,18 +63,49 @@ export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => 
     }
   };
 
+  const getBookingStatus = () => {
+    const now = new Date();
+    const endDate = new Date(booking.endDate);
+    const startDate = new Date(booking.startDate);
+    
+    if (booking.status === 'cancelled') {
+      return { label: 'Cancelled', variant: 'destructive' as const };
+    }
+    
+    if (endDate < now) {
+      return { label: 'Completed', variant: 'secondary' as const };
+    }
+    
+    if (startDate >= now) {
+      return { label: 'Confirmed', variant: 'default' as const };
+    }
+    
+    return { label: 'Ongoing', variant: 'outline' as const };
+  };
+
+  const canCancelBooking = () => {
+    const now = new Date();
+    const startDate = new Date(booking.startDate);
+    return startDate >= now && booking.status !== 'cancelled';
+  };
+
   // Calculate additional income from payments only (not from categories)
   const additionalIncome = (booking.payments || [])
     .filter(payment => payment.type === 'additional' && !payment.description?.includes('categories'))
     .reduce((sum, payment) => sum + payment.amount, 0);
 
+  const status = getBookingStatus();
+
   return (
     <Card className="p-4 hover:shadow-md transition-shadow duration-200">
       <div className="flex justify-between items-start mb-3">
         <div className="flex-1">
-          <h3 className="font-semibold text-lg text-gray-900 mb-1">
-            {booking.eventName}
-          </h3>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="font-semibold text-lg text-gray-900">
+              {booking.eventName}
+            </h3>
+            <Badge variant={status.variant}>{status.label}</Badge>
+          </div>
           <div className="flex items-center text-gray-600 mb-1">
             <User className="h-4 w-4 mr-2" />
             <span className="text-sm">{booking.clientName}</span>
@@ -92,31 +124,33 @@ export const BookingCard = ({ booking, onEdit, onDelete }: BookingCardProps) => 
           >
             <Edit className="h-4 w-4" />
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Booking</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This entry will be permanently deleted. Do you still wish to proceed?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>No</AlertDialogCancel>
-                <AlertDialogAction onClick={() => onDelete(booking.id)}>
-                  Yes
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {canCancelBooking() && onCancel && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to cancel this booking? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>No</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onCancel(booking.id)}>
+                    Yes, Cancel Booking
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
