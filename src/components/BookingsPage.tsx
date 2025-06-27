@@ -14,7 +14,6 @@ export const BookingsPage = () => {
   const { bookings, loading, addBooking, updateBooking, cancelBooking, processRefund, addPayment } = useBookings();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
-  const [cancellingBooking, setCancellingBooking] = useState(null);
   const [refundingBooking, setRefundingBooking] = useState(null);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -109,20 +108,8 @@ export const BookingsPage = () => {
   };
 
   const handleCancelBooking = async (bookingId: string) => {
-    const booking = bookings.find(b => b.id === bookingId);
-    if (!booking) return;
-
-    // Check if there are any payments to refund
-    const totalPaid = booking.advance || 0;
-    
-    if (totalPaid > 0) {
-      // Show refund dialog
-      setCancellingBooking(booking);
-      setShowRefundDialog(true);
-    } else {
-      // Just cancel the booking without refund
-      await cancelBooking(bookingId);
-    }
+    // Just cancel the booking without asking for refund
+    await cancelBooking(bookingId);
   };
 
   const handleProcessRefund = (booking: any) => {
@@ -133,13 +120,6 @@ export const BookingsPage = () => {
   const handleRefund = async (refundData: any) => {
     // Process refund
     await processRefund(refundData);
-    
-    // If this was triggered by cancellation, also cancel the booking
-    if (cancellingBooking) {
-      await cancelBooking(refundData.bookingId);
-      setCancellingBooking(null);
-    }
-    
     setRefundingBooking(null);
   };
 
@@ -205,11 +185,11 @@ export const BookingsPage = () => {
         />
       )}
 
-      {(cancellingBooking || refundingBooking) && (
+      {refundingBooking && (
         <RefundDialog
           open={showRefundDialog}
           onOpenChange={setShowRefundDialog}
-          booking={cancellingBooking || refundingBooking}
+          booking={refundingBooking}
           onRefund={handleRefund}
         />
       )}
