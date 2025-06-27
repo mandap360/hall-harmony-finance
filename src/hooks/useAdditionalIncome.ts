@@ -16,7 +16,7 @@ export const useAdditionalIncome = () => {
   const [loading, setLoading] = React.useState(false);
   const { toast } = useToast();
 
-  const fetchAdditionalIncomes = async (bookingId: string) => {
+  const fetchAdditionalIncomes = React.useCallback(async (bookingId: string) => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -37,7 +37,7 @@ export const useAdditionalIncome = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const addAdditionalIncome = async (bookingId: string, category: string, amount: number) => {
     try {

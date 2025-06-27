@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,24 +47,30 @@ const formatTransactionDescription = (
 
 export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabProps) => {
   const { toast } = useToast();
-  const { additionalIncome, loading, error, refreshAdditionalIncome } = useAdditionalIncome(bookingId);
+  const { additionalIncomes, loading, fetchAdditionalIncomes, addAdditionalIncome } = useAdditionalIncome();
   const { addTransaction } = useTransactions();
   const { refreshAccounts } = useAccounts();
   const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
 
-  const totalAdditionalIncome = additionalIncome.reduce((sum, item) => sum + item.amount, 0);
-  const totalAllocated = additionalIncome.reduce((sum, item) => sum + item.allocated_amount, 0);
-  const availableToAllocate = totalAdditionalIncome - totalAllocated;
+  // Fetch additional incomes when component mounts or bookingId changes
+  useEffect(() => {
+    if (bookingId) {
+      fetchAdditionalIncomes(bookingId);
+    }
+  }, [bookingId, fetchAdditionalIncomes]);
+
+  const totalAdditionalIncome = additionalIncomes.reduce((sum, item) => sum + item.amount, 0);
+  const availableToAllocate = totalAdditionalIncome;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!amount) {
+    if (!amount || !category) {
       toast({
         title: "Error",
-        description: "Amount is required",
+        description: "Amount and category are required",
         variant: "destructive",
       });
       return;
@@ -71,30 +78,19 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
 
     try {
       const parsedAmount = parseFloat(amount);
-
-      // Add additional income entry
-      const { error: insertError } = await supabase
-        .from('additional_income')
-        .insert({
-          booking_id: bookingId,
-          amount: parsedAmount,
-          description: description,
-        });
-
-      if (insertError) throw insertError;
-
-      // Refresh data
-      await refreshAdditionalIncome();
+      const success = await addAdditionalIncome(bookingId, category, parsedAmount);
       
-      // Dispatch event to notify parent components
-      window.dispatchEvent(new CustomEvent('booking-updated'));
+      if (success) {
+        // Dispatch event to notify parent components
+        window.dispatchEvent(new CustomEvent('booking-updated'));
 
-      toast({
-        title: "Success",
-        description: "Additional income added successfully",
-      });
-      setAmount("");
-      setDescription("");
+        toast({
+          title: "Success",
+          description: "Additional income added successfully",
+        });
+        setAmount("");
+        setCategory("");
+      }
     } catch (error) {
       console.error('Error adding additional income:', error);
       toast({
@@ -142,7 +138,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
 
       // Refresh data
       await refreshAccounts();
-      await refreshAdditionalIncome();
+      await fetchAdditionalIncomes(bookingId);
       
       // Dispatch event to notify parent components
       window.dispatchEvent(new CustomEvent('booking-updated'));
@@ -165,10 +161,6 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
     return <p>Loading additional income...</p>;
   }
 
-  if (error) {
-    return <p>Error: {error.message}</p>;
-  }
-
   return (
     <div className="space-y-4">
       <Card>
@@ -189,13 +181,14 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="category">Category</Label>
               <Input
-                id="description"
+                id="category"
                 type="text"
-                placeholder="Enter description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                required
               />
             </div>
             <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700">
@@ -213,10 +206,6 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
           <div className="flex justify-between">
             <span>Total Additional Income:</span>
             <span>₹{totalAdditionalIncome.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Total Allocated:</span>
-            <span>₹{totalAllocated.toLocaleString()}</span>
           </div>
           <div className="flex justify-between font-semibold">
             <span>Available to Allocate:</span>
