@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +15,7 @@ export interface Booking {
   notes?: string;
   paidAmount: number;
   additionalIncome: number;
+  status?: string;
   payments: Array<{
     id: string;
     amount: number;
@@ -98,6 +100,7 @@ export const useBookings = () => {
           notes: '',
           paidAmount: totalRentPaid, // Only rent/advance payments
           additionalIncome: totalAdditionalIncome, // Separate additional income
+          status: booking.status || 'confirmed',
           payments: allPayments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         };
       });
@@ -180,7 +183,7 @@ export const useBookings = () => {
     fetchBookings();
   }, []);
 
-  const addBooking = async (bookingData: Omit<Booking, 'id' | 'payments' | 'paidAmount' | 'additionalIncome'>) => {
+  const addBooking = async (bookingData: Omit<Booking, 'id' | 'payments' | 'paidAmount' | 'additionalIncome' | 'status'>) => {
     try {
       const { data, error } = await supabase
         .from('bookings')
@@ -191,7 +194,8 @@ export const useBookings = () => {
           start_datetime: bookingData.startDate,
           end_datetime: bookingData.endDate,
           rent_finalized: bookingData.rent,
-          rent_received: bookingData.advance
+          rent_received: bookingData.advance,
+          status: 'confirmed'
         })
         .select()
         .single();
@@ -237,7 +241,8 @@ export const useBookings = () => {
           start_datetime: updatedBooking.startDate,
           end_datetime: updatedBooking.endDate,
           rent_finalized: updatedBooking.rent,
-          rent_received: updatedBooking.advance
+          rent_received: updatedBooking.advance,
+          status: updatedBooking.status || 'confirmed'
         })
         .eq('id', updatedBooking.id);
 
