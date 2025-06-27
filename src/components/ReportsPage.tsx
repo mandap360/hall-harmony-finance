@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useBookings } from "@/hooks/useBookings";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -17,11 +18,21 @@ import { calculateExpenseData } from "@/components/reports/ExpenseCalculator";
 export const ReportsPage = () => {
   const [currentView, setCurrentView] = useState("dashboard");
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [incomeData, setIncomeData] = useState<any>(null);
   const { bookings } = useBookings();
   const { expenses } = useExpenses();
   const { accounts } = useAccounts();
 
-  const incomeData = calculateIncomeData(bookings);
+  // Calculate income data asynchronously
+  useEffect(() => {
+    const fetchIncomeData = async () => {
+      if (bookings.length > 0) {
+        const data = await calculateIncomeData(bookings);
+        setIncomeData(data);
+      }
+    };
+    fetchIncomeData();
+  }, [bookings]);
   
   // Extract refund data from bookings
   const bookingRefunds = bookings.flatMap(booking => 
@@ -80,6 +91,20 @@ export const ReportsPage = () => {
   // Calculate overdue invoices and bills for display
   const overdueInvoices = bookings.filter(booking => booking.rent > booking.paidAmount).length;
   const overdueBills = expenses.filter(expense => !expense.isPaid).length;
+
+  // Show loading state while income data is being calculated
+  if (!incomeData) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Financial Reports</h1>
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">

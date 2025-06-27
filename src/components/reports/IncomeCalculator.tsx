@@ -1,38 +1,65 @@
 
 import { getCurrentFY, isInCurrentFY } from "./FinancialYearCalculator";
+import { supabase } from "@/integrations/supabase/client";
 
-export const calculateIncomeData = (bookings: any[]) => {
+export const calculateIncomeData = async (bookings: any[]) => {
   const currentFY = getCurrentFY();
 
   const currentFYBookings = bookings.filter((booking) => 
     isInCurrentFY(booking.startDate, currentFY)
   );
 
-  // Calculate total income from rent payments only (excluding additional income)
+  // Calculate total rent income from actual payments (paidAmount), not rent finalized
   const totalRentIncome = currentFYBookings.reduce((sum, booking) => {
-    return sum + booking.paidAmount; // Only rent payments
+    return sum + booking.paidAmount; // Only rent payments received
   }, 0);
 
-  // Calculate total additional income separately
-  const totalAdditionalIncome = currentFYBookings.reduce((sum, booking) => {
-    return sum + booking.additionalIncome; // Only additional income
+  // Calculate additional income from unallocated payments
+  const totalAdditionalIncomeFromPayments = currentFYBookings.reduce((sum, booking) => {
+    return sum + booking.additionalIncome; // Additional income from payments
   }, 0);
 
-  // Total income combines both rent and additional income
-  const totalIncome = totalRentIncome + totalAdditionalIncome;
+  // Fetch categorized additional income from additional_income table
+  const bookingIds = currentFYBookings.map(booking => booking.id);
+  let categorizedAdditionalIncome: Record<string, number> = {};
+  let totalCategorizedAdditionalIncome = 0;
 
-  // Calculate category breakdowns - separate rent and additional income
-  const incomeByCategory = currentFYBookings.reduce((acc, booking) => {
-    // Only include rent payments in "Rent" category
-    if (booking.paidAmount > 0) {
-      acc["Rent"] = (acc["Rent"] || 0) + booking.paidAmount;
+  if (bookingIds.length > 0) {
+    try {
+      const { data: additionalIncomeData, error } = await supabase
+        .from('additional_income')
+        .select('category, amount')
+        .in('booking_id', bookingIds);
+
+      if (!error && additionalIncomeData) {
+        categorizedAdditionalIncome = additionalIncomeData.reduce((acc, item) => {
+          acc[item.category] = (acc[item.category] || 0) + Number(item.amount);
+          totalCategorizedAdditionalIncome += Number(item.amount);
+          return acc;
+        }, {} as Record<string, number>);
+      }
+    } catch (error) {
+      console.error('Error fetching additional income:', error);
     }
-    // Additional income goes to "Additional Income" category
-    if (booking.additionalIncome > 0) {
-      acc["Additional Income"] = (acc["Additional Income"] || 0) + booking.additionalIncome;
-    }
-    return acc;
-  }, {} as Record<string, number>);
+  }
+
+  // Total income combines rent, additional income from payments, and categorized additional income
+  const totalIncome = totalRentIncome + totalAdditionalIncomeFromPayments + totalCategorizedAdditionalIncome;
+
+  // Create detailed income breakdown
+  const incomeByCategory: Record<string, number> = {
+    "Rent": totalRentIncome, // Only rent received, not finalized
+  };
+
+  // Add additional income advance if there's any unallocated additional income
+  if (totalAdditionalIncomeFromPayments > 0) {
+    incomeByCategory["Additional Income Advance"] = totalAdditionalIncomeFromPayments;
+  }
+
+  // Add categorized additional income
+  Object.entries(categorizedAdditionalIncome).forEach(([category, amount]) => {
+    incomeByCategory[category] = amount;
+  });
 
   // Calculate total receivables (only unpaid rent, not additional income)
   const totalReceivables = bookings.reduce((sum, booking) => {
@@ -43,7 +70,7 @@ export const calculateIncomeData = (bookings: any[]) => {
   return {
     totalIncome,
     totalRentIncome,
-    totalAdditionalIncome,
+    totalAdditionalIncome: totalAdditionalIncomeFromPayments + totalCategorizedAdditionalIncome,
     incomeByCategory,
     totalReceivables
   };

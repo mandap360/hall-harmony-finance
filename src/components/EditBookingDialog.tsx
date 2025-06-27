@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BookingDetailsTab } from "@/components/booking/BookingDetailsTab";
 import { PaymentsTab } from "@/components/booking/PaymentsTab";
@@ -16,11 +16,21 @@ interface EditBookingDialogProps {
   onAddPayment?: (bookingId: string, amount: number, date: string, type: string, description?: string, paymentMode?: string) => Promise<void>;
 }
 
-export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit, onAddPayment }: EditBookingDialogProps) => {
+export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking, onSubmit, onAddPayment }: EditBookingDialogProps) => {
   const [activeTab, setActiveTab] = useState("details");
+  const [currentBooking, setCurrentBooking] = useState(initialBooking);
   const { addTransaction } = useTransactions();
   const { refreshAccounts } = useAccounts();
-  const { refetch: refreshBookings } = useBookings();
+  const { refetch: refreshBookings, bookings } = useBookings();
+
+  // Update current booking when initial booking changes or when bookings are refreshed
+  useEffect(() => {
+    if (initialBooking) {
+      // Find the updated booking from the bookings list
+      const updatedBooking = bookings.find(b => b.id === initialBooking.id);
+      setCurrentBooking(updatedBooking || initialBooking);
+    }
+  }, [initialBooking, bookings]);
 
   const handleAddPayment = async (paymentData: { 
     amount: string; 
@@ -36,7 +46,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit, onAdd
     try {
       // Add payment to database with payment_mode
       if (onAddPayment) {
-        await onAddPayment(booking.id, amount, paymentData.date, paymentData.type, paymentData.description, paymentData.accountId);
+        await onAddPayment(currentBooking.id, amount, paymentData.date, paymentData.type, paymentData.description, paymentData.accountId);
       }
 
       // Add corresponding transaction to the selected account
@@ -44,9 +54,9 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit, onAdd
         account_id: paymentData.accountId,
         transaction_type: 'credit',
         amount: amount,
-        description: `${paymentData.type} payment for ${booking.client_name} - ${booking.event_name} (${new Date(booking.end_datetime).toLocaleDateString()})`,
+        description: `${paymentData.type} payment for ${currentBooking.client_name} - ${currentBooking.event_name} (${new Date(currentBooking.end_datetime).toLocaleDateString()})`,
         reference_type: 'booking_payment',
-        reference_id: booking.id,
+        reference_id: currentBooking.id,
         transaction_date: paymentData.date
       });
 
@@ -103,7 +113,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit, onAdd
 
         {activeTab === "details" && (
           <BookingDetailsTab
-            booking={booking}
+            booking={currentBooking}
             onSubmit={onSubmit}
             onCancel={() => onOpenChange(false)}
           />
@@ -111,13 +121,13 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit, onAdd
 
         {activeTab === "payments" && (
           <PaymentsTab
-            booking={booking}
+            booking={currentBooking}
             onAddPayment={handleAddPayment}
           />
         )}
 
-        {activeTab === "additional-income" && booking && (
-          <AdditionalIncomeTab bookingId={booking.id} booking={booking} />
+        {activeTab === "additional-income" && currentBooking && (
+          <AdditionalIncomeTab bookingId={currentBooking.id} booking={currentBooking} />
         )}
       </DialogContent>
     </Dialog>
