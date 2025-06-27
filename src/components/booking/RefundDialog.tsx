@@ -35,8 +35,7 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
     if (!refundAmount || !paymentMode) return;
 
     const refundAmountNum = parseFloat(refundAmount);
-    const selectedAccount = accounts.find(acc => acc.id === paymentMode);
-
+    
     // Format function date for transaction description
     const functionDate = booking ? new Date(booking.startDate).toLocaleDateString('en-IN', {
       day: '2-digit',
@@ -50,7 +49,7 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
     console.log('Processing refund:', {
       bookingId: booking.id,
       amount: refundAmountNum,
-      paymentMode: selectedAccount?.name || paymentMode,
+      paymentMode: paymentMode, // This should be the account ID, not name
       description: description || transactionDescription,
     });
 
@@ -59,7 +58,7 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
       await onRefund({
         bookingId: booking.id,
         amount: refundAmountNum,
-        paymentMode: selectedAccount?.name || paymentMode,
+        paymentMode: paymentMode, // Pass the account ID directly
         description: description || transactionDescription,
       });
 

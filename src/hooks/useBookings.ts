@@ -147,7 +147,7 @@ export const useBookings = () => {
   const processRefund = async (refundData: {
     bookingId: string;
     amount: number;
-    paymentMode: string;
+    paymentMode: string; // This is now the account ID
     description: string;
   }) => {
     console.log('Starting refund processing:', refundData);
@@ -179,7 +179,7 @@ export const useBookings = () => {
           payment_date: new Date().toISOString().split('T')[0],
           payment_type: 'refund',
           description: refundDescription,
-          payment_mode: refundData.paymentMode
+          payment_mode: refundData.paymentMode // This is the account ID
         })
         .select()
         .single();
@@ -195,7 +195,7 @@ export const useBookings = () => {
       const { data: transactionData, error: transactionError } = await supabase
         .from('transactions')
         .insert({
-          account_id: refundData.paymentMode,
+          account_id: refundData.paymentMode, // This is the account ID
           transaction_type: 'debit',
           amount: Math.abs(refundData.amount), // Positive amount for debit transaction
           description: refundDescription,
