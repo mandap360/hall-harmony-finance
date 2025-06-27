@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useTransactions } from "@/hooks/useTransactions";
 
 interface RefundDialogProps {
   open: boolean;
@@ -24,25 +25,45 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
   const [paymentMode, setPaymentMode] = useState("");
   const [description, setDescription] = useState("");
   const { accounts } = useAccounts();
+  const { addTransaction } = useTransactions();
 
   const totalPaid = booking?.advance || 0;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!refundAmount || !paymentMode) return;
 
-    onRefund({
-      bookingId: booking.id,
-      amount: parseFloat(refundAmount),
-      paymentMode,
-      description: description || `Refund for cancelled booking: ${booking.eventName}`,
-    });
+    const refundAmountNum = parseFloat(refundAmount);
+    const selectedAccount = accounts.find(acc => acc.id === paymentMode);
 
-    // Reset form
-    setRefundAmount("");
-    setPaymentMode("");
-    setDescription("");
-    onOpenChange(false);
+    // Add transaction record for the refund
+    try {
+      await addTransaction({
+        account_id: paymentMode,
+        transaction_type: 'debit',
+        amount: refundAmountNum,
+        description: description || `Rent Refund (Cancellation) - ${booking.eventName}`,
+        reference_type: 'booking_refund',
+        reference_id: booking.id,
+        transaction_date: new Date().toISOString().split('T')[0]
+      });
+
+      // Process the refund in the booking system
+      onRefund({
+        bookingId: booking.id,
+        amount: refundAmountNum,
+        paymentMode: selectedAccount?.name || paymentMode,
+        description: description || `Rent Refund (Cancellation) - ${booking.eventName}`,
+      });
+
+      // Reset form
+      setRefundAmount("");
+      setPaymentMode("");
+      setDescription("");
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error processing refund:', error);
+    }
   };
 
   return (

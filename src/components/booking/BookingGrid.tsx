@@ -6,9 +6,10 @@ interface BookingGridProps {
   bookings: Booking[];
   onEdit: (booking: Booking) => void;
   onCancel?: (bookingId: string) => void;
+  onProcessRefund?: (booking: any) => void;
 }
 
-export const BookingGrid = ({ bookings, onEdit, onCancel }: BookingGridProps) => {
+export const BookingGrid = ({ bookings, onEdit, onCancel, onProcessRefund }: BookingGridProps) => {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -18,6 +19,7 @@ export const BookingGrid = ({ bookings, onEdit, onCancel }: BookingGridProps) =>
             booking={booking}
             onEdit={onEdit}
             onCancel={onCancel}
+            onProcessRefund={onProcessRefund}
           />
         ))}
       </div>

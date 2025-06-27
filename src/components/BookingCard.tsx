@@ -1,5 +1,4 @@
-
-import { Calendar, User, Phone, IndianRupee, Edit, Clock, X } from "lucide-react";
+import { Calendar, User, Phone, IndianRupee, Edit, Clock, X, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +8,10 @@ interface BookingCardProps {
   booking: any;
   onEdit: (booking: any) => void;
   onCancel?: (bookingId: string) => void;
+  onProcessRefund?: (booking: any) => void;
 }
 
-export const BookingCard = ({ booking, onEdit, onCancel }: BookingCardProps) => {
+export const BookingCard = ({ booking, onEdit, onCancel, onProcessRefund }: BookingCardProps) => {
   const formatDate = (dateString: string) => {
     // Create date object from the ISO string but treat it as local time
     const dateParts = dateString.replace('T', ' ').replace('Z', '').split(/[-\s:]/);
@@ -89,6 +89,23 @@ export const BookingCard = ({ booking, onEdit, onCancel }: BookingCardProps) => 
     return startDate >= now && booking.status !== 'cancelled';
   };
 
+  const canEditBooking = () => {
+    return booking.status !== 'cancelled';
+  };
+
+  const canProcessRefund = () => {
+    return booking.status === 'cancelled' && booking.advance > 0;
+  };
+
+  const hasRefundProcessed = () => {
+    return booking.payments?.some(payment => payment.type === 'refund') || false;
+  };
+
+  const getRefundAmount = () => {
+    const refundPayments = booking.payments?.filter(payment => payment.type === 'refund') || [];
+    return Math.abs(refundPayments.reduce((sum, payment) => sum + payment.amount, 0));
+  };
+
   // Calculate additional income from payments only (not from categories)
   const additionalIncome = (booking.payments || [])
     .filter(payment => payment.type === 'additional' && !payment.description?.includes('categories'))
@@ -114,16 +131,36 @@ export const BookingCard = ({ booking, onEdit, onCancel }: BookingCardProps) => 
             <Phone className="h-4 w-4 mr-2" />
             <span className="text-sm">{booking.phoneNumber}</span>
           </div>
+          
+          {hasRefundProcessed() && (
+            <div className="mt-2 p-2 bg-blue-50 rounded-md">
+              <span className="text-sm text-blue-700">
+                Refund of ₹{getRefundAmount()} processed
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(booking)}
-            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
+          {canEditBooking() && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(booking)}
+              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
+          {canProcessRefund() && !hasRefundProcessed() && onProcessRefund && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onProcessRefund(booking)}
+              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
           {canCancelBooking() && onCancel && (
             <AlertDialog>
               <AlertDialogTrigger asChild>

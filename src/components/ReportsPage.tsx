@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useBookings } from "@/hooks/useBookings";
 import { useExpenses } from "@/hooks/useExpenses";
@@ -23,7 +22,19 @@ export const ReportsPage = () => {
   const { accounts } = useAccounts();
 
   const incomeData = calculateIncomeData(bookings);
-  const expenseData = calculateExpenseData(expenses);
+  
+  // Extract refund data from bookings
+  const bookingRefunds = bookings.flatMap(booking => 
+    (booking.payments || [])
+      .filter(payment => payment.type === 'refund')
+      .map(payment => ({
+        amount: Math.abs(payment.amount),
+        date: payment.date,
+        description: payment.description || `Refund for ${booking.eventName}`
+      }))
+  );
+
+  const expenseData = calculateExpenseData(expenses, bookingRefunds);
 
   // Calculate banking summary
   const bankingSummary = accounts.reduce((acc, account) => {

@@ -15,6 +15,7 @@ export const BookingsPage = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [cancellingBooking, setCancellingBooking] = useState(null);
+  const [refundingBooking, setRefundingBooking] = useState(null);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedQuarter, setSelectedQuarter] = useState("upcoming");
@@ -124,14 +125,22 @@ export const BookingsPage = () => {
     }
   };
 
+  const handleProcessRefund = (booking: any) => {
+    setRefundingBooking(booking);
+    setShowRefundDialog(true);
+  };
+
   const handleRefund = async (refundData: any) => {
-    // Process refund first
+    // Process refund
     await processRefund(refundData);
     
-    // Then cancel the booking
-    await cancelBooking(refundData.bookingId);
+    // If this was triggered by cancellation, also cancel the booking
+    if (cancellingBooking) {
+      await cancelBooking(refundData.bookingId);
+      setCancellingBooking(null);
+    }
     
-    setCancellingBooking(null);
+    setRefundingBooking(null);
   };
 
   const handleAddPayment = async (bookingId: string, amount: number, date: string, type: string, description?: string, paymentMode?: string) => {
@@ -164,6 +173,7 @@ export const BookingsPage = () => {
             bookings={filteredBookings}
             onEdit={handleEditBooking}
             onCancel={handleCancelBooking}
+            onProcessRefund={handleProcessRefund}
           />
         )}
       </div>
@@ -195,11 +205,11 @@ export const BookingsPage = () => {
         />
       )}
 
-      {cancellingBooking && (
+      {(cancellingBooking || refundingBooking) && (
         <RefundDialog
           open={showRefundDialog}
           onOpenChange={setShowRefundDialog}
-          booking={cancellingBooking}
+          booking={cancellingBooking || refundingBooking}
           onRefund={handleRefund}
         />
       )}
