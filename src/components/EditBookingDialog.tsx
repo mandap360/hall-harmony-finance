@@ -32,6 +32,18 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
     }
   }, [initialBooking, bookings]);
 
+  // Listen for booking updates
+  useEffect(() => {
+    const handleBookingUpdate = () => {
+      refreshBookings();
+    };
+
+    window.addEventListener('booking-updated', handleBookingUpdate);
+    return () => {
+      window.removeEventListener('booking-updated', handleBookingUpdate);
+    };
+  }, [refreshBookings]);
+
   const handleAddPayment = async (paymentData: { 
     amount: string; 
     date: string; 

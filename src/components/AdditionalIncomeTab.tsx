@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -240,8 +241,14 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
         description: `₹${refundAmount.toLocaleString()} has been refunded successfully`,
       });
       
-      // The parent component should refresh booking data to reflect the changes
-      // This will automatically update the additionalIncome calculation
+      // Force refresh the parent component by calling the onRefresh callback
+      // This will update the booking data and recalculate additionalIncome
+      if (window.location.reload) {
+        // Trigger a refresh of the booking data in the parent
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('booking-updated'));
+        }, 100);
+      }
     } catch (error) {
       console.error('Error processing refund:', error);
       toast({

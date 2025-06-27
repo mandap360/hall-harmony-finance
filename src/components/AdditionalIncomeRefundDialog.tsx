@@ -1,21 +1,18 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { IndianRupee, AlertCircle } from "lucide-react";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useToast } from "@/hooks/use-toast";
+import { IndianRupee, AlertCircle } from "lucide-react";
 
 interface AdditionalIncomeRefundDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   maxRefundAmount: number;
   bookingId: string;
-  onRefund: (amount: number, accountId: string, description: string) => Promise<void>;
+  onRefund: (refundAmount: number, accountId: string, description: string) => Promise<void>;
 }
 
 export const AdditionalIncomeRefundDialog = ({
@@ -25,116 +22,65 @@ export const AdditionalIncomeRefundDialog = ({
   bookingId,
   onRefund
 }: AdditionalIncomeRefundDialogProps) => {
-  const [amount, setAmount] = useState("");
-  const [accountId, setAccountId] = useState("");
-  const [description, setDescription] = useState("Additional income refund to client");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
   const { accounts } = useAccounts();
-  const { toast } = useToast();
-
-  const operationalAccounts = accounts.filter(account => account.account_type === 'operational');
+  const [accountId, setAccountId] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const refundAmount = Number(amount);
-    
-    // Validation
-    if (!refundAmount || refundAmount <= 0) {
-      toast({
-        title: "Invalid amount",
-        description: "Please enter a valid refund amount",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (refundAmount > maxRefundAmount) {
-      toast({
-        title: "Amount exceeds limit",
-        description: `Maximum refund amount is ₹${maxRefundAmount.toLocaleString()}`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!accountId) {
-      toast({
-        title: "Account required",
-        description: "Please select an account for the refund",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!accountId || maxRefundAmount <= 0) return;
 
-    setIsSubmitting(true);
+    setIsProcessing(true);
     try {
-      await onRefund(refundAmount, accountId, description);
+      await onRefund(maxRefundAmount, accountId, "Available amount refunded to client");
       onOpenChange(false);
-      // Reset form
-      setAmount("");
       setAccountId("");
-      setDescription("Additional income refund to client");
     } catch (error) {
       console.error('Error processing refund:', error);
     } finally {
-      setIsSubmitting(false);
+      setIsProcessing(false);
     }
   };
 
-  const handleCancel = () => {
+  const handleClose = () => {
     onOpenChange(false);
-    // Reset form
-    setAmount("");
     setAccountId("");
-    setDescription("Additional income refund to client");
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-red-700 flex items-center">
-            <IndianRupee className="h-5 w-5 mr-2" />
-            Refund Additional Income
-          </DialogTitle>
+          <DialogTitle className="text-red-700">Refund Additional Income</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <div className="flex items-center text-amber-700 mb-1">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              <span className="text-sm font-medium">Available to Refund</span>
-            </div>
-            <div className="flex items-center text-amber-800">
-              <IndianRupee className="h-5 w-5" />
-              <span className="text-xl font-bold">{maxRefundAmount.toLocaleString()}</span>
+          {/* Refund Amount Display */}
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="text-center">
+              <div className="flex items-center justify-center text-red-700 mb-1">
+                <IndianRupee className="h-5 w-5" />
+                <span className="text-2xl font-bold">{maxRefundAmount.toLocaleString()}</span>
+              </div>
+              <p className="text-sm text-red-600">Amount to be refunded</p>
+              <p className="text-xs text-gray-600 mt-1">
+                (Full available amount will be refunded)
+              </p>
             </div>
           </div>
 
+          {/* Payment Method Selection */}
           <div className="space-y-2">
-            <Label htmlFor="refund-amount">Refund Amount</Label>
-            <Input
-              id="refund-amount"
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Enter refund amount"
-              max={maxRefundAmount}
-              className="border-red-200 focus:border-red-500"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="refund-account">Refund From Account</Label>
+            <Label htmlFor="accountId" className="text-gray-700">
+              Select Payment Method *
+            </Label>
             <Select value={accountId} onValueChange={setAccountId} required>
               <SelectTrigger className="border-red-200 focus:border-red-500">
-                <SelectValue placeholder="Select account" />
+                <SelectValue placeholder="Choose account to debit from" />
               </SelectTrigger>
               <SelectContent>
-                {operationalAccounts.map((account) => (
+                {accounts.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
                     {account.name} (₹{account.balance.toLocaleString()})
                   </SelectItem>
@@ -143,27 +89,37 @@ export const AdditionalIncomeRefundDialog = ({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="refund-description">Description (Optional)</Label>
-            <Textarea
-              id="refund-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="border-red-200 focus:border-red-500"
-            />
+          {/* Warning */}
+          <div className="flex items-start gap-2 text-xs text-orange-600 p-3 bg-orange-50 rounded border border-orange-200">
+            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium">This action will:</p>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>Reduce total additional income by ₹{maxRefundAmount.toLocaleString()}</li>
+                <li>Debit ₹{maxRefundAmount.toLocaleString()} from selected account</li>
+                <li>Add refund entry to payment history</li>
+                <li>Set "Available to allocate" to ₹0</li>
+              </ul>
+            </div>
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={handleCancel}>
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isProcessing}
+              className="flex-1"
+            >
               Cancel
             </Button>
             <Button
               type="submit"
-              variant="destructive"
-              disabled={isSubmitting}
+              disabled={!accountId || maxRefundAmount <= 0 || isProcessing}
+              className="flex-1 bg-red-600 hover:bg-red-700"
             >
-              {isSubmitting ? "Processing..." : "Process Refund"}
+              {isProcessing ? "Processing..." : "Process Refund"}
             </Button>
           </div>
         </form>
