@@ -89,7 +89,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
       endDate: endDateTime,
       rent: parseInt(formData.rent),
       advance: 0, // Default advance to 0
-      notes: formData.notes,
+      notes: formData.notes, // Include notes in the booking data
       paidAmount: 0,
       payments: []
     };

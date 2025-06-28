@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -133,7 +132,7 @@ export const useBookings = () => {
           endDate: booking.end_datetime,
           rent: Number(booking.rent_finalized),
           advance: Math.max(Number(booking.rent_received), totalRentPaid),
-          notes: '',
+          notes: booking.notes || '', // Include notes from database
           paidAmount: totalRentPaid, // Only rent/advance payments
           additionalIncome: totalAdditionalIncome, // Separate additional income
           status: booking.status || 'confirmed',
@@ -282,6 +281,7 @@ export const useBookings = () => {
           end_datetime: bookingData.endDate,
           rent_finalized: bookingData.rent,
           rent_received: bookingData.advance,
+          notes: bookingData.notes || '', // Include notes when adding booking
           status: 'confirmed'
         })
         .select()
@@ -329,6 +329,7 @@ export const useBookings = () => {
           end_datetime: updatedBooking.endDate,
           rent_finalized: updatedBooking.rent,
           rent_received: updatedBooking.advance,
+          notes: updatedBooking.notes || '', // Include notes when updating booking
           status: updatedBooking.status || 'confirmed'
         })
         .eq('id', updatedBooking.id);

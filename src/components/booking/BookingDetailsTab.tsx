@@ -35,11 +35,14 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Simple date/time formatting without timezone conversion
   const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime);
+    // Extract date and time directly from the ISO string
+    const [datePart, timePart] = dateTime.split('T');
+    const timeOnly = timePart ? timePart.substring(0, 5) : '00:00'; // Get HH:MM only
     return {
-      date: date.toISOString().split('T')[0],
-      time: date.toTimeString().slice(0, 5)
+      date: datePart,
+      time: timeOnly
     };
   };
 
