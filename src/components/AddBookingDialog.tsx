@@ -36,17 +36,9 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
       const existingStart = new Date(booking.startDate).getTime();
       const existingEnd = new Date(booking.endDate).getTime();
       
-      // Check if there's any overlap with strict boundaries
-      // New booking cannot start or end during an existing booking's time period
-      // New booking overlaps if:
-      // 1. New start is during existing booking (newStart >= existingStart AND newStart < existingEnd)
-      // 2. New end is during existing booking (newEnd > existingStart AND newEnd <= existingEnd)  
-      // 3. New booking completely encompasses existing booking (newStart <= existingStart AND newEndTime >= existingEnd)
-      const hasOverlap = (
-        (newStartTime >= existingStart && newStartTime < existingEnd) ||
-        (newEndTime > existingStart && newEndTime <= existingEnd) ||
-        (newStartTime <= existingStart && newEndTime >= existingEnd)
-      );
+      // Simple and correct overlap detection
+      // Two intervals overlap if: newStart < existingEnd AND newEnd > existingStart
+      const hasOverlap = newStartTime < existingEnd && newEndTime > existingStart;
       
       if (hasOverlap) {
         console.log('Overlap detected:', {

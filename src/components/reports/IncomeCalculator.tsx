@@ -56,7 +56,7 @@ export const calculateIncomeData = async (bookings: any[]) => {
 
   // Add available to allocate if there's any unallocated additional income
   if (availableToAllocate > 0) {
-    incomeByCategory["Available to Allocate"] = availableToAllocate;
+    incomeByCategory["Additional Income Advance"] = availableToAllocate;
   }
 
   // Add categorized additional income
