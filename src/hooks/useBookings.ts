@@ -95,6 +95,9 @@ export const useBookings = () => {
       console.log("Payments data:", paymentsData);
 
       const transformedBookings: Booking[] = (bookingsData || []).map(booking => {
+        // Type assertion to handle the notes property until types are updated
+        const bookingWithNotes = booking as any;
+        
         // Get all payments for this booking from the payments table only
         const bookingPayments = (paymentsData || []).filter(payment => payment.booking_id === booking.id);
         
@@ -132,7 +135,7 @@ export const useBookings = () => {
           endDate: booking.end_datetime,
           rent: Number(booking.rent_finalized),
           advance: Math.max(Number(booking.rent_received), totalRentPaid),
-          notes: booking.notes || '', // Include notes from database
+          notes: bookingWithNotes.notes || '', // Include notes from database with type assertion
           paidAmount: totalRentPaid, // Only rent/advance payments
           additionalIncome: totalAdditionalIncome, // Separate additional income
           status: booking.status || 'confirmed',

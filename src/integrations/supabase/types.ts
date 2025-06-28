@@ -94,6 +94,7 @@ export type Database = {
           end_datetime: string
           event_name: string
           id: string
+          notes: string | null
           organization_id: string | null
           phone_number: string | null
           rent_finalized: number
@@ -108,6 +109,7 @@ export type Database = {
           end_datetime: string
           event_name: string
           id?: string
+          notes?: string | null
           organization_id?: string | null
           phone_number?: string | null
           rent_finalized: number
@@ -122,6 +124,7 @@ export type Database = {
           end_datetime?: string
           event_name?: string
           id?: string
+          notes?: string | null
           organization_id?: string | null
           phone_number?: string | null
           rent_finalized?: number
