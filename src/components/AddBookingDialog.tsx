@@ -29,32 +29,25 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
   });
 
   const checkForOverlap = (newStart: string, newEnd: string) => {
-    const newStartTime = new Date(newStart).getTime();
-    const newEndTime = new Date(newEnd).getTime();
+    console.log('Checking overlap for new booking:', {
+      newStart,
+      newEnd
+    });
 
     return bookings.some(booking => {
-      const existingStart = new Date(booking.startDate).getTime();
-      const existingEnd = new Date(booking.endDate).getTime();
+      // Direct string comparison - no timezone conversion
+      // Two intervals overlap if newStart < existingEnd AND newEnd > existingStart
+      const hasOverlap = newStart < booking.endDate && newEnd > booking.startDate;
       
-      // Overlap detection: Two intervals overlap if newStart < existingEnd AND newEnd > existingStart
-      // But we need to be careful about adjacent bookings (end at 3:00, start at 3:01)
-      // For adjacent bookings with 1-minute gap, we should allow them
-      const hasOverlap = newStartTime < existingEnd && newEndTime > existingStart;
-      
-      console.log('Checking overlap:', {
-        newStart: new Date(newStart),
-        newEnd: new Date(newEnd),
-        newStartTime,
-        newEndTime,
+      console.log('Checking against existing booking:', {
         existingBooking: booking.eventName,
-        existingStart: new Date(booking.startDate),
-        existingEnd: new Date(booking.endDate),
-        existingStartTime: existingStart,
-        existingEndTime: existingEnd,
-        condition1: newStartTime < existingEnd,
-        condition2: newEndTime > existingStart,
-        hasOverlap,
-        timeDifference: newStartTime - existingEnd
+        existingStart: booking.startDate,
+        existingEnd: booking.endDate,
+        newStart,
+        newEnd,
+        condition1: newStart < booking.endDate,
+        condition2: newEnd > booking.startDate,
+        hasOverlap
       });
       
       return hasOverlap;
@@ -68,7 +61,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
     const endDateTime = `${formData.endDate}T${formData.endTime}`;
     
     // Validate that end time is after start time
-    if (new Date(endDateTime) <= new Date(startDateTime)) {
+    if (endDateTime <= startDateTime) {
       toast({
         title: "Invalid time range",
         description: "End date and time must be after start date and time",
