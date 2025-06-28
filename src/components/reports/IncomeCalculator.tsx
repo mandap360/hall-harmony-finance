@@ -14,7 +14,7 @@ export const calculateIncomeData = async (bookings: any[]) => {
     return sum + booking.paidAmount; // Only rent payments received
   }, 0);
 
-  // Calculate additional income from unallocated payments
+  // Calculate total additional income payments received from all bookings
   const totalAdditionalIncomeFromPayments = currentFYBookings.reduce((sum, booking) => {
     return sum + booking.additionalIncome; // Additional income from payments
   }, 0);
@@ -43,17 +43,20 @@ export const calculateIncomeData = async (bookings: any[]) => {
     }
   }
 
-  // Total income combines rent, additional income from payments, and categorized additional income
-  const totalIncome = totalRentIncome + totalAdditionalIncomeFromPayments + totalCategorizedAdditionalIncome;
+  // Calculate available to allocate (total additional income received - already allocated)
+  const availableToAllocate = totalAdditionalIncomeFromPayments - totalCategorizedAdditionalIncome;
+
+  // Total income combines rent, available to allocate, and categorized additional income
+  const totalIncome = totalRentIncome + availableToAllocate + totalCategorizedAdditionalIncome;
 
   // Create detailed income breakdown
   const incomeByCategory: Record<string, number> = {
     "Rent": totalRentIncome, // Only rent received, not finalized
   };
 
-  // Add additional income advance if there's any unallocated additional income
-  if (totalAdditionalIncomeFromPayments > 0) {
-    incomeByCategory["Additional Income Advance"] = totalAdditionalIncomeFromPayments;
+  // Add available to allocate if there's any unallocated additional income
+  if (availableToAllocate > 0) {
+    incomeByCategory["Available to Allocate"] = availableToAllocate;
   }
 
   // Add categorized additional income
@@ -70,7 +73,7 @@ export const calculateIncomeData = async (bookings: any[]) => {
   return {
     totalIncome,
     totalRentIncome,
-    totalAdditionalIncome: totalAdditionalIncomeFromPayments + totalCategorizedAdditionalIncome,
+    totalAdditionalIncome: availableToAllocate + totalCategorizedAdditionalIncome,
     incomeByCategory,
     totalReceivables
   };
