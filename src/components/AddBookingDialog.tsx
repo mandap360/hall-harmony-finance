@@ -36,19 +36,26 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
       const existingStart = new Date(booking.startDate).getTime();
       const existingEnd = new Date(booking.endDate).getTime();
       
-      // Simple and correct overlap detection
-      // Two intervals overlap if: newStart < existingEnd AND newEnd > existingStart
+      // Overlap detection: Two intervals overlap if newStart < existingEnd AND newEnd > existingStart
+      // But we need to be careful about adjacent bookings (end at 3:00, start at 3:01)
+      // For adjacent bookings with 1-minute gap, we should allow them
       const hasOverlap = newStartTime < existingEnd && newEndTime > existingStart;
       
-      if (hasOverlap) {
-        console.log('Overlap detected:', {
-          newStart: new Date(newStart),
-          newEnd: new Date(newEnd),
-          existingStart: new Date(booking.startDate),
-          existingEnd: new Date(booking.endDate),
-          booking: booking.eventName
-        });
-      }
+      console.log('Checking overlap:', {
+        newStart: new Date(newStart),
+        newEnd: new Date(newEnd),
+        newStartTime,
+        newEndTime,
+        existingBooking: booking.eventName,
+        existingStart: new Date(booking.startDate),
+        existingEnd: new Date(booking.endDate),
+        existingStartTime,
+        existingEndTime,
+        condition1: newStartTime < existingEnd,
+        condition2: newEndTime > existingStart,
+        hasOverlap,
+        timeDifference: newStartTime - existingEnd
+      });
       
       return hasOverlap;
     });
