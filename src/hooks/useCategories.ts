@@ -70,19 +70,23 @@ export const useCategories = () => {
 
   const addCategory = async (categoryData: Omit<Category, "id" | "createdAt">) => {
     try {
+      console.log('Adding category:', categoryData);
       const tableName = categoryData.type === 'income' ? 'income_categories' : 'expense_categories';
       
       const { data, error } = await supabase
         .from(tableName)
         .insert({
-          name: categoryData.name,
-          description: null
+          name: categoryData.name
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
+      console.log('Category added successfully:', data);
       await fetchCategories();
       toast({
         title: "Success",
