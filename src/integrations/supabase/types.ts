@@ -340,26 +340,41 @@ export type Database = {
       }
       profiles: {
         Row: {
+          business_name: string | null
           created_at: string
+          email: string | null
+          email_verified: boolean | null
           full_name: string | null
           id: string
           organization_id: string
+          phone_number: string | null
+          phone_verified: boolean | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
         Insert: {
+          business_name?: string | null
           created_at?: string
+          email?: string | null
+          email_verified?: boolean | null
           full_name?: string | null
           id: string
           organization_id: string
+          phone_number?: string | null
+          phone_verified?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Update: {
+          business_name?: string | null
           created_at?: string
+          email?: string | null
+          email_verified?: boolean | null
           full_name?: string | null
           id?: string
           organization_id?: string
+          phone_number?: string | null
+          phone_verified?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
