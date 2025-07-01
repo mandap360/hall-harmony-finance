@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -76,7 +77,7 @@ export const BookingsPage = () => {
       const matchesSearch = !searchTerm || 
         booking.eventName.toLowerCase().includes(searchLower) ||
         booking.clientName.toLowerCase().includes(searchLower) ||
-        booking.phoneNumber.toLowerCase().includes(searchLower);
+        (booking.phoneNumber && booking.phoneNumber.toLowerCase().includes(searchLower));
 
       return matchesSearch;
     });
@@ -102,7 +103,7 @@ export const BookingsPage = () => {
   };
 
   const handleUpdateBooking = (updatedBooking) => {
-    updateBooking(updatedBooking);
+    updateBooking(updatedBooking.id, updatedBooking);
     setEditingBooking(null);
   };
 

@@ -18,6 +18,7 @@ export interface Booking {
   payments: Payment[];
   createdAt: string;
   organization_id?: string;
+  status?: string;
 }
 
 export interface Payment {
@@ -40,45 +41,59 @@ export const useBookings = () => {
     try {
       setLoading(true);
       
+      // First fetch bookings
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
-        .select(`
-          *,
-          payments (
-            id,
-            amount,
-            payment_date,
-            payment_type,
-            description
-          )
-        `)
+        .select('*')
         .eq('organization_id', profile.organization_id)
         .order('start_datetime', { ascending: true });
 
       if (bookingsError) throw bookingsError;
 
+      // Then fetch payments for each booking
+      const bookingIds = bookingsData?.map(booking => booking.id) || [];
+      let paymentsData: any[] = [];
+      
+      if (bookingIds.length > 0) {
+        const { data: payments, error: paymentsError } = await supabase
+          .from('payments')
+          .select('*')
+          .in('booking_id', bookingIds);
+        
+        if (paymentsError) {
+          console.warn('Error fetching payments:', paymentsError);
+        } else {
+          paymentsData = payments || [];
+        }
+      }
+
       // Transform the data to match the expected format
-      const transformedBookings: Booking[] = (bookingsData || []).map(booking => ({
-        id: booking.id,
-        eventName: booking.event_name,
-        clientName: booking.client_name,
-        phoneNumber: booking.phone_number,
-        startDate: booking.start_datetime,
-        endDate: booking.end_datetime,
-        rent: booking.rent_finalized,
-        advance: 0, // Will be calculated from payments
-        notes: booking.notes,
-        paidAmount: booking.rent_received,
-        payments: (booking.payments || []).map((payment: any) => ({
-          id: payment.id,
-          amount: payment.amount,
-          date: payment.payment_date,
-          type: payment.payment_type,
-          description: payment.description
-        })),
-        createdAt: booking.created_at,
-        organization_id: booking.organization_id
-      }));
+      const transformedBookings: Booking[] = (bookingsData || []).map(booking => {
+        const bookingPayments = paymentsData.filter(payment => payment.booking_id === booking.id);
+        
+        return {
+          id: booking.id,
+          eventName: booking.event_name,
+          clientName: booking.client_name,
+          phoneNumber: booking.phone_number,
+          startDate: booking.start_datetime,
+          endDate: booking.end_datetime,
+          rent: booking.rent_finalized,
+          advance: booking.rent_received,
+          notes: booking.notes,
+          paidAmount: booking.rent_received,
+          status: booking.status || 'confirmed',
+          payments: bookingPayments.map((payment: any) => ({
+            id: payment.id,
+            amount: payment.amount,
+            date: payment.payment_date,
+            type: payment.payment_type,
+            description: payment.description
+          })),
+          createdAt: booking.created_at,
+          organization_id: booking.organization_id
+        };
+      });
 
       setBookings(transformedBookings);
     } catch (error) {
@@ -201,12 +216,123 @@ export const useBookings = () => {
     }
   };
 
+  const cancelBooking = async (id: string) => {
+    if (!profile?.organization_id) return;
+
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: 'cancelled' })
+        .eq('id', id)
+        .eq('organization_id', profile.organization_id);
+
+      if (error) throw error;
+
+      await fetchBookings();
+      toast({
+        title: "Success",
+        description: "Booking cancelled successfully",
+      });
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel booking",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const processRefund = async (refundData: any) => {
+    if (!profile?.organization_id) return;
+
+    try {
+      // Add refund as a negative payment
+      const { error } = await supabase
+        .from('payments')
+        .insert({
+          booking_id: refundData.bookingId,
+          amount: -Math.abs(refundData.amount),
+          payment_date: refundData.date,
+          payment_type: 'refund',
+          description: refundData.description,
+          organization_id: profile.organization_id
+        });
+
+      if (error) throw error;
+
+      await fetchBookings();
+      toast({
+        title: "Success",
+        description: "Refund processed successfully",
+      });
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process refund",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const addPayment = async (bookingId: string, amount: number, date: string, type: string, description?: string, paymentMode?: string) => {
+    if (!profile?.organization_id) return;
+
+    try {
+      const { error } = await supabase
+        .from('payments')
+        .insert({
+          booking_id: bookingId,
+          amount: amount,
+          payment_date: date,
+          payment_type: type,
+          description: description,
+          payment_mode: paymentMode,
+          organization_id: profile.organization_id
+        });
+
+      if (error) throw error;
+
+      // Update the booking's rent_received amount
+      const { error: updateError } = await supabase
+        .from('bookings')
+        .update({ 
+          rent_received: supabase.rpc('increment_rent_received', { 
+            booking_id: bookingId, 
+            increment_amount: amount 
+          })
+        })
+        .eq('id', bookingId);
+
+      if (updateError) {
+        console.warn('Error updating rent_received:', updateError);
+      }
+
+      await fetchBookings();
+      toast({
+        title: "Success",
+        description: "Payment added successfully",
+      });
+    } catch (error) {
+      console.error('Error adding payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add payment",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     bookings,
     loading,
     addBooking,
     updateBooking,
     deleteBooking,
+    cancelBooking,
+    processRefund,
+    addPayment,
     refetch: fetchBookings,
   };
 };
