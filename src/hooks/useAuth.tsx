@@ -19,12 +19,8 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, businessName: string, phoneNumber: string) => Promise<{ error: any }>;
   signIn: (identifier: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  verifyOTP: (phone: string, token: string) => Promise<{ error: any }>;
-  sendPhoneOTP: (phone: string) => Promise<{ error: any }>;
-  resendEmailConfirmation: (email: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -82,43 +78,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, businessName: string, phoneNumber: string) => {
-    try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            business_name: businessName,
-            phone_number: phoneNumber,
-            full_name: businessName
-          }
-        }
-      });
-
-      if (error) {
-        toast({
-          title: "Sign Up Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Please check your email to verify your account",
-        });
-      }
-
-      return { error };
-    } catch (error) {
-      console.error('Sign up error:', error);
-      return { error };
-    }
-  };
-
   const signIn = async (identifier: string, password: string) => {
     try {
       // Try to sign in with email first
@@ -157,101 +116,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const sendPhoneOTP = async (phone: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone,
-      });
-
-      if (error) {
-        toast({
-          title: "OTP Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "OTP sent to your phone number",
-        });
-      }
-
-      return { error };
-    } catch (error) {
-      console.error('Send phone OTP error:', error);
-      return { error };
-    }
-  };
-
-  const verifyOTP = async (phone: string, token: string) => {
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        phone,
-        token,
-        type: 'sms'
-      });
-
-      if (error) {
-        toast({
-          title: "Verification Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Phone number verified successfully",
-        });
-      }
-
-      return { error };
-    } catch (error) {
-      console.error('Verify OTP error:', error);
-      return { error };
-    }
-  };
-
-  const resendEmailConfirmation = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`
-        }
-      });
-
-      if (error) {
-        toast({
-          title: "Resend Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Confirmation email sent",
-        });
-      }
-
-      return { error };
-    } catch (error) {
-      console.error('Resend email error:', error);
-      return { error };
-    }
-  };
-
   const value = {
     user,
     session,
     profile,
     loading,
-    signUp,
     signIn,
     signOut,
-    verifyOTP,
-    sendPhoneOTP,
-    resendEmailConfirmation,
   };
 
   return (
