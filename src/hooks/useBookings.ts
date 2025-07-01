@@ -280,7 +280,8 @@ export const useBookings = () => {
     if (!profile?.organization_id) return;
 
     try {
-      const { error } = await supabase
+      // Add the payment record
+      const { error: paymentError } = await supabase
         .from('payments')
         .insert({
           booking_id: bookingId,
@@ -292,22 +293,25 @@ export const useBookings = () => {
           organization_id: profile.organization_id
         });
 
-      if (error) throw error;
+      if (paymentError) throw paymentError;
+
+      // Get current booking to calculate new rent_received amount
+      const { data: currentBooking, error: fetchError } = await supabase
+        .from('bookings')
+        .select('rent_received')
+        .eq('id', bookingId)
+        .single();
+
+      if (fetchError) throw fetchError;
 
       // Update the booking's rent_received amount
+      const newRentReceived = (currentBooking.rent_received || 0) + amount;
       const { error: updateError } = await supabase
         .from('bookings')
-        .update({ 
-          rent_received: supabase.rpc('increment_rent_received', { 
-            booking_id: bookingId, 
-            increment_amount: amount 
-          })
-        })
+        .update({ rent_received: newRentReceived })
         .eq('id', bookingId);
 
-      if (updateError) {
-        console.warn('Error updating rent_received:', updateError);
-      }
+      if (updateError) throw updateError;
 
       await fetchBookings();
       toast({
