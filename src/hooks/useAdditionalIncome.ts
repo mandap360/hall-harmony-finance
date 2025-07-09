@@ -2,6 +2,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface AdditionalIncome {
   id: string;
@@ -15,6 +16,7 @@ export const useAdditionalIncome = () => {
   const [additionalIncomes, setAdditionalIncomes] = useState<AdditionalIncome[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { profile } = useAuth();
 
   const fetchAdditionalIncomes = useCallback(async (bookingId: string) => {
     try {
@@ -40,6 +42,8 @@ export const useAdditionalIncome = () => {
   }, [toast]);
 
   const addAdditionalIncome = async (bookingId: string, category: string, amount: number) => {
+    if (!profile?.organization_id) return false;
+    
     try {
       const { data, error } = await supabase
         .from('additional_income')
@@ -48,6 +52,7 @@ export const useAdditionalIncome = () => {
             booking_id: bookingId,
             category,
             amount,
+            organization_id: profile.organization_id,
           }
         ])
         .select()

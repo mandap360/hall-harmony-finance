@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface Expense {
   id: string;
@@ -24,8 +25,11 @@ export const useExpenses = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { profile } = useAuth();
 
   const fetchExpenses = async () => {
+    if (!profile?.organization_id) return;
+    
     try {
       setLoading(true);
       console.log("Fetching expenses from Supabase...");
@@ -38,6 +42,7 @@ export const useExpenses = () => {
           accounts(name)
         `)
         .eq('is_deleted', false)
+        .eq('organization_id', profile.organization_id)
         .order('expense_date', { ascending: false });
 
       if (expensesError) {
@@ -80,10 +85,14 @@ export const useExpenses = () => {
   };
 
   useEffect(() => {
-    fetchExpenses();
-  }, []);
+    if (profile?.organization_id) {
+      fetchExpenses();
+    }
+  }, [profile?.organization_id]);
 
   const addExpense = async (expenseData: Omit<Expense, 'id' | 'createdAt'>) => {
+    if (!profile?.organization_id) return;
+    
     try {
       // First get the category ID
       const { data: categories, error: categoryError } = await supabase
@@ -111,7 +120,8 @@ export const useExpenses = () => {
           total_amount: expenseData.totalAmount,
           expense_date: expenseData.date,
           is_paid: expenseData.isPaid,
-          account_id: expenseData.accountId
+          account_id: expenseData.accountId,
+          organization_id: profile.organization_id
         })
         .select()
         .single();

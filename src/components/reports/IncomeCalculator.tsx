@@ -14,10 +14,8 @@ export const calculateIncomeData = async (bookings: any[]) => {
     return sum + booking.paidAmount; // Only rent payments received
   }, 0);
 
-  // Calculate total additional income payments received from all bookings
-  const totalAdditionalIncomeFromPayments = currentFYBookings.reduce((sum, booking) => {
-    return sum + booking.additionalIncome; // Additional income from payments
-  }, 0);
+  // Calculate total additional income payments from payments table
+  let totalAdditionalIncomeFromPayments = 0;
 
   // Fetch categorized additional income from additional_income table
   const bookingIds = currentFYBookings.map(booking => booking.id);
@@ -26,6 +24,20 @@ export const calculateIncomeData = async (bookings: any[]) => {
 
   if (bookingIds.length > 0) {
     try {
+      // Fetch additional income payments from payments table
+      const { data: additionalPayments, error: paymentsError } = await supabase
+        .from('payments')
+        .select('amount')
+        .in('booking_id', bookingIds)
+        .eq('payment_type', 'additional');
+
+      if (!paymentsError && additionalPayments) {
+        totalAdditionalIncomeFromPayments = additionalPayments.reduce((sum, payment) => {
+          return sum + Number(payment.amount);
+        }, 0);
+      }
+
+      // Fetch categorized additional income from additional_income table
       const { data: additionalIncomeData, error } = await supabase
         .from('additional_income')
         .select('category, amount')
@@ -43,20 +55,20 @@ export const calculateIncomeData = async (bookings: any[]) => {
     }
   }
 
-  // Calculate available to allocate (total additional income received - already allocated)
-  const availableToAllocate = totalAdditionalIncomeFromPayments - totalCategorizedAdditionalIncome;
+  // Calculate unallocated additional income (total additional income received - already allocated)
+  const unallocatedAdditionalIncome = totalAdditionalIncomeFromPayments - totalCategorizedAdditionalIncome;
 
-  // Total income combines rent, available to allocate, and categorized additional income
-  const totalIncome = totalRentIncome + availableToAllocate + totalCategorizedAdditionalIncome;
+  // Total income combines rent, unallocated additional income, and categorized additional income
+  const totalIncome = totalRentIncome + unallocatedAdditionalIncome + totalCategorizedAdditionalIncome;
 
   // Create detailed income breakdown
   const incomeByCategory: Record<string, number> = {
     "Rent": totalRentIncome, // Only rent received, not finalized
   };
 
-  // Add available to allocate if there's any unallocated additional income
-  if (availableToAllocate > 0) {
-    incomeByCategory["Additional Income Advance"] = availableToAllocate;
+  // Add unallocated additional income if there's any
+  if (unallocatedAdditionalIncome > 0) {
+    incomeByCategory["Unallocated Additional Income"] = unallocatedAdditionalIncome;
   }
 
   // Add categorized additional income
@@ -73,7 +85,7 @@ export const calculateIncomeData = async (bookings: any[]) => {
   return {
     totalIncome,
     totalRentIncome,
-    totalAdditionalIncome: availableToAllocate + totalCategorizedAdditionalIncome,
+    totalAdditionalIncome: unallocatedAdditionalIncome + totalCategorizedAdditionalIncome,
     incomeByCategory,
     totalReceivables
   };

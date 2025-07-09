@@ -304,14 +304,17 @@ export const useBookings = () => {
 
       if (fetchError) throw fetchError;
 
-      // Update the booking's rent_received amount
-      const newRentReceived = (currentBooking.rent_received || 0) + amount;
-      const { error: updateError } = await supabase
-        .from('bookings')
-        .update({ rent_received: newRentReceived })
-        .eq('id', bookingId);
+      // Only update rent_received when payment type is 'rent'
+      if (type === 'rent') {
+        const newRentReceived = (currentBooking.rent_received || 0) + amount;
+        const { error: updateError } = await supabase
+          .from('bookings')
+          .update({ rent_received: newRentReceived })
+          .eq('id', bookingId);
 
-      if (updateError) throw updateError;
+        if (updateError) throw updateError;
+      }
+
 
       await fetchBookings();
       toast({
