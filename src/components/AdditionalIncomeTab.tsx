@@ -123,20 +123,24 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
   const handleRefund = async (refundAmount: number, accountId: string, description: string) => {
     try {
       // Create standardized refund description
-      const startDateFormatted = new Date(booking.startDate).toLocaleDateString('en-IN', {
+      // Extract just the date part (YYYY-MM-DD) to compare dates without time
+      const startDateOnly = booking.startDate.split('T')[0];
+      const endDateOnly = booking.endDate.split('T')[0];
+      
+      const startDateFormatted = new Date(startDateOnly + 'T00:00:00').toLocaleDateString('en-IN', {
         day: '2-digit',
         month: 'short',
         year: 'numeric'
       });
       
-      const endDateFormatted = new Date(booking.endDate).toLocaleDateString('en-IN', {
+      const endDateFormatted = new Date(endDateOnly + 'T00:00:00').toLocaleDateString('en-IN', {
         day: '2-digit',
         month: 'short',
         year: 'numeric'
       });
 
-      const isSameDate = startDateFormatted === endDateFormatted;
-      const dateRange = isSameDate ? endDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
+      const isSameDate = startDateOnly === endDateOnly;
+      const dateRange = isSameDate ? startDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
       const refundDescription = `Additional Income Refund for ${dateRange}`;
 
       // Add negative payment to reduce additional income

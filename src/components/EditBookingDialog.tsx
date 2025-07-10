@@ -24,20 +24,24 @@ const formatTransactionDescription = (
   eventName: string,
   isRefund: boolean = false
 ): string => {
-  const startDateFormatted = new Date(startDate).toLocaleDateString('en-IN', {
+  // Extract just the date part (YYYY-MM-DD) to compare dates without time
+  const startDateOnly = startDate.split('T')[0];
+  const endDateOnly = endDate.split('T')[0];
+  
+  const startDateFormatted = new Date(startDateOnly + 'T00:00:00').toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric'
   });
   
-  const endDateFormatted = new Date(endDate).toLocaleDateString('en-IN', {
+  const endDateFormatted = new Date(endDateOnly + 'T00:00:00').toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric'
   });
 
-  const isSameDate = startDateFormatted === endDateFormatted;
-  const dateRange = isSameDate ? endDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
+  const isSameDate = startDateOnly === endDateOnly;
+  const dateRange = isSameDate ? startDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
 
   if (isRefund) {
     if (paymentType === 'additional') {
