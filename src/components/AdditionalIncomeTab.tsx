@@ -136,7 +136,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
       });
 
       const isSameDate = startDateFormatted === endDateFormatted;
-      const dateRange = isSameDate ? endDateFormatted : `${startDateFormatted} & ${endDateFormatted}`;
+      const dateRange = isSameDate ? endDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
       const refundDescription = `Additional Income Refund for ${dateRange}`;
 
       // Add negative payment to reduce additional income

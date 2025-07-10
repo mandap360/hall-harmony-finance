@@ -37,7 +37,7 @@ const formatTransactionDescription = (
   });
 
   const isSameDate = startDateFormatted === endDateFormatted;
-  const dateRange = isSameDate ? endDateFormatted : `${startDateFormatted} & ${endDateFormatted}`;
+  const dateRange = isSameDate ? endDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
 
   if (isRefund) {
     if (paymentType === 'additional') {
