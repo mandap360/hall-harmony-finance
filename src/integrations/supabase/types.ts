@@ -23,6 +23,7 @@ export type Database = {
           is_default: boolean
           name: string
           opening_balance: number
+          organization_id: string
           sub_type: string | null
           updated_at: string
         }
@@ -34,6 +35,7 @@ export type Database = {
           is_default?: boolean
           name: string
           opening_balance?: number
+          organization_id: string
           sub_type?: string | null
           updated_at?: string
         }
@@ -45,10 +47,19 @@ export type Database = {
           is_default?: boolean
           name?: string
           opening_balance?: number
+          organization_id?: string
           sub_type?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "accounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       additional_income: {
         Row: {

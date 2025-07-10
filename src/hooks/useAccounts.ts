@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface Account {
   id: string;
@@ -19,12 +20,16 @@ export const useAccounts = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { profile } = useAuth();
 
   const fetchAccounts = async () => {
+    if (!profile?.organization_id) return;
+    
     try {
       const { data, error } = await supabase
         .from('accounts')
         .select('*')
+        .eq('organization_id', profile.organization_id)
         .order('is_default', { ascending: false })
         .order('created_at', { ascending: true });
 
@@ -70,10 +75,12 @@ export const useAccounts = () => {
   };
 
   const addAccount = async (accountData: Omit<Account, 'id' | 'created_at' | 'updated_at' | 'balance'>) => {
+    if (!profile?.organization_id) return;
+    
     try {
       const { data, error } = await supabase
         .from('accounts')
-        .insert([{ ...accountData, balance: 0, opening_balance: 0 }])
+        .insert([{ ...accountData, balance: 0, opening_balance: 0, organization_id: profile.organization_id }])
         .select()
         .single();
 
@@ -249,8 +256,10 @@ export const useAccounts = () => {
   };
 
   useEffect(() => {
-    fetchAccounts();
-  }, []);
+    if (profile?.organization_id) {
+      fetchAccounts();
+    }
+  }, [profile?.organization_id]);
 
   return {
     accounts,

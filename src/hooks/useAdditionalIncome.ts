@@ -19,12 +19,15 @@ export const useAdditionalIncome = () => {
   const { profile } = useAuth();
 
   const fetchAdditionalIncomes = useCallback(async (bookingId: string) => {
+    if (!profile?.organization_id) return;
+    
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('additional_income')
         .select('*')
         .eq('booking_id', bookingId)
+        .eq('organization_id', profile.organization_id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
