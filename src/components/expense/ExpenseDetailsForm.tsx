@@ -32,49 +32,60 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
   const { vendors, addVendor } = useVendors();
   const expenseCategories = getExpenseCategories();
 
-  // Initialize form data immediately when expense changes
-  useEffect(() => {
-    console.log("ExpenseDetailsForm - initializing form with expense data:", expense);
-    
-    if (expense) {
-      setFormData({
-        vendorName: expense.vendorName || "",
-        billNumber: expense.billNumber || "",
-        date: expense.date || "",
-        category: expense.category || "",
-        amount: expense.amount?.toString() || "",
-        taxRateId: "no_tax", // Set default first, will be updated in tax matching effect
-      });
-    }
-  }, [expense]);
-
   const handleAddVendor = async (vendorData: any) => {
     await addVendor(vendorData);
     setFormData(prev => ({ ...prev, vendorName: vendorData.businessName }));
     setShowAddVendorDialog(false);
   };
 
-  // Handle tax rate matching separately after taxRates are loaded
+  // Consolidated form initialization - handle both initial data and tax rate matching
   useEffect(() => {
-    console.log("ExpenseDetailsForm - tax rates loaded:", taxRates);
-    console.log("ExpenseDetailsForm - current expense:", expense);
+    console.log("ExpenseDetailsForm - initializing with:", { expense, taxRates, vendors, expenseCategories });
     
-    if (expense && taxRates.length > 0) {
-      // Calculate the total tax percentage from existing tax data
-      const totalTaxPercentage = (expense.cgstPercentage || 0) + (expense.sgstPercentage || 0);
-      console.log("Total tax percentage from expense:", totalTaxPercentage);
-      
-      // Find matching tax rate
-      const matchingTaxRate = taxRates.find(tax => tax.percentage === totalTaxPercentage);
-      console.log("Matching tax rate found:", matchingTaxRate);
-      
-      // Update only the tax rate ID in form data
-      setFormData(prev => ({
-        ...prev,
-        taxRateId: matchingTaxRate?.id || "no_tax",
-      }));
+    if (!expense) {
+      console.log("No expense provided");
+      return;
     }
-  }, [expense, taxRates]);
+
+    // Wait for all required data to be loaded
+    if (taxRates.length === 0 || vendors.length === 0 || expenseCategories.length === 0) {
+      console.log("Waiting for data to load...", { 
+        taxRatesCount: taxRates.length, 
+        vendorsCount: vendors.length, 
+        categoriesCount: expenseCategories.length 
+      });
+      return;
+    }
+
+    // Calculate the total tax percentage from existing tax data
+    const totalTaxPercentage = (expense.cgstPercentage || 0) + (expense.sgstPercentage || 0);
+    console.log("Total tax percentage from expense:", totalTaxPercentage);
+    
+    // Find matching tax rate
+    const matchingTaxRate = taxRates.find(tax => tax.percentage === totalTaxPercentage);
+    console.log("Matching tax rate found:", matchingTaxRate);
+
+    // Verify vendor exists in the list
+    const vendorExists = vendors.find(v => v.businessName === expense.vendorName);
+    console.log("Vendor exists:", vendorExists, "for name:", expense.vendorName);
+
+    // Verify category exists in the list
+    const categoryExists = expenseCategories.find(c => c.name === expense.category);
+    console.log("Category exists:", categoryExists, "for name:", expense.category);
+
+    // Set form data with all values at once
+    const newFormData = {
+      vendorName: expense.vendorName || "",
+      billNumber: expense.billNumber || "",
+      date: expense.date || "",
+      category: expense.category || "",
+      amount: expense.amount?.toString() || "",
+      taxRateId: matchingTaxRate?.id || "no_tax",
+    };
+
+    console.log("Setting form data:", newFormData);
+    setFormData(newFormData);
+  }, [expense, taxRates, vendors, expenseCategories]);
 
   const calculateTaxAmounts = () => {
     const baseAmount = parseFloat(formData.amount) || 0;
