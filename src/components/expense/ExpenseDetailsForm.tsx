@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCategories } from "@/hooks/useCategories";
 import { useTax } from "@/hooks/useTax";
+import { useVendors } from "@/hooks/useVendors";
+import { AddVendorDialog } from "@/components/AddVendorDialog";
 import type { Expense } from "@/hooks/useExpenses";
 
 interface ExpenseDetailsFormProps {
@@ -23,9 +25,11 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
     amount: "",
     taxRateId: "no_tax",
   });
+  const [showAddVendorDialog, setShowAddVendorDialog] = useState(false);
 
   const { getExpenseCategories } = useCategories();
   const { taxRates } = useTax();
+  const { vendors, addVendor } = useVendors();
   const expenseCategories = getExpenseCategories();
 
   // Initialize form data immediately when expense changes
@@ -43,6 +47,12 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
       });
     }
   }, [expense]);
+
+  const handleAddVendor = async (vendorData: any) => {
+    await addVendor(vendorData);
+    setFormData(prev => ({ ...prev, vendorName: vendorData.businessName }));
+    setShowAddVendorDialog(false);
+  };
 
   // Handle tax rate matching separately after taxRates are loaded
   useEffect(() => {
@@ -111,13 +121,31 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
         <Label htmlFor="vendorName">
           Payee <span className="text-red-500">*</span>
         </Label>
-        <Input
-          id="vendorName"
-          value={formData.vendorName}
-          onChange={(e) => setFormData({ ...formData, vendorName: e.target.value })}
-          disabled={expense.isPaid}
-          required
-        />
+        <div className="flex gap-2">
+          <Select 
+            value={formData.vendorName} 
+            onValueChange={(value) => {
+              if (value === "add_new") {
+                setShowAddVendorDialog(true);
+              } else {
+                setFormData({ ...formData, vendorName: value });
+              }
+            }}
+            disabled={expense.isPaid}
+          >
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Select vendor" />
+            </SelectTrigger>
+            <SelectContent>
+              {vendors.map((vendor) => (
+                <SelectItem key={vendor.id} value={vendor.businessName}>
+                  {vendor.businessName}
+                </SelectItem>
+              ))}
+              <SelectItem value="add_new">+ Add New Vendor</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -235,6 +263,12 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
           <Button type="submit">Update Expense</Button>
         )}
       </div>
+
+      <AddVendorDialog
+        open={showAddVendorDialog}
+        onOpenChange={setShowAddVendorDialog}
+        onSubmit={handleAddVendor}
+      />
     </form>
   );
 };

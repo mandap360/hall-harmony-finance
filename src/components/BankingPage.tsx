@@ -9,7 +9,7 @@ import { BankingActionButtons } from "@/components/banking/BankingActionButtons"
 import { BankingEmptyState } from "@/components/banking/BankingEmptyState";
 
 export const BankingPage = () => {
-  const { accounts, loading, addAccount, transferAmount } = useAccounts();
+  const { accounts, loading, addAccount, transferAmount, refreshAccounts } = useAccounts();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -17,6 +17,12 @@ export const BankingPage = () => {
   const handleAddAccount = async (accountData: any) => {
     await addAccount(accountData);
     setShowAddDialog(false);
+  };
+
+  const handleAccountBack = () => {
+    // Refresh accounts when returning from transaction view
+    refreshAccounts();
+    setSelectedAccount(null);
   };
 
   const formatBalance = (balance: number) => {
@@ -46,7 +52,7 @@ export const BankingPage = () => {
     return (
       <AccountTransactions 
         account={selectedAccount} 
-        onBack={() => setSelectedAccount(null)}
+        onBack={handleAccountBack}
         showFilters={false}
         showBalance={true}
       />
