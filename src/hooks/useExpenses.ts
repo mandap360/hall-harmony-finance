@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { APP_CONSTANTS } from "@/lib/utils";
 
 export interface Expense {
   id: string;
@@ -32,7 +33,6 @@ export const useExpenses = () => {
     
     try {
       setLoading(true);
-      console.log("Fetching expenses from Supabase...");
       
       const { data: expensesData, error: expensesError } = await supabase
         .from('expenses')
@@ -46,11 +46,8 @@ export const useExpenses = () => {
         .order('expense_date', { ascending: false });
 
       if (expensesError) {
-        console.error('Error fetching expenses:', expensesError);
         throw expensesError;
       }
-
-      console.log("Raw expenses data:", expensesData);
 
       const transformedExpenses: Expense[] = (expensesData || []).map(expense => ({
         id: expense.id,
@@ -70,7 +67,6 @@ export const useExpenses = () => {
         accountName: expense.accounts?.name
       }));
 
-      console.log("Transformed expenses:", transformedExpenses);
       setExpenses(transformedExpenses);
     } catch (error) {
       console.error('Error fetching expenses:', error);
@@ -94,7 +90,6 @@ export const useExpenses = () => {
     if (!profile?.organization_id) return;
     
     try {
-      // First get the category ID
       const { data: categories, error: categoryError } = await supabase
         .from('expense_categories')
         .select('id')
@@ -102,11 +97,10 @@ export const useExpenses = () => {
         .single();
 
       if (categoryError) {
-        console.error('Error finding category:', categoryError);
         throw new Error(`Category "${expenseData.category}" not found`);
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('expenses')
         .insert({
           vendor_name: expenseData.vendorName,
@@ -122,9 +116,7 @@ export const useExpenses = () => {
           is_paid: expenseData.isPaid,
           account_id: expenseData.accountId,
           organization_id: profile.organization_id
-        })
-        .select()
-        .single();
+        });
 
       if (error) throw error;
 
@@ -138,34 +130,6 @@ export const useExpenses = () => {
       toast({
         title: "Error",
         description: "Failed to add expense",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const markAsPaid = async (expenseId: string, accountId: string, paymentDate: string) => {
-    try {
-      const { error } = await supabase
-        .from('expenses')
-        .update({
-          is_paid: true,
-          account_id: accountId,
-          payment_date: paymentDate
-        })
-        .eq('id', expenseId);
-
-      if (error) throw error;
-
-      await fetchExpenses();
-      toast({
-        title: "Success",
-        description: "Expense marked as paid",
-      });
-    } catch (error) {
-      console.error('Error marking expense as paid:', error);
-      toast({
-        title: "Error",
-        description: "Failed to mark expense as paid",
         variant: "destructive",
       });
     }
@@ -248,24 +212,16 @@ export const useExpenses = () => {
     description?: string; 
   }) => {
     try {
-      // Get expense details to create proper description
       const { data: expense } = await supabase
         .from('expenses')
-        .select(`
-          *,
-          expense_categories!inner(name)
-        `)
+        .select(`*, expense_categories!inner(name)`)
         .eq('id', expenseId)
         .single();
 
-      if (!expense) {
-        throw new Error('Expense not found');
-      }
+      if (!expense) throw new Error('Expense not found');
 
-      // Use only the vendor name as description for expense payments
       const transactionDescription = expense.vendor_name;
 
-      // Update expense as paid
       const { error: updateError } = await supabase
         .from('expenses')
         .update({ 
@@ -277,15 +233,14 @@ export const useExpenses = () => {
 
       if (updateError) throw updateError;
 
-      // Add transaction record
       const { error: transactionError } = await supabase
         .from('transactions')
         .insert({
           account_id: paymentData.accountId,
-          transaction_type: 'debit',
+          transaction_type: APP_CONSTANTS.TRANSACTION_TYPES.DEBIT,
           amount: paymentData.amount,
           description: transactionDescription,
-          reference_type: 'expense_payment',
+          reference_type: APP_CONSTANTS.REFERENCE_TYPES.EXPENSE_PAYMENT,
           reference_id: expenseId,
           transaction_date: paymentData.date
         });
@@ -302,6 +257,34 @@ export const useExpenses = () => {
       toast({
         title: "Error",
         description: "Failed to record payment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const markAsPaid = async (expenseId: string, accountId: string, paymentDate: string) => {
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .update({
+          is_paid: true,
+          account_id: accountId,
+          payment_date: paymentDate
+        })
+        .eq('id', expenseId);
+
+      if (error) throw error;
+
+      await fetchExpenses();
+      toast({
+        title: "Success",
+        description: "Expense marked as paid",
+      });
+    } catch (error) {
+      console.error('Error marking expense as paid:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark expense as paid",
         variant: "destructive",
       });
     }

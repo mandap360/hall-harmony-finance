@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCategories } from "@/hooks/useCategories";
 import { useVendors } from "@/hooks/useVendors";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useTaxCalculation } from "@/hooks/useTaxCalculation";
 import { useTax } from "@/hooks/useTax";
 import { AddVendorDialog } from "@/components/AddVendorDialog";
+import { dateUtils, APP_CONSTANTS } from "@/lib/utils";
 
 interface AddExpenseDialogProps {
   open: boolean;
@@ -21,10 +23,10 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
   const [formData, setFormData] = useState({
     vendorId: "",
     billNumber: "",
-    date: new Date().toISOString().split('T')[0],
+    date: dateUtils.getTodayString(),
     category: "",
     amount: "",
-    taxRateId: "",
+    taxRateId: APP_CONSTANTS.DEFAULTS.TAX_RATE_ID as string,
     paidThrough: "",
   });
 
@@ -35,47 +37,46 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
   const { accounts } = useAccounts();
   const { taxRates } = useTax();
   const expenseCategories = getExpenseCategories();
-  const paymentAccounts = accounts.filter(acc => acc.account_type === 'operational' || acc.account_type === 'capital');
+  
+  // Filter accounts for payment
+  const paymentAccounts = accounts.filter(acc => 
+    acc.account_type === APP_CONSTANTS.ACCOUNT_TYPES.OPERATIONAL || 
+    acc.account_type === APP_CONSTANTS.ACCOUNT_TYPES.CAPITAL
+  );
 
-  const calculateTaxAmounts = () => {
-    const baseAmount = parseFloat(formData.amount) || 0;
-    const selectedTaxRate = taxRates.find(tax => tax.id === formData.taxRateId);
-    const taxPercentage = selectedTaxRate?.percentage || 0;
-    const taxAmount = (baseAmount * taxPercentage) / 100;
-    const totalAmount = baseAmount + taxAmount;
-    
-    return { taxAmount, totalAmount, taxPercentage };
-  };
-
-  const { taxAmount, totalAmount, taxPercentage } = calculateTaxAmounts();
+  // Use the tax calculation hook
+  const { taxAmount, totalAmount, taxPercentage, cgstAmount, sgstAmount } = useTaxCalculation({
+    amount: formData.amount,
+    taxRateId: formData.taxRateId
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.vendorId || !formData.amount || !formData.category || !formData.paidThrough) return;
 
     const selectedVendor = vendors.find(v => v.id === formData.vendorId);
-    const { taxAmount, totalAmount } = calculateTaxAmounts();
 
     onSubmit({
       ...formData,
       vendorName: selectedVendor?.businessName || "",
       amount: parseFloat(formData.amount),
-      cgstAmount: taxAmount / 2,
-      sgstAmount: taxAmount / 2,
+      cgstAmount,
+      sgstAmount,
       cgstPercentage: taxPercentage / 2,
       sgstPercentage: taxPercentage / 2,
       totalAmount,
-      isPaid: formData.paidThrough !== "unpaid",
-      accountId: formData.paidThrough !== "unpaid" ? formData.paidThrough : null,
+      isPaid: formData.paidThrough !== APP_CONSTANTS.PAYMENT_STATUS.UNPAID,
+      accountId: formData.paidThrough !== APP_CONSTANTS.PAYMENT_STATUS.UNPAID ? formData.paidThrough : null,
     });
 
+    // Reset form
     setFormData({
       vendorId: "",
       billNumber: "",
-      date: new Date().toISOString().split('T')[0],
+      date: dateUtils.getTodayString(),
       category: "",
       amount: "",
-      taxRateId: "",
+      taxRateId: APP_CONSTANTS.DEFAULTS.TAX_RATE_ID as string,
       paidThrough: "",
     });
   };
@@ -192,7 +193,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
                       <SelectValue placeholder="Select tax rate" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="no_tax">No Tax</SelectItem>
+                      <SelectItem value={APP_CONSTANTS.DEFAULTS.TAX_RATE_ID}>No Tax</SelectItem>
                       {taxRates.map((tax) => (
                         <SelectItem key={tax.id} value={tax.id}>
                           {tax.name}
@@ -223,7 +224,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
                   <SelectValue placeholder="Select payment method" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                  <SelectItem value={APP_CONSTANTS.PAYMENT_STATUS.UNPAID}>Unpaid</SelectItem>
                   {paymentAccounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
                       {account.name} (₹{account.balance.toLocaleString()})

@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
@@ -7,94 +7,42 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
 import { useVendors } from "@/hooks/useVendors";
 import { useTransactions } from "@/hooks/useTransactions";
+import { useFilters } from "@/hooks/useFilters";
 import { ExpenseFilters } from "@/components/expense/ExpenseFilters";
 import { ExpenseEmptyState } from "@/components/expense/ExpenseEmptyState";
 import { ExpenseList } from "@/components/expense/ExpenseList";
+import { APP_CONSTANTS, ReferenceType } from "@/lib/utils";
 
 export const ExpensePage = () => {
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedVendor, setSelectedVendor] = useState("all");
-  const [paymentStatus, setPaymentStatus] = useState("all");
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const { expenses, addExpense, refetch } = useExpenses();
   const { getExpenseCategories } = useCategories();
   const { vendors } = useVendors();
   const { addTransaction } = useTransactions();
+  
+  // Use the new filters hook
+  const {
+    filters,
+    filteredItems: filteredExpenses,
+    showFilters,
+    updateFilter,
+    setShowFilters
+  } = useFilters(expenses);
+  
   const expenseCategories = getExpenseCategories();
-
-  // Get current Indian Financial Year (April to March)
-  const getCurrentFY = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    
-    if (month >= 3) { // April onwards (month is 0-indexed, so March = 2, April = 3)
-      return { startYear: year, endYear: year + 1 };
-    } else { // January to March
-      return { startYear: year - 1, endYear: year };
-    }
-  };
-
-  const currentFY = getCurrentFY();
-
-  const filteredExpenses = useMemo(() => {
-    let filtered = expenses.filter((expense) => {
-      const expenseDate = new Date(expense.date);
-      const expenseYear = expenseDate.getFullYear();
-      const expenseMonth = expenseDate.getMonth();
-      
-      // Check if expense is in current FY (only if no date range is selected)
-      if (!startDate && !endDate) {
-        let isInCurrentFY = false;
-        if (expenseMonth >= 3) { // April onwards (month is 0-indexed)
-          isInCurrentFY = expenseYear === currentFY.startYear;
-        } else { // January to March
-          isInCurrentFY = expenseYear === currentFY.endYear;
-        }
-        
-        if (!isInCurrentFY) return false;
-      }
-
-      // Apply date range filter if dates are selected
-      if (startDate && expenseDate < startDate) return false;
-      if (endDate && expenseDate > endDate) return false;
-      
-      return true;
-    });
-
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(expense => expense.category === selectedCategory);
-    }
-
-    if (selectedVendor !== "all") {
-      filtered = filtered.filter(expense => expense.vendorName === selectedVendor);
-    }
-
-    if (paymentStatus !== "all") {
-      filtered = filtered.filter(expense => 
-        paymentStatus === "paid" ? expense.isPaid : !expense.isPaid
-      );
-    }
-
-    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [expenses, selectedCategory, selectedVendor, paymentStatus, startDate, endDate, currentFY]);
 
   const handleAddExpense = async (expenseData: any) => {
     try {
-      // Add the expense
       await addExpense(expenseData);
       
       // Add corresponding transaction if it's paid
       if (expenseData.isPaid && expenseData.accountId) {
         await addTransaction({
           account_id: expenseData.accountId,
-          transaction_type: 'debit',
+          transaction_type: APP_CONSTANTS.TRANSACTION_TYPES.DEBIT,
           amount: expenseData.totalAmount,
           description: `Expense - ${expenseData.vendorName} - ${expenseData.category}`,
-          reference_type: 'expense',
+          reference_type: APP_CONSTANTS.REFERENCE_TYPES.EXPENSE as ReferenceType,
           reference_id: null,
           transaction_date: expenseData.date
         });
@@ -111,16 +59,16 @@ export const ExpensePage = () => {
       {/* Fixed Filters */}
       <div className="flex-shrink-0">
         <ExpenseFilters
-          selectedCategory={selectedCategory}
-          selectedVendor={selectedVendor}
-          startDate={startDate}
-          endDate={endDate}
-          paymentStatus={paymentStatus}
-          onCategoryChange={setSelectedCategory}
-          onVendorChange={setSelectedVendor}
-          onStartDateChange={setStartDate}
-          onEndDateChange={setEndDate}
-          onPaymentStatusChange={setPaymentStatus}
+          selectedCategory={filters.category}
+          selectedVendor={filters.vendor}
+          startDate={filters.startDate}
+          endDate={filters.endDate}
+          paymentStatus={filters.paymentStatus}
+          onCategoryChange={(value) => updateFilter('category', value)}
+          onVendorChange={(value) => updateFilter('vendor', value)}
+          onStartDateChange={(value) => updateFilter('startDate', value)}
+          onEndDateChange={(value) => updateFilter('endDate', value)}
+          onPaymentStatusChange={(value) => updateFilter('paymentStatus', value)}
           expenseCategories={expenseCategories}
           vendors={vendors}
           showFilters={showFilters}

@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCategories } from "@/hooks/useCategories";
 import { useTax } from "@/hooks/useTax";
 import { useVendors } from "@/hooks/useVendors";
+import { useTaxCalculation } from "@/hooks/useTaxCalculation";
 import { AddVendorDialog } from "@/components/AddVendorDialog";
+import { APP_CONSTANTS, financialUtils } from "@/lib/utils";
 import type { Expense } from "@/hooks/useExpenses";
 
 interface ExpenseDetailsFormProps {
@@ -23,7 +25,7 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
     date: "",
     category: "",
     amount: "",
-    taxRateId: "no_tax",
+    taxRateId: APP_CONSTANTS.DEFAULTS.TAX_RATE_ID as string,
   });
   const [showAddVendorDialog, setShowAddVendorDialog] = useState(false);
 
@@ -31,6 +33,12 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
   const { taxRates } = useTax();
   const { vendors, addVendor } = useVendors();
   const expenseCategories = getExpenseCategories();
+  
+  // Use tax calculation hook
+  const { taxAmount, totalAmount, taxPercentage } = useTaxCalculation({
+    amount: formData.amount,
+    taxRateId: formData.taxRateId
+  });
 
   const handleAddVendor = async (vendorData: any) => {
     await addVendor(vendorData);
@@ -40,38 +48,18 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
 
   // Consolidated form initialization - handle both initial data and tax rate matching
   useEffect(() => {
-    console.log("ExpenseDetailsForm - initializing with:", { expense, taxRates, vendors, expenseCategories });
-    
-    if (!expense) {
-      console.log("No expense provided");
-      return;
-    }
+    if (!expense) return;
 
     // Wait for all required data to be loaded
     if (taxRates.length === 0 || vendors.length === 0 || expenseCategories.length === 0) {
-      console.log("Waiting for data to load...", { 
-        taxRatesCount: taxRates.length, 
-        vendorsCount: vendors.length, 
-        categoriesCount: expenseCategories.length 
-      });
       return;
     }
 
     // Calculate the total tax percentage from existing tax data
     const totalTaxPercentage = (expense.cgstPercentage || 0) + (expense.sgstPercentage || 0);
-    console.log("Total tax percentage from expense:", totalTaxPercentage);
     
     // Find matching tax rate
     const matchingTaxRate = taxRates.find(tax => tax.percentage === totalTaxPercentage);
-    console.log("Matching tax rate found:", matchingTaxRate);
-
-    // Verify vendor exists in the list
-    const vendorExists = vendors.find(v => v.businessName === expense.vendorName);
-    console.log("Vendor exists:", vendorExists, "for name:", expense.vendorName);
-
-    // Verify category exists in the list
-    const categoryExists = expenseCategories.find(c => c.name === expense.category);
-    console.log("Category exists:", categoryExists, "for name:", expense.category);
 
     // Set form data with all values at once
     const newFormData = {
@@ -80,34 +68,22 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
       date: expense.date || "",
       category: expense.category || "",
       amount: expense.amount?.toString() || "",
-      taxRateId: matchingTaxRate?.id || "no_tax",
+      taxRateId: matchingTaxRate?.id || APP_CONSTANTS.DEFAULTS.TAX_RATE_ID as string,
     };
 
-    console.log("Setting form data:", newFormData);
     setFormData(newFormData);
   }, [expense, taxRates, vendors, expenseCategories]);
 
-  const calculateTaxAmounts = () => {
-    const baseAmount = parseFloat(formData.amount) || 0;
-    if (formData.taxRateId === "no_tax") {
-      return { taxAmount: 0, totalAmount: baseAmount, taxPercentage: 0 };
-    }
-    
-    const selectedTaxRate = taxRates.find(tax => tax.id === formData.taxRateId);
-    const taxPercentage = selectedTaxRate?.percentage || 0;
-    const taxAmount = (baseAmount * taxPercentage) / 100;
-    const totalAmount = baseAmount + taxAmount;
-    
-    return { taxAmount, totalAmount, taxPercentage };
-  };
-
-  const { taxAmount, totalAmount, taxPercentage } = calculateTaxAmounts();
+  // Remove duplicate tax calculation (now handled by useTaxCalculation hook)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.amount || !formData.category || !formData.vendorName) return;
 
-    const { taxAmount, totalAmount, taxPercentage } = calculateTaxAmounts();
+    const { cgstAmount, sgstAmount } = financialUtils.calculateTax(
+      parseFloat(formData.amount), 
+      taxPercentage
+    );
 
     onUpdateExpense({
       ...expense,
@@ -116,15 +92,15 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
       date: formData.date,
       category: formData.category,
       amount: parseFloat(formData.amount),
-      cgstAmount: taxAmount / 2,
-      sgstAmount: taxAmount / 2,
+      cgstAmount,
+      sgstAmount,
       cgstPercentage: taxPercentage / 2,
       sgstPercentage: taxPercentage / 2,
       totalAmount,
     });
   };
 
-  console.log("Current form data:", formData);
+  // Remove console.log for production
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -235,7 +211,7 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
                 <SelectValue placeholder="Select tax rate" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="no_tax">No Tax</SelectItem>
+                <SelectItem value={APP_CONSTANTS.DEFAULTS.TAX_RATE_ID}>No Tax</SelectItem>
                 {taxRates.map((tax) => (
                   <SelectItem key={tax.id} value={tax.id}>
                     {tax.name}
