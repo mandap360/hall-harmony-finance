@@ -13,7 +13,9 @@ import { useTaxCalculation } from "@/hooks/useTaxCalculation";
 import { useTax } from "@/hooks/useTax";
 import { AddVendorDialog } from "@/components/AddVendorDialog";
 import { IncomeDetailsForm } from "@/components/IncomeDetailsForm";
+import { TransferForm } from "@/components/TransferForm";
 import { dateUtils, APP_CONSTANTS } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 interface AddExpenseDialogProps {
   open: boolean;
@@ -37,7 +39,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
 
   const { getExpenseCategories } = useCategories();
   const { vendors, addVendor } = useVendors();
-  const { accounts } = useAccounts();
+  const { accounts, transferAmount } = useAccounts();
   const { taxRates } = useTax();
   const expenseCategories = getExpenseCategories();
   
@@ -104,6 +106,23 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
     onOpenChange(false);
   };
 
+  const handleTransferSubmit = async (fromAccountId: string, toAccountId: string, amount: number, description?: string, date?: string) => {
+    try {
+      await transferAmount(fromAccountId, toAccountId, amount, description, date);
+      toast({
+        title: "Success",
+        description: "Transfer completed successfully",
+      });
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Error", 
+        description: "Failed to complete transfer",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -113,9 +132,10 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
           </DialogHeader>
           
           <Tabs defaultValue="expense" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="expense">Expense</TabsTrigger>
               <TabsTrigger value="income">Income</TabsTrigger>
+              <TabsTrigger value="transfer">Transfer</TabsTrigger>
             </TabsList>
             
             <TabsContent value="expense" className="mt-4">
@@ -266,6 +286,10 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
             onSubmit={handleIncomeSubmit}
             onCancel={() => onOpenChange(false)}
           />
+        </TabsContent>
+        
+        <TabsContent value="transfer" className="mt-4">
+          <TransferForm onSubmit={handleTransferSubmit} />
         </TabsContent>
       </Tabs>
     </DialogContent>

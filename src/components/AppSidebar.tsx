@@ -39,7 +39,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70 text-xs font-medium px-2 mb-2">
-            Hall Harmony Finance
+            Mandap360
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

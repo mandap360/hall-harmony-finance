@@ -6,9 +6,10 @@ import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { EditBookingDialog } from "@/components/EditBookingDialog";
 import { RefundDialog } from "@/components/booking/RefundDialog";
 import { useBookings } from "@/hooks/useBookings";
-import { BookingFilters } from "@/components/booking/BookingFilters";
 import { BookingGrid } from "@/components/booking/BookingGrid";
 import { BookingEmptyState } from "@/components/booking/BookingEmptyState";
+import { MonthNavigation } from "@/components/MonthNavigation";
+import { addMonths, subMonths, format } from "date-fns";
 
 export const BookingsPage = () => {
   const { bookings, loading, addBooking, updateBooking, cancelBooking, processRefund, addPayment } = useBookings();
@@ -17,61 +18,22 @@ export const BookingsPage = () => {
   const [refundingBooking, setRefundingBooking] = useState(null);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedQuarter, setSelectedQuarter] = useState("upcoming");
+  const [currentDate, setCurrentDate] = useState(new Date());
 
-  // Generate quarter options for the current financial year (April to March)
-  const quarterOptions = useMemo(() => {
-    const quarters = [
-      { label: "Upcoming", value: "upcoming" }
-    ];
-    
-    // Get current financial year (April to March)
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-    
-    // If we're in Jan-Mar, FY started previous year, otherwise current year
-    const fyStartYear = currentMonth >= 3 ? currentYear : currentYear - 1;
-    
-    // Add quarters
-    quarters.push(
-      { label: `Q1 (Apr-Jun ${fyStartYear})`, value: `Q1-${fyStartYear}` },
-      { label: `Q2 (Jul-Sep ${fyStartYear})`, value: `Q2-${fyStartYear}` },
-      { label: `Q3 (Oct-Dec ${fyStartYear})`, value: `Q3-${fyStartYear}` },
-      { label: `Q4 (Jan-Mar ${fyStartYear + 1})`, value: `Q4-${fyStartYear}` }
-    );
-    
-    return quarters;
-  }, []);
-
-  // Helper function to check if a date falls within a quarter
-  const isDateInQuarter = (dateString: string, quarterValue: string) => {
-    if (quarterValue === "upcoming") return false;
-    
-    const date = new Date(dateString);
-    const month = date.getMonth();
-    const year = date.getFullYear();
-    
-    const [quarter, fyStartYear] = quarterValue.split('-');
-    const fyStart = parseInt(fyStartYear);
-    
-    switch (quarter) {
-      case 'Q1': // April-June
-        return (month >= 3 && month <= 5) && year === fyStart;
-      case 'Q2': // July-September  
-        return (month >= 6 && month <= 8) && year === fyStart;
-      case 'Q3': // October-December
-        return (month >= 9 && month <= 11) && year === fyStart;
-      case 'Q4': // January-March
-        return (month >= 0 && month <= 2) && year === fyStart + 1;
-      default:
-        return false;
-    }
+  const handlePreviousMonth = () => {
+    setCurrentDate(prev => subMonths(prev, 1));
   };
 
-  // Filter bookings based on search term and quarter
+  const handleNextMonth = () => {
+    setCurrentDate(prev => addMonths(prev, 1));
+  };
+
+  // Filter bookings based on search term and current month
   const filteredBookings = useMemo(() => {
-    let filtered = bookings.filter(booking => {
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    
+    return bookings.filter(booking => {
       // Search filter
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = !searchTerm || 
@@ -79,24 +41,14 @@ export const BookingsPage = () => {
         booking.clientName.toLowerCase().includes(searchLower) ||
         (booking.phoneNumber && booking.phoneNumber.toLowerCase().includes(searchLower));
 
-      return matchesSearch;
-    });
+      // Month filter
+      const bookingDate = new Date(booking.startDate);
+      const matchesMonth = bookingDate.getMonth() === currentMonth && 
+                          bookingDate.getFullYear() === currentYear;
 
-    // Quarter/upcoming filter
-    if (selectedQuarter === "upcoming") {
-      const now = new Date();
-      filtered = filtered
-        .filter(booking => new Date(booking.startDate) >= now)
-        .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-        .slice(0, 10); // Show only 10 upcoming bookings
-    } else {
-      filtered = filtered.filter(booking => 
-        isDateInQuarter(booking.startDate, selectedQuarter)
-      );
-    }
-
-    return filtered;
-  }, [bookings, searchTerm, selectedQuarter]);
+      return matchesSearch && matchesMonth;
+    }).sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  }, [bookings, searchTerm, currentDate]);
 
   const handleEditBooking = (booking) => {
     setEditingBooking(booking);
@@ -144,18 +96,28 @@ export const BookingsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
-      <BookingFilters
-        searchTerm={searchTerm}
-        selectedMonth={selectedQuarter}
-        onSearchChange={setSearchTerm}
-        onMonthChange={setSelectedQuarter}
-        monthOptions={quarterOptions}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      <MonthNavigation
+        currentDate={currentDate}
+        onPreviousMonth={handlePreviousMonth}
+        onNextMonth={handleNextMonth}
       />
 
       <div className="p-4">
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Search bookings..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+
         {filteredBookings.length === 0 ? (
-          <BookingEmptyState searchTerm={searchTerm} selectedMonth={selectedQuarter} />
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No bookings found for {format(currentDate, "MMMM yyyy")}</p>
+          </div>
         ) : (
           <BookingGrid
             bookings={filteredBookings}
@@ -168,7 +130,7 @@ export const BookingsPage = () => {
 
       <Button
         onClick={() => setShowAddDialog(true)}
-        className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
+        className="fixed bottom-6 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
         size="icon"
       >
         <Plus className="h-6 w-6" />

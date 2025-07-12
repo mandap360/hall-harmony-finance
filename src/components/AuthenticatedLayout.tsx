@@ -23,7 +23,7 @@ export const AuthenticatedLayout = ({ children }: AuthenticatedLayoutProps) => {
             <SidebarTrigger className="mr-4" />
             
             <div className="flex-1">
-              <h1 className="text-lg font-semibold text-foreground">Hall Harmony Finance</h1>
+              <h1 className="text-lg font-semibold text-foreground">Mandap360</h1>
               {profile?.business_name && (
                 <p className="text-sm text-muted-foreground">{profile.business_name}</p>
               )}
