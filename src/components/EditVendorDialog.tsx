@@ -50,12 +50,12 @@ export const EditVendorDialog = ({ open, onOpenChange, vendor, onSubmit }: EditV
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Payee</DialogTitle>
+          <DialogTitle>Edit Party</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="businessName">
-              Payee Name <span className="text-red-500">*</span>
+              Party Name <span className="text-red-500">*</span>
             </Label>
             <Input
               id="businessName"
@@ -97,7 +97,7 @@ export const EditVendorDialog = ({ open, onOpenChange, vendor, onSubmit }: EditV
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Update Payee</Button>
+            <Button type="submit">Update Party</Button>
           </div>
         </form>
       </DialogContent>

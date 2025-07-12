@@ -29,6 +29,27 @@ const App = () => (
                 </AuthenticatedLayout>
               </ProtectedRoute>
             } />
+            <Route path="/transactions" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Index activeTab="transactions" />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/reports" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Index activeTab="reports" />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/more" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Index activeTab="more" />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

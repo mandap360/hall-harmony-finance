@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,15 +12,17 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useTaxCalculation } from "@/hooks/useTaxCalculation";
 import { useTax } from "@/hooks/useTax";
 import { AddVendorDialog } from "@/components/AddVendorDialog";
+import { IncomeDetailsForm } from "@/components/IncomeDetailsForm";
 import { dateUtils, APP_CONSTANTS } from "@/lib/utils";
 
 interface AddExpenseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (expenseData: any) => void;
+  onIncomeSubmit?: (incomeData: any) => void;
 }
 
-export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDialogProps) => {
+export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit }: AddExpenseDialogProps) => {
   const [formData, setFormData] = useState({
     vendorId: "",
     billNumber: "",
@@ -94,25 +97,40 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
     }
   };
 
+  const handleIncomeSubmit = (incomeData: any) => {
+    if (onIncomeSubmit) {
+      onIncomeSubmit(incomeData);
+    }
+    onOpenChange(false);
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Expense</DialogTitle>
+            <DialogTitle>Add New Transaction</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          
+          <Tabs defaultValue="expense" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="expense">Expense</TabsTrigger>
+              <TabsTrigger value="income">Income</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="expense" className="mt-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="vendor">
-                Payee <span className="text-red-500">*</span>
+                Party <span className="text-red-500">*</span>
               </Label>
               <Select value={formData.vendorId} onValueChange={handleVendorChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select payee" />
+                  <SelectValue placeholder="Select party" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="add_vendor" className="text-blue-600 font-medium">
-                    + Add Payee
+                    + Add Party
                   </SelectItem>
                   {vendors.map((vendor) => (
                     <SelectItem key={vendor.id} value={vendor.id}>
@@ -241,8 +259,17 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit }: AddExpenseDia
               <Button type="submit">Add Expense</Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </TabsContent>
+        
+        <TabsContent value="income" className="mt-4">
+          <IncomeDetailsForm
+            onSubmit={handleIncomeSubmit}
+            onCancel={() => onOpenChange(false)}
+          />
+        </TabsContent>
+      </Tabs>
+    </DialogContent>
+  </Dialog>
 
       <AddVendorDialog
         open={showAddVendorDialog}

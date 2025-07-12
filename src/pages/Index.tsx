@@ -1,19 +1,33 @@
 
-import { BottomNavigation } from "@/components/BottomNavigation";
 import { BookingsPage } from "@/components/BookingsPage";
 import { ExpensePage } from "@/components/ExpensePage";
 import { ReportsPage } from "@/components/ReportsPage";
 import { MorePage } from "@/components/MorePage";
-import { useState } from "react";
+import { useLocation } from "react-router-dom";
 
-const Index = () => {
-  const [activeTab, setActiveTab] = useState("bookings");
+interface IndexProps {
+  activeTab?: string;
+}
+
+const Index = ({ activeTab: propActiveTab }: IndexProps) => {
+  const location = useLocation();
+  
+  const getActiveTabFromPath = () => {
+    if (propActiveTab) return propActiveTab;
+    const path = location.pathname;
+    if (path === "/transactions") return "transactions";
+    if (path === "/reports") return "reports";
+    if (path === "/more") return "more";
+    return "bookings";
+  };
+  
+  const activeTab = getActiveTabFromPath();
 
   const renderContent = () => {
     switch (activeTab) {
       case "bookings":
         return <BookingsPage />;
-      case "expenses":
+      case "transactions":
         return <ExpensePage />;
       case "reports":
         return <ReportsPage />;
@@ -25,14 +39,8 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100">
-      {/* Content */}
-      <div className="pb-20">
-        {renderContent()}
-      </div>
-
-      {/* Bottom Navigation */}
-      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+    <div className="min-h-screen bg-background">
+      {renderContent()}
     </div>
   );
 };

@@ -25,7 +25,7 @@ export const VendorManagement = () => {
   };
 
   const handleDeleteVendor = (vendorId: string) => {
-    if (confirm("Are you sure you want to delete this payee?")) {
+    if (confirm("Are you sure you want to delete this party?")) {
       deleteVendor(vendorId);
     }
   };
@@ -51,7 +51,7 @@ export const VendorManagement = () => {
   return (
     <div className="p-4 space-y-6">
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900">Payee Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Party Management</h1>
       </div>
 
       {/* Search Bar */}
@@ -59,7 +59,7 @@ export const VendorManagement = () => {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
         <Input
           type="text"
-          placeholder="Search by payee name, phone number, or GSTIN..."
+          placeholder="Search by party name, phone number, or GSTIN..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -70,10 +70,10 @@ export const VendorManagement = () => {
         {filteredVendors.length === 0 ? (
           <Card className="p-8 text-center">
             <p className="text-gray-500">
-              {searchTerm ? "No payees found matching your search" : "No payees found"}
+              {searchTerm ? "No parties found matching your search" : "No parties found"}
             </p>
             {!searchTerm && (
-              <p className="text-gray-400 text-sm mt-2">Click the + button to add your first payee</p>
+              <p className="text-gray-400 text-sm mt-2">Click the + button to add your first party</p>
             )}
           </Card>
         ) : (

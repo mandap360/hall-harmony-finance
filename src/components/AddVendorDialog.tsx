@@ -42,12 +42,12 @@ export const AddVendorDialog = ({ open, onOpenChange, onSubmit }: AddVendorDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Payee</DialogTitle>
+          <DialogTitle>Add New Party</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="businessName">
-              Payee Name <span className="text-red-500">*</span>
+              Party Name <span className="text-red-500">*</span>
             </Label>
             <Input
               id="businessName"
@@ -89,7 +89,7 @@ export const AddVendorDialog = ({ open, onOpenChange, onSubmit }: AddVendorDialo
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Add Payee</Button>
+            <Button type="submit">Add Party</Button>
           </div>
         </form>
       </DialogContent>

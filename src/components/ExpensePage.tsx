@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
+import { MonthNavigation } from "@/components/MonthNavigation";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
 import { useVendors } from "@/hooks/useVendors";
@@ -15,6 +16,15 @@ import { APP_CONSTANTS, ReferenceType } from "@/lib/utils";
 
 export const ExpensePage = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  
+  const handlePreviousMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+  
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
   const { expenses, addExpense, refetch } = useExpenses();
   const { getExpenseCategories } = useCategories();
   const { vendors } = useVendors();
@@ -55,7 +65,14 @@ export const ExpensePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Month Navigation */}
+      <MonthNavigation 
+        currentDate={currentDate}
+        onPreviousMonth={handlePreviousMonth}
+        onNextMonth={handleNextMonth}
+      />
+      
       {/* Fixed Filters */}
       <div className="flex-shrink-0">
         <ExpenseFilters

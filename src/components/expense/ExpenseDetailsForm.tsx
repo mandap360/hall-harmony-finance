@@ -106,7 +106,7 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label htmlFor="vendorName">
-          Payee <span className="text-red-500">*</span>
+          Party <span className="text-red-500">*</span>
         </Label>
         <div className="flex gap-2">
           <Select 

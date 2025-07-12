@@ -83,7 +83,7 @@ export const ExpenseListView = ({ onBack }: ExpenseListViewProps) => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-32">Date</TableHead>
-                  <TableHead>Payee</TableHead>
+                  <TableHead>Party</TableHead>
                   <TableHead>Expense Category</TableHead>
                   <TableHead className="w-32 text-right">Amount</TableHead>
                 </TableRow>

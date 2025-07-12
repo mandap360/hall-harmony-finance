@@ -57,54 +57,7 @@ export const ExpenseFilters = ({
       {/* Filter Options */}
       {showFilters && (
         <div className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {/* Date Range First */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "justify-start text-left font-normal",
-                    !startDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "PP") : "Start date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={onStartDateChange}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "justify-start text-left font-normal",
-                    !endDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "PP") : "End date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={onEndDateChange}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Categories */}
             <Select value={selectedCategory} onValueChange={onCategoryChange}>
               <SelectTrigger>
@@ -123,10 +76,10 @@ export const ExpenseFilters = ({
             {/* Vendors */}
             <Select value={selectedVendor} onValueChange={onVendorChange}>
               <SelectTrigger>
-                <SelectValue placeholder="All Payees" />
+                <SelectValue placeholder="All Parties" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Payees</SelectItem>
+                <SelectItem value="all">All Parties</SelectItem>
                 {vendors.map((vendor) => (
                   <SelectItem key={vendor.id} value={vendor.businessName}>
                     {vendor.businessName}
