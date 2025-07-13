@@ -1,5 +1,6 @@
-import { Calendar, Receipt, BarChart3, Settings } from "lucide-react";
+import { Calendar, Receipt, BarChart3, Settings, User } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Sidebar,
   SidebarContent,
@@ -23,6 +24,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
+  const { user, profile } = useAuth();
 
   const isActive = (path: string) => {
     if (path === "/bookings" && currentPath === "/") return true;
@@ -56,6 +58,31 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* User Profile Section */}
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton className="flex items-center space-x-3 p-3">
+                  <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <User className="h-4 w-4 text-primary" />
+                  </div>
+                  {state !== "collapsed" && (
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-sidebar-foreground">
+                        {profile?.business_name || "User"}
+                      </span>
+                      <span className="text-xs text-sidebar-foreground/70">
+                        {user?.email}
+                      </span>
+                    </div>
+                  )}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

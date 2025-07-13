@@ -152,8 +152,6 @@ export const BookingsPage = () => {
           <BookingCalendarView
             bookings={filteredBookings}
             currentDate={currentDate}
-            onPreviousMonth={handlePreviousMonth}
-            onNextMonth={handleNextMonth}
             onEditBooking={handleEditBooking}
           />
         )}

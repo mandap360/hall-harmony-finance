@@ -7,16 +7,12 @@ import { Badge } from "@/components/ui/badge";
 interface BookingCalendarViewProps {
   bookings: any[];
   currentDate: Date;
-  onPreviousMonth: () => void;
-  onNextMonth: () => void;
   onEditBooking: (booking: any) => void;
 }
 
 export const BookingCalendarView = ({ 
   bookings, 
   currentDate, 
-  onPreviousMonth, 
-  onNextMonth, 
   onEditBooking 
 }: BookingCalendarViewProps) => {
   
@@ -47,28 +43,6 @@ export const BookingCalendarView = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-border">
-      {/* Calendar Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onPreviousMonth}
-          className="flex items-center space-x-1 text-primary hover:bg-primary/10"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <h2 className="text-lg font-semibold text-foreground">
-          {format(currentDate, "MMMM yyyy")}
-        </h2>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onNextMonth}
-          className="flex items-center space-x-1 text-primary hover:bg-primary/10"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
 
       {/* Calendar Grid */}
       <div className="grid grid-cols-7 gap-px bg-border">
