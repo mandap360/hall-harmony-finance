@@ -32,20 +32,20 @@ export const BookingTableView = ({ bookings, onEditBooking }: BookingTableViewPr
   }
 
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {bookings.map((booking) => {
         const startDate = new Date(booking.startDate);
         const endDate = new Date(booking.endDate);
         
         return (
           <Card key={booking.id} className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <h3 className="text-lg font-semibold text-foreground">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between mb-3">
+                <h3 className="text-base font-semibold text-foreground truncate pr-2">
                   {booking.eventName}
                 </h3>
-                <div className="flex items-center space-x-2">
-                  <Badge className={`${getStatusColor(booking.status)} px-3 py-1`}>
+                <div className="flex items-center space-x-1 flex-shrink-0">
+                  <Badge className={`${getStatusColor(booking.status)} px-2 py-1 text-xs`}>
                     {booking.status === 'confirmed' ? 'Confirmed' : 
                      booking.status === 'pending' ? 'Pending' :
                      booking.status === 'cancelled' ? 'Cancelled' : booking.status}
@@ -54,65 +54,65 @@ export const BookingTableView = ({ bookings, onEditBooking }: BookingTableViewPr
                     variant="ghost"
                     size="sm"
                     onClick={() => onEditBooking(booking)}
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-3 w-3" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
 
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center space-x-2 text-sm">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-foreground">{booking.clientName}</span>
+              <div className="space-y-2 mb-3">
+                <div className="flex items-center space-x-2 text-xs">
+                  <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                  <span className="text-foreground truncate">{booking.clientName}</span>
                 </div>
                 
                 {booking.phoneNumber && (
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center space-x-2 text-xs">
+                    <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                     <span className="text-foreground">{booking.phoneNumber}</span>
                   </div>
                 )}
                 
-                <div className="flex items-center space-x-2 text-sm">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center space-x-2 text-xs">
+                  <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                   <span className="text-foreground">
                     {format(startDate, "dd MMM yyyy")}
                   </span>
                 </div>
                 
-                <div className="flex items-center space-x-2 text-sm">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center space-x-2 text-xs">
+                  <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                   <span className="text-foreground">
                     {format(startDate, "hh:mm a")} - {format(endDate, "hh:mm a")}
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
+              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border">
                 <div className="text-center">
-                  <div className="text-lg font-semibold text-blue-600">
+                  <div className="text-sm font-semibold text-blue-600">
                     ₹ {booking.rentFinalized?.toLocaleString() || 0}
                   </div>
                   <div className="text-xs text-muted-foreground">Rent Finalized</div>
                 </div>
                 
                 <div className="text-center">
-                  <div className="text-lg font-semibold text-green-600">
+                  <div className="text-sm font-semibold text-green-600">
                     ₹ {booking.rentReceived?.toLocaleString() || 0}
                   </div>
                   <div className="text-xs text-muted-foreground">Rent Received</div>
                 </div>
                 
                 <div className="text-center">
-                  <div className="text-lg font-semibold text-purple-600">
+                  <div className="text-sm font-semibold text-purple-600">
                     ₹ 0
                   </div>
                   <div className="text-xs text-muted-foreground">Additional Income</div>
