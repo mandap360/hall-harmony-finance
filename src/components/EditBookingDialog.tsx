@@ -136,17 +136,17 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-amber-800">Edit Booking</DialogTitle>
+          <DialogTitle className="text-primary">Edit Booking</DialogTitle>
         </DialogHeader>
 
         {/* Tabs */}
-        <div className="flex space-x-1 border-b border-amber-200">
+        <div className="flex space-x-1 border-b border-border">
           <button
             onClick={() => setActiveTab("details")}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               activeTab === "details"
-                ? "text-amber-700 border-b-2 border-amber-600 bg-amber-50"
-                : "text-gray-500 hover:text-amber-600"
+                ? "text-primary border-b-2 border-primary bg-primary/5"
+                : "text-muted-foreground hover:text-primary"
             }`}
           >
             Details
@@ -155,8 +155,8 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
             onClick={() => setActiveTab("payments")}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               activeTab === "payments"
-                ? "text-amber-700 border-b-2 border-amber-600 bg-amber-50"
-                : "text-gray-500 hover:text-amber-600"
+                ? "text-primary border-b-2 border-primary bg-primary/5"
+                : "text-muted-foreground hover:text-primary"
             }`}
           >
             Payments
@@ -165,8 +165,8 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
             onClick={() => setActiveTab("additional-income")}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               activeTab === "additional-income"
-                ? "text-amber-700 border-b-2 border-amber-600 bg-amber-50"
-                : "text-gray-500 hover:text-amber-600"
+                ? "text-primary border-b-2 border-primary bg-primary/5"
+                : "text-muted-foreground hover:text-primary"
             }`}
           >
             Categories

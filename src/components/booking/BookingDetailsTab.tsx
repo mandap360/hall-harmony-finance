@@ -53,21 +53,21 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="eventName">Event Name</Label>
-        <div className="p-2 bg-gray-50 border border-gray-200 rounded-md text-gray-700">
+        <div className="p-2 bg-muted/50 border border-border rounded-md text-foreground">
           {booking.eventName}
         </div>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="clientName">Client Name</Label>
-        <div className="p-2 bg-gray-50 border border-gray-200 rounded-md text-gray-700">
+        <div className="p-2 bg-muted/50 border border-border rounded-md text-foreground">
           {booking.clientName}
         </div>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="phoneNumber">Phone Number</Label>
-        <div className="p-2 bg-gray-50 border border-gray-200 rounded-md text-gray-700">
+        <div className="p-2 bg-muted/50 border border-border rounded-md text-foreground">
           {booking.phoneNumber}
         </div>
       </div>
@@ -75,13 +75,13 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="startDate">Start Date</Label>
-          <div className="p-2 bg-gray-50 border border-gray-200 rounded-md text-gray-700">
+          <div className="p-2 bg-muted/50 border border-border rounded-md text-foreground">
             {startDateTime.date}
           </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="startTime">Start Time</Label>
-          <div className="p-2 bg-gray-50 border border-gray-200 rounded-md text-gray-700">
+          <div className="p-2 bg-muted/50 border border-border rounded-md text-foreground">
             {startDateTime.time}
           </div>
         </div>
@@ -90,13 +90,13 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="endDate">End Date</Label>
-          <div className="p-2 bg-gray-50 border border-gray-200 rounded-md text-gray-700">
+          <div className="p-2 bg-muted/50 border border-border rounded-md text-foreground">
             {endDateTime.date}
           </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="endTime">End Time</Label>
-          <div className="p-2 bg-gray-50 border border-gray-200 rounded-md text-gray-700">
+          <div className="p-2 bg-muted/50 border border-border rounded-md text-foreground">
             {endDateTime.time}
           </div>
         </div>
@@ -104,7 +104,7 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
 
       <div className="space-y-2">
         <Label htmlFor="rent">Rent Finalized</Label>
-        <div className="p-2 bg-gray-50 border border-gray-200 rounded-md text-gray-700">
+        <div className="p-2 bg-muted/50 border border-border rounded-md text-foreground">
           ₹{booking.rent?.toLocaleString()}
         </div>
       </div>

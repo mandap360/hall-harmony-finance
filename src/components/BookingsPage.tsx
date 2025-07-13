@@ -1,13 +1,14 @@
 
 import { useState, useMemo } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Search, List, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { EditBookingDialog } from "@/components/EditBookingDialog";
 import { RefundDialog } from "@/components/booking/RefundDialog";
 import { useBookings } from "@/hooks/useBookings";
-import { BookingGrid } from "@/components/booking/BookingGrid";
-import { BookingEmptyState } from "@/components/booking/BookingEmptyState";
+import { BookingTableView } from "@/components/booking/BookingTableView";
+import { BookingCalendarView } from "@/components/booking/BookingCalendarView";
 import { MonthNavigation } from "@/components/MonthNavigation";
 import { addMonths, subMonths, format } from "date-fns";
 
@@ -19,6 +20,7 @@ export const BookingsPage = () => {
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   const handlePreviousMonth = () => {
     setCurrentDate(prev => subMonths(prev, 1));
@@ -96,41 +98,70 @@ export const BookingsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-      <MonthNavigation
-        currentDate={currentDate}
-        onPreviousMonth={handlePreviousMonth}
-        onNextMonth={handleNextMonth}
-      />
+    <div className="min-h-screen bg-primary/5">
+      <div className="bg-white border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          {/* Search and View Toggle */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search bookings..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-white border-border focus:border-primary"
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2 bg-muted rounded-lg p-1">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className={viewMode === 'list' ? 'bg-primary text-white' : 'hover:bg-background'}
+              >
+                List
+              </Button>
+              <Button
+                variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('calendar')}
+                className={viewMode === 'calendar' ? 'bg-primary text-white' : 'hover:bg-background'}
+              >
+                Calendar
+              </Button>
+            </div>
+          </div>
 
-      <div className="p-4">
-        <div className="mb-4">
-          <input
-            type="text"
-            placeholder="Search bookings..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          {/* Month Navigation */}
+          <MonthNavigation
+            currentDate={currentDate}
+            onPreviousMonth={handlePreviousMonth}
+            onNextMonth={handleNextMonth}
           />
         </div>
+      </div>
 
-        {filteredBookings.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No bookings found for {format(currentDate, "MMMM yyyy")}</p>
-          </div>
-        ) : (
-          <BookingGrid
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        {viewMode === 'list' ? (
+          <BookingTableView
             bookings={filteredBookings}
-            onEdit={handleEditBooking}
-            onCancel={handleCancelBooking}
-            onProcessRefund={handleProcessRefund}
+            onEditBooking={handleEditBooking}
+          />
+        ) : (
+          <BookingCalendarView
+            bookings={filteredBookings}
+            currentDate={currentDate}
+            onPreviousMonth={handlePreviousMonth}
+            onNextMonth={handleNextMonth}
+            onEditBooking={handleEditBooking}
           />
         )}
       </div>
 
       <Button
         onClick={() => setShowAddDialog(true)}
-        className="fixed bottom-6 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 text-white z-50"
         size="icon"
       >
         <Plus className="h-6 w-6" />

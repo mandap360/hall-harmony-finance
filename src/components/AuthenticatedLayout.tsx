@@ -23,17 +23,12 @@ export const AuthenticatedLayout = ({ children }: AuthenticatedLayoutProps) => {
             <SidebarTrigger className="mr-4" />
             
             <div className="flex-1">
-              <h1 className="text-lg font-semibold text-foreground">Mandap360</h1>
-              {profile?.business_name && (
-                <p className="text-sm text-muted-foreground">{profile.business_name}</p>
-              )}
             </div>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="flex items-center space-x-2">
                   <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">{user?.email}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
