@@ -99,11 +99,11 @@ export const ReportsPage = () => {
   // Show loading state while data is being calculated
   if (!incomeData || !expenseData) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="min-h-screen bg-background p-4">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Financial Reports</h1>
-            <p className="text-gray-600">Loading...</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Financial Reports</h1>
+            <p className="text-muted-foreground">Loading...</p>
           </div>
         </div>
       </div>
@@ -115,34 +115,34 @@ export const ReportsPage = () => {
 
   if (hasNoData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="max-w-md mx-auto text-center">
           <Card className="p-8 shadow-lg">
             <div className="mb-6">
-              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <TrendingUp className="h-8 w-8 text-blue-600" />
+              <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <TrendingUp className="h-8 w-8 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
                 Welcome to Financial Reports
               </h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-muted-foreground mb-6">
                 Start by adding your first booking or expense to see comprehensive financial insights and analytics.
               </p>
             </div>
             
             <div className="space-y-3">
-              <div className="flex items-center text-sm text-gray-500 bg-gray-50 p-3 rounded">
+              <div className="flex items-center text-sm text-muted-foreground bg-muted p-3 rounded">
                 <Calendar className="h-4 w-4 mr-2" />
                 <span>Add bookings to track income</span>
               </div>
-              <div className="flex items-center text-sm text-gray-500 bg-gray-50 p-3 rounded">
+              <div className="flex items-center text-sm text-muted-foreground bg-muted p-3 rounded">
                 <FileText className="h-4 w-4 mr-2" />
                 <span>Record expenses to monitor spending</span>
               </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <p className="text-xs text-gray-400">
+            <div className="mt-6 pt-4 border-t border-border">
+              <p className="text-xs text-muted-foreground">
                 Once you have data, you'll see detailed reports including profit/loss analysis, 
                 category breakdowns, and account summaries.
               </p>
@@ -158,11 +158,11 @@ export const ReportsPage = () => {
   const overdueBills = expenses.filter(expense => !expense.isPaid).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Financial Reports</h1>
-          <p className="text-gray-600">Current Financial Year Overview</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Financial Reports</h1>
+          <p className="text-muted-foreground">Current Financial Year Overview</p>
         </div>
 
         {/* Zoho Books Style Summary */}

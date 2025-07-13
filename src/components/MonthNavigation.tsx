@@ -14,18 +14,17 @@ export const MonthNavigation = ({
   onNextMonth 
 }: MonthNavigationProps) => {
   return (
-    <div className="flex items-center justify-between bg-card border-b border-border px-4 py-3">
+    <div className="flex items-center justify-center bg-card border-b border-border px-4 py-3 gap-6">
       <Button
         variant="ghost"
         size="sm"
         onClick={onPreviousMonth}
-        className="flex items-center gap-1"
+        className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 p-0"
       >
-        <ChevronLeft className="h-4 w-4" />
-        Previous
+        <ChevronLeft className="h-5 w-5" />
       </Button>
       
-      <h2 className="text-lg font-semibold text-foreground">
+      <h2 className="text-xl font-semibold text-foreground min-w-[140px] text-center">
         {format(currentDate, "MMMM yyyy")}
       </h2>
       
@@ -33,10 +32,9 @@ export const MonthNavigation = ({
         variant="ghost"
         size="sm"
         onClick={onNextMonth}
-        className="flex items-center gap-1"
+        className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 p-0"
       >
-        Next
-        <ChevronRight className="h-4 w-4" />
+        <ChevronRight className="h-5 w-5" />
       </Button>
     </div>
   );
