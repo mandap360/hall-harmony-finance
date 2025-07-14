@@ -74,6 +74,8 @@ export const useBookings = () => {
           .select('*')
           .in('booking_id', bookingIds);
         
+        console.log('Additional income query result:', { additionalIncome, additionalIncomeError, bookingIds });
+        
         if (additionalIncomeError) {
           console.warn('Error fetching additional income:', additionalIncomeError);
         } else {
@@ -88,6 +90,7 @@ export const useBookings = () => {
         
         // Calculate total additional income for this booking
         const additionalIncomeTotal = bookingAdditionalIncome.reduce((total, income) => total + (income.amount || 0), 0);
+        console.log(`Booking ${booking.id}: additionalIncome items:`, bookingAdditionalIncome, 'total:', additionalIncomeTotal);
         
         return {
           id: booking.id,
