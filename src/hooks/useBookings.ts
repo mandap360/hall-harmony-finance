@@ -19,6 +19,7 @@ export interface Booking {
   createdAt: string;
   organization_id?: string;
   status?: string;
+  additionalIncomeTotal?: number;
 }
 
 export interface Payment {
@@ -53,6 +54,7 @@ export const useBookings = () => {
       // Then fetch payments for each booking
       const bookingIds = bookingsData?.map(booking => booking.id) || [];
       let paymentsData: any[] = [];
+      let additionalIncomeData: any[] = [];
       
       if (bookingIds.length > 0) {
         const { data: payments, error: paymentsError } = await supabase
@@ -65,11 +67,27 @@ export const useBookings = () => {
         } else {
           paymentsData = payments || [];
         }
+
+        // Fetch additional income for each booking
+        const { data: additionalIncome, error: additionalIncomeError } = await supabase
+          .from('additional_income')
+          .select('*')
+          .in('booking_id', bookingIds);
+        
+        if (additionalIncomeError) {
+          console.warn('Error fetching additional income:', additionalIncomeError);
+        } else {
+          additionalIncomeData = additionalIncome || [];
+        }
       }
 
       // Transform the data to match the expected format
       const transformedBookings: Booking[] = (bookingsData || []).map(booking => {
         const bookingPayments = paymentsData.filter(payment => payment.booking_id === booking.id);
+        const bookingAdditionalIncome = additionalIncomeData.filter(income => income.booking_id === booking.id);
+        
+        // Calculate total additional income for this booking
+        const additionalIncomeTotal = bookingAdditionalIncome.reduce((total, income) => total + (income.amount || 0), 0);
         
         return {
           id: booking.id,
@@ -83,6 +101,7 @@ export const useBookings = () => {
           notes: booking.notes,
           paidAmount: booking.rent_received,
           status: booking.status || 'confirmed',
+          additionalIncomeTotal,
           payments: bookingPayments.map((payment: any) => ({
             id: payment.id,
             amount: payment.amount,
