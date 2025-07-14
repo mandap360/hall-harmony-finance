@@ -62,8 +62,8 @@ export const BookingCalendarView = ({
             <div
               key={day.toISOString()}
               className={`bg-background min-h-[120px] p-2 ${
-                !isCurrentMonth ? 'text-muted-foreground bg-muted/50' : ''
-              }`}
+                !isCurrentMonth ? 'text-muted-foreground/70' : ''
+              } ${dayBookings.length > 0 ? 'bg-primary/5 border-l-2 border-primary' : ''}`}
             >
               <div className="text-sm font-medium mb-1">
                 {format(day, "d")}

@@ -111,12 +111,12 @@ export const BookingTableView = ({ bookings, onEditBooking }: BookingTableViewPr
                   <div className="text-xs text-muted-foreground">Rent Received</div>
                 </div>
                 
-                <div className="text-center">
-                  <div className="text-sm font-semibold text-purple-600">
-                    ₹ 0
-                  </div>
-                  <div className="text-xs text-muted-foreground">Additional Income</div>
+              <div className="text-center">
+                <div className="text-sm font-semibold text-purple-600">
+                  ₹ {booking.additionalIncomeTotal?.toLocaleString() || 0}
                 </div>
+                <div className="text-xs text-muted-foreground">Additional Income</div>
+              </div>
               </div>
             </CardContent>
           </Card>
