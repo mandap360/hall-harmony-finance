@@ -94,8 +94,8 @@ export const ExpenseFilters = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="unpaid">Unpaid</SelectItem>
+                <SelectItem value="paid">Completed</SelectItem>
+                <SelectItem value="unpaid">Pending</SelectItem>
               </SelectContent>
             </Select>
             </div>

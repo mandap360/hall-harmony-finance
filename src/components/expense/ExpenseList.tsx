@@ -76,14 +76,14 @@ export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) =>
           <div className="absolute top-4 right-4 flex items-center space-x-2">
             {expense.isPaid ? (
               <Badge variant="default" className="bg-green-100 text-green-800">
-                Paid
+                Completed
                 {expense.accountName && (
                   <span className="ml-1 text-xs">via {expense.accountName}</span>
                 )}
               </Badge>
             ) : (
               <Badge variant="secondary" className="bg-red-100 text-red-800">
-                Unpaid
+                Pending
               </Badge>
             )}
             

@@ -128,18 +128,10 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Transaction</DialogTitle>
+            <DialogTitle>Add New Expense</DialogTitle>
           </DialogHeader>
           
-          <Tabs defaultValue="expense" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="expense">Expense</TabsTrigger>
-              <TabsTrigger value="income">Income</TabsTrigger>
-              <TabsTrigger value="transfer">Transfer</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="expense" className="mt-4">
-              <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div>
               <Label htmlFor="vendor">
                 Party <span className="text-red-500">*</span>
@@ -279,22 +271,8 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
               <Button type="submit">Add Expense</Button>
             </div>
           </form>
-        </TabsContent>
-        
-        <TabsContent value="income" className="mt-4">
-          <IncomeDetailsForm
-            onSubmit={handleIncomeSubmit}
-            onCancel={() => onOpenChange(false)}
-          />
-        </TabsContent>
-        
-        <TabsContent value="transfer" className="mt-4">
-          <TransferForm onSubmit={handleTransferSubmit} />
-        </TabsContent>
-      </Tabs>
-    </DialogContent>
-  </Dialog>
-
+        </DialogContent>
+      </Dialog>
       <AddVendorDialog
         open={showAddVendorDialog}
         onOpenChange={setShowAddVendorDialog}

@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAdditionalIncome } from "@/hooks/useAdditionalIncome";
 import { useCategories } from "@/hooks/useCategories";
 import { AdditionalIncomeRefundDialog } from "@/components/AdditionalIncomeRefundDialog";
+import { AddIncomeCategoryDialog } from "@/components/AddIncomeCategoryDialog";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AdditionalIncomeTabProps {
@@ -22,6 +23,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
+  const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
 
   // Fetch additional incomes when component mounts or bookingId changes
   useEffect(() => {
@@ -218,11 +220,20 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
             </div>
             <div className="space-y-2">
               <Label htmlFor="category">Income Category</Label>
-              <Select value={categoryId} onValueChange={setCategoryId} required>
+              <Select value={categoryId} onValueChange={(value) => {
+                if (value === "add_category") {
+                  setIsAddCategoryDialogOpen(true);
+                } else {
+                  setCategoryId(value);
+                }
+              }} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Select income category" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="add_category" className="text-blue-600 font-medium">
+                    + Add New Category
+                  </SelectItem>
                   {incomeCategories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
@@ -297,6 +308,15 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
         maxRefundAmount={availableToAllocate}
         bookingId={bookingId}
         onRefund={handleRefund}
+      />
+
+      <AddIncomeCategoryDialog
+        open={isAddCategoryDialogOpen}
+        onOpenChange={setIsAddCategoryDialogOpen}
+        onCategoryAdded={(categoryName) => {
+          // Refresh categories and auto-select the new one
+          window.location.reload(); // Simple refresh for now
+        }}
       />
     </div>
   );
