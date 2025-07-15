@@ -66,13 +66,6 @@ export const ExpensePage = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Month Navigation */}
-      <MonthNavigation 
-        currentDate={currentDate}
-        onPreviousMonth={handlePreviousMonth}
-        onNextMonth={handleNextMonth}
-      />
-      
       {/* Fixed Filters */}
       <div className="flex-shrink-0">
         <ExpenseFilters
@@ -92,6 +85,13 @@ export const ExpensePage = () => {
           onToggleFilters={() => setShowFilters(!showFilters)}
         />
       </div>
+      
+      {/* Month Navigation */}
+      <MonthNavigation 
+        currentDate={currentDate}
+        onPreviousMonth={handlePreviousMonth}
+        onNextMonth={handleNextMonth}
+      />
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto">

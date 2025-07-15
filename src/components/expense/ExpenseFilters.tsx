@@ -42,22 +42,21 @@ export const ExpenseFilters = ({
 }: ExpenseFiltersProps) => {
   return (
     <div className="bg-white border-b">
-      {/* Filter Toggle Button - Moved to Right */}
-      <div className="p-4 border-b flex justify-end">
+      {/* Filter Toggle Button */}
+      <div className="p-4 flex items-center gap-4">
         <Button
-          variant="outline"
+          variant="ghost"
+          size="icon"
           onClick={onToggleFilters}
-          className="flex items-center gap-2"
+          className="h-8 w-8"
         >
           <Filter className="h-4 w-4" />
-          {showFilters ? "Hide Filters" : "Show Filters"}
         </Button>
-      </div>
-
-      {/* Filter Options */}
-      {showFilters && (
-        <div className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        {/* Filter Options */}
+        {showFilters && (
+          <div className="flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Categories */}
             <Select value={selectedCategory} onValueChange={onCategoryChange}>
               <SelectTrigger>
@@ -99,9 +98,10 @@ export const ExpenseFilters = ({
                 <SelectItem value="unpaid">Unpaid</SelectItem>
               </SelectContent>
             </Select>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

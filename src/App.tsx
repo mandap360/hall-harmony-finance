@@ -29,10 +29,17 @@ const App = () => (
                 </AuthenticatedLayout>
               </ProtectedRoute>
             } />
-            <Route path="/transactions" element={
+            <Route path="/expenses" element={
               <ProtectedRoute>
                 <AuthenticatedLayout>
-                  <Index activeTab="transactions" />
+                  <Index activeTab="expenses" />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/accounts" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Index activeTab="accounts" />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             } />
