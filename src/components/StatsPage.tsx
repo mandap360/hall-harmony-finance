@@ -1,14 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { Calendar, CalendarDays } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useBookings } from "@/hooks/useBookings";
 import { useAdditionalIncome } from "@/hooks/useAdditionalIncome";
-import { useCategories } from "@/hooks/useCategories";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { MonthNavigation } from "@/components/MonthNavigation";
+import { ExpenseCard } from "@/components/ExpenseCard";
+import { cn } from "@/lib/utils";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, startOfYear, endOfYear, addYears, subYears, addMonths, subMonths } from "date-fns";
 
 const COLORS = {
   household: '#ff6b6b',
@@ -23,230 +27,416 @@ const COLORS = {
   other: '#78909c'
 };
 
-const TABS = [
-  { id: 'stats', label: 'Stats' },
-  { id: 'budget', label: 'Budget' },
-  { id: 'note', label: 'Note' }
+const MAIN_TABS = [
+  { id: 'income-expense', label: 'Income & Expense' },
+  { id: 'outstandings', label: 'Outstandings' }
+];
+
+const PERIOD_OPTIONS = [
+  { value: 'monthly', label: 'Monthly', short: 'M' },
+  { value: 'yearly', label: 'Yearly', short: 'Y' },
+  { value: 'weekly', label: 'Weekly', short: 'W' },
+  { value: 'period', label: 'Period', short: 'P' }
 ];
 
 export const StatsPage = () => {
-  const [activeTab, setActiveTab] = useState('stats');
+  const [activeTab, setActiveTab] = useState('income-expense');
+  const [periodType, setPeriodType] = useState('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewType, setViewType] = useState<'income' | 'expenses'>('expenses');
+  const [subTab, setSubTab] = useState('income');
+  const [startDate, setStartDate] = useState<Date>(startOfWeek(new Date()));
+  const [endDate, setEndDate] = useState<Date>(endOfWeek(new Date()));
   
   const { expenses } = useExpenses();
   const { bookings } = useBookings();
   const { additionalIncomes } = useAdditionalIncome();
-  const { categories } = useCategories();
 
-  // Filter data for current month
-  const monthStart = startOfMonth(currentDate);
-  const monthEnd = endOfMonth(currentDate);
-
-  const currentMonthExpenses = expenses.filter(expense => {
-    const expenseDate = new Date(expense.date);
-    return expenseDate >= monthStart && expenseDate <= monthEnd;
-  });
-
-  const currentMonthBookings = bookings.filter(booking => {
-    const bookingDate = new Date(booking.startDate);
-    return bookingDate >= monthStart && bookingDate <= monthEnd;
-  });
-
-  const currentMonthAdditionalIncome = additionalIncomes.filter(income => {
-    const incomeDate = new Date(income.created_at);
-    return incomeDate >= monthStart && incomeDate <= monthEnd;
-  });
-
-  // Calculate expense data by category
-  const expensesByCategory = currentMonthExpenses.reduce((acc, expense) => {
-    const categoryName = expense.category?.toLowerCase() || 'other';
-    acc[categoryName] = (acc[categoryName] || 0) + expense.amount;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const totalExpenses = Object.values(expensesByCategory).reduce((sum, amount) => sum + amount, 0);
-
-  // Calculate income data
-  const rentIncome = currentMonthBookings.reduce((sum, booking) => sum + booking.paidAmount, 0);
-  const additionalIncomeTotal = currentMonthAdditionalIncome.reduce((sum, income) => sum + income.amount, 0);
-  const totalIncome = rentIncome + additionalIncomeTotal;
-
-  // Prepare chart data
-  const chartData = Object.entries(expensesByCategory).map(([category, amount]) => ({
-    name: category,
-    value: amount,
-    percentage: ((amount / totalExpenses) * 100).toFixed(1)
-  }));
-
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    const newDate = new Date(currentDate);
-    if (direction === 'prev') {
-      newDate.setMonth(newDate.getMonth() - 1);
-    } else {
-      newDate.setMonth(newDate.getMonth() + 1);
+  // Get date range based on period type
+  const getDateRange = () => {
+    switch (periodType) {
+      case 'monthly':
+        return { start: startOfMonth(currentDate), end: endOfMonth(currentDate) };
+      case 'yearly':
+        return { start: startOfYear(currentDate), end: endOfYear(currentDate) };
+      case 'weekly':
+        return { start: startOfWeek(currentDate), end: endOfWeek(currentDate) };
+      case 'period':
+        return { start: startDate, end: endDate };
+      default:
+        return { start: startOfMonth(currentDate), end: endOfMonth(currentDate) };
     }
-    setCurrentDate(newDate);
   };
 
-  const getColorForCategory = (category: string): string => {
-    return COLORS[category as keyof typeof COLORS] || COLORS.other;
+  const { start: dateStart, end: dateEnd } = getDateRange();
+
+  // Filter data for current period
+  const filteredExpenses = expenses.filter(expense => {
+    const expenseDate = new Date(expense.date);
+    return expenseDate >= dateStart && expenseDate <= dateEnd;
+  });
+
+  const filteredBookings = bookings.filter(booking => {
+    const bookingDate = new Date(booking.startDate);
+    return bookingDate >= dateStart && bookingDate <= dateEnd;
+  });
+
+  const filteredAdditionalIncome = additionalIncomes.filter(income => {
+    const incomeDate = new Date(income.created_at);
+    return incomeDate >= dateStart && incomeDate <= dateEnd;
+  });
+
+  // Calculate totals
+  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const rentIncome = filteredBookings.reduce((sum, booking) => sum + booking.paidAmount, 0);
+  const additionalIncomeTotal = filteredAdditionalIncome.reduce((sum, income) => sum + income.amount, 0);
+  const totalIncome = rentIncome + additionalIncomeTotal;
+
+  // Get pending items
+  const pendingExpenses = expenses.filter(expense => !expense.isPaid);
+  const pendingBookings = bookings.filter(booking => booking.paidAmount < booking.rent);
+
+  const handlePreviousPeriod = () => {
+    switch (periodType) {
+      case 'monthly':
+        setCurrentDate(prev => subMonths(prev, 1));
+        break;
+      case 'yearly':
+        setCurrentDate(prev => subYears(prev, 1));
+        break;
+      case 'weekly':
+        setCurrentDate(prev => addDays(prev, -7));
+        break;
+    }
+  };
+
+  const handleNextPeriod = () => {
+    switch (periodType) {
+      case 'monthly':
+        setCurrentDate(prev => addMonths(prev, 1));
+        break;
+      case 'yearly':
+        setCurrentDate(prev => addYears(prev, 1));
+        break;
+      case 'weekly':
+        setCurrentDate(prev => addDays(prev, 7));
+        break;
+    }
   };
 
   const formatCurrency = (amount: number) => {
     return `₹ ${amount.toLocaleString()}`;
   };
 
-  const displayAmount = viewType === 'income' ? totalIncome : totalExpenses;
+  const renderPeriodNavigation = () => {
+    if (periodType === 'period') {
+      return (
+        <div className="flex items-center justify-center bg-card border-b border-border px-4 py-3 gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">From:</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-32 justify-start text-left font-normal">
+                  <CalendarDays className="mr-2 h-4 w-4" />
+                  {format(startDate, "dd/MM/yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={startDate}
+                  onSelect={(date) => date && setStartDate(date)}
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">To:</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-32 justify-start text-left font-normal">
+                  <CalendarDays className="mr-2 h-4 w-4" />
+                  {format(endDate, "dd/MM/yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={endDate}
+                  onSelect={(date) => date && setEndDate(date)}
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+      );
+    }
+
+    if (periodType === 'weekly') {
+      const weekStart = startOfWeek(currentDate);
+      const weekEnd = endOfWeek(currentDate);
+      return (
+        <div className="flex items-center justify-center bg-card border-b border-border px-4 py-3 gap-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handlePreviousPeriod}
+            className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 p-0"
+          >
+            <Calendar className="h-5 w-5" />
+          </Button>
+          
+          <h2 className="text-xl font-semibold text-foreground min-w-[200px] text-center">
+            {format(weekStart, "dd/MM")} ~ {format(weekEnd, "dd/MM/yyyy")}
+          </h2>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleNextPeriod}
+            className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 p-0"
+          >
+            <Calendar className="h-5 w-5" />
+          </Button>
+        </div>
+      );
+    }
+
+    if (periodType === 'yearly') {
+      return (
+        <MonthNavigation 
+          currentDate={currentDate}
+          onPreviousMonth={handlePreviousPeriod}
+          onNextMonth={handleNextPeriod}
+        />
+      );
+    }
+
+    return (
+      <MonthNavigation 
+        currentDate={currentDate}
+        onPreviousMonth={handlePreviousPeriod}
+        onNextMonth={handleNextPeriod}
+      />
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Tab Navigation */}
-      <div className="flex border-b border-border">
-        {TABS.map(tab => (
-          <Button
-            key={tab.id}
-            variant={activeTab === tab.id ? "default" : "ghost"}
-            className={`flex-1 rounded-none border-b-2 ${
-              activeTab === tab.id 
-                ? 'border-primary text-primary' 
-                : 'border-transparent text-muted-foreground'
-            }`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </Button>
-        ))}
+      {/* Main Tab Navigation with Period Dropdown */}
+      <div className="flex items-center justify-between border-b border-border bg-card">
+        <div className="flex flex-1">
+          {MAIN_TABS.map(tab => (
+            <Button
+              key={tab.id}
+              variant="ghost"
+              className={cn(
+                "flex-1 rounded-none border-b-2 h-12 font-medium",
+                activeTab === tab.id 
+                  ? 'border-primary bg-primary text-primary-foreground' 
+                  : 'border-transparent text-foreground hover:text-foreground hover:bg-muted'
+              )}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setSubTab(tab.id === 'income-expense' ? 'income' : 'receivables');
+              }}
+            >
+              {tab.label}
+            </Button>
+          ))}
+        </div>
+        
+        {/* Period Dropdown */}
+        <div className="px-4">
+          <Select value={periodType} onValueChange={setPeriodType}>
+            <SelectTrigger className="w-12 h-8 border-none bg-transparent focus:ring-0">
+              <SelectValue>
+                {PERIOD_OPTIONS.find(option => option.value === periodType)?.short}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {PERIOD_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {activeTab === 'stats' && (
-        <div className="p-4 max-w-4xl mx-auto">
-          {/* Month Navigation */}
-          <div className="flex items-center justify-between mb-6">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigateMonth('prev')}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            
-            <h2 className="text-xl font-semibold">
-              {format(currentDate, 'MMM yyyy')}
-            </h2>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigateMonth('next')}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+      {/* Period Navigation */}
+      {renderPeriodNavigation()}
 
-          {/* Income/Expense Toggle */}
-          <div className="flex gap-4 mb-6">
+      {/* Sub Tabs */}
+      <div className="flex border-b border-border bg-background">
+        {activeTab === 'income-expense' ? (
+          <>
             <Button
-              variant={viewType === 'income' ? "default" : "outline"}
-              onClick={() => setViewType('income')}
-              className="flex-1"
+              variant="ghost"
+              className={cn(
+                "flex-1 rounded-none border-b-2 h-12",
+                subTab === 'income'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-transparent text-foreground hover:text-foreground hover:bg-muted'
+              )}
+              onClick={() => setSubTab('income')}
             >
               Income
             </Button>
-            <div className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded">
-              <span className="text-sm font-medium">
-                {viewType === 'income' ? 'Inc.' : 'Exp.'} {formatCurrency(displayAmount)}
-              </span>
+            <Button
+              variant="ghost"
+              className={cn(
+                "flex-1 rounded-none border-b-2 h-12",
+                subTab === 'expenses'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-transparent text-foreground hover:text-foreground hover:bg-muted'
+              )}
+              onClick={() => setSubTab('expenses')}
+            >
+              Expenses
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="ghost"
+              className={cn(
+                "flex-1 rounded-none border-b-2 h-12",
+                subTab === 'receivables'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-transparent text-foreground hover:text-foreground hover:bg-muted'
+              )}
+              onClick={() => setSubTab('receivables')}
+            >
+              Receivables
+            </Button>
+            <Button
+              variant="ghost"
+              className={cn(
+                "flex-1 rounded-none border-b-2 h-12",
+                subTab === 'payables'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-transparent text-foreground hover:text-foreground hover:bg-muted'
+              )}
+              onClick={() => setSubTab('payables')}
+            >
+              Payables
+            </Button>
+          </>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === 'income-expense' && subTab === 'income' && (
+          <div className="p-4 space-y-4">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold">Income - {formatCurrency(totalIncome)}</h3>
             </div>
-          </div>
-
-          {/* Pie Chart */}
-          {chartData.length > 0 ? (
-            <Card className="mb-6">
-              <CardContent className="p-6">
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={chartData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={120}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ percentage }) => `${percentage}%`}
-                        labelLine={false}
-                      >
-                        {chartData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={getColorForCategory(entry.name)} 
-                          />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="mb-6">
-              <CardContent className="p-6">
-                <div className="h-80 flex items-center justify-center">
-                  <p className="text-muted-foreground">No data available for this month</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Category List */}
-          <div className="space-y-3">
-            {chartData
-              .sort((a, b) => b.value - a.value)
-              .map((item, index) => {
-                const color = getColorForCategory(item.name);
-                return (
-                  <div key={item.name} className="flex items-center justify-between p-4 bg-card rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <Badge 
-                        style={{ backgroundColor: color }}
-                        className="text-white border-none min-w-[3rem] justify-center"
-                      >
-                        {item.percentage}%
-                      </Badge>
-                      <span className="font-medium capitalize">{item.name}</span>
-                    </div>
-                    <span className="font-semibold">{formatCurrency(item.value)}</span>
+            {filteredBookings.map((booking) => (
+              <Card key={booking.id} className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-semibold">{booking.eventName}</h4>
+                    <p className="text-sm text-muted-foreground">{booking.clientName}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(booking.startDate), 'dd MMM yyyy')}
+                    </p>
                   </div>
-                );
-              })}
+                  <div className="text-right">
+                    <p className="font-semibold">{formatCurrency(booking.paidAmount)}</p>
+                    <Badge variant={booking.paidAmount >= booking.rent ? "default" : "secondary"}>
+                      {booking.paidAmount >= booking.rent ? "Completed" : "Pending"}
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+            ))}
+            {filteredAdditionalIncome.map((income) => (
+              <Card key={income.id} className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-semibold">{income.category}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(income.created_at), 'dd MMM yyyy')}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">{formatCurrency(income.amount)}</p>
+                    <Badge variant="default">Completed</Badge>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
+        )}
 
-          {chartData.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">
-                No {viewType} data available for {format(currentDate, 'MMMM yyyy')}
-              </p>
+        {activeTab === 'income-expense' && subTab === 'expenses' && (
+          <div className="p-4 space-y-4">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold">Expenses - {formatCurrency(totalExpenses)}</h3>
             </div>
-          )}
-        </div>
-      )}
+            {filteredExpenses.map((expense) => (
+              <div key={expense.id} className="relative">
+                <ExpenseCard expense={expense} />
+                <div className="absolute top-4 right-4">
+                  <Badge variant={expense.isPaid ? "default" : "secondary"}>
+                    {expense.isPaid ? "Completed" : "Pending"}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
-      {(activeTab === 'budget' || activeTab === 'note') && (
-        <div className="p-4 max-w-4xl mx-auto">
-          <Card>
-            <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-semibold mb-2 capitalize">{activeTab}</h3>
-              <p className="text-muted-foreground">
-                {activeTab === 'budget' 
-                  ? 'Budget management features coming soon...' 
-                  : 'Note-taking features coming soon...'
-                }
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        {activeTab === 'outstandings' && subTab === 'receivables' && (
+          <div className="p-4 space-y-4">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold">Pending Receivables</h3>
+            </div>
+            {pendingBookings.map((booking) => (
+              <Card key={booking.id} className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-semibold">{booking.eventName}</h4>
+                    <p className="text-sm text-muted-foreground">{booking.clientName}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(booking.startDate), 'dd MMM yyyy')}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-red-600">
+                      {formatCurrency(booking.rent - booking.paidAmount)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Paid: {formatCurrency(booking.paidAmount)} / {formatCurrency(booking.rent)}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'outstandings' && subTab === 'payables' && (
+          <div className="p-4 space-y-4">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold">Pending Payables</h3>
+            </div>
+            {pendingExpenses.map((expense) => (
+              <div key={expense.id} className="relative">
+                <ExpenseCard expense={expense} />
+                <div className="absolute top-4 right-4">
+                  <Badge variant="destructive">Pending</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };
