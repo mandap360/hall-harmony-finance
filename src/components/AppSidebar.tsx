@@ -1,4 +1,4 @@
-import { Calendar, Receipt, BarChart3, Settings, User, CreditCard } from "lucide-react";
+import { Calendar, Receipt, BarChart3, Settings, User, CreditCard, TrendingUp } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -18,6 +18,7 @@ const items = [
   { title: "Expenses", url: "/expenses", icon: Receipt },
   { title: "Accounts", url: "/accounts", icon: CreditCard },
   { title: "Reports", url: "/reports", icon: BarChart3 },
+  { title: "Stats", url: "/stats", icon: TrendingUp },
   { title: "More", url: "/more", icon: Settings },
 ];
 

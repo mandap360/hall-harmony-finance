@@ -57,6 +57,13 @@ const App = () => (
                 </AuthenticatedLayout>
               </ProtectedRoute>
             } />
+            <Route path="/stats" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Index activeTab="stats" />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
