@@ -75,7 +75,7 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                       className="h-6 w-6 p-0 text-muted-foreground hover:text-green-600"
                       title="Process Refund"
                     >
-                      <img src="/lovable-uploads/98d88b70-fb2e-49e2-a3a6-d0031e683c47.png" alt="Refund" className="h-3 w-3" />
+                      <img src="/lovable-uploads/98d88b70-fb2e-49e2-a3a6-d0031e683c47.png" alt="Refund" className="h-5 w-5" />
                     </Button>
                   )}
                   {canEditBooking(booking) && (
