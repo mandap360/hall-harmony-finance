@@ -54,8 +54,8 @@ export const ExpenseFilters = ({
         </Button>
         
         {/* Filter Options - Always visible */}
-        <div className="flex-1">
-          <div className="flex gap-4 overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted/30 hover:scrollbar-thumb-muted/50 pb-2 md:grid md:grid-cols-3 md:overflow-x-visible">
+        <div className="flex-1 overflow-hidden">
+          <div className="flex flex-col gap-4 sm:flex-row sm:gap-4 md:grid md:grid-cols-3">
             {/* Categories */}
             <Select value={selectedCategory} onValueChange={onCategoryChange}>
               <SelectTrigger>

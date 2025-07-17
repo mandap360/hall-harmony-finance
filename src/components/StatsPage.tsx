@@ -380,7 +380,7 @@ export const StatsPage = () => {
       {/* Content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {activeTab === 'income' && (
-          <div className="p-4 space-y-2">
+          <div className="p-4 space-y-4">
             {/* Display payments only */}
             {(() => {
               let filteredPayments = payments.filter(payment => {
