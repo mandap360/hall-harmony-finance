@@ -22,7 +22,7 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
   };
 
   const canProcessRefund = (booking: any) => {
-    const totalPaid = (booking.rent_received || 0) + (booking.additionalIncomeTotal || 0);
+    const totalPaid = (booking.advance || 0) + (booking.additionalIncomeTotal || 0);
     return booking.status === 'cancelled' && totalPaid > 0;
   };
 
