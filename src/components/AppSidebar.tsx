@@ -15,7 +15,7 @@ import {
 
 const items = [
   { title: "Bookings", url: "/bookings", icon: Calendar },
-  { title: "Transactions", url: "/stats", icon: Receipt },
+  { title: "Transactions", url: "/transactions", icon: Receipt },
   { title: "Accounts", url: "/accounts", icon: CreditCard },
   { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "More", url: "/more", icon: Settings },

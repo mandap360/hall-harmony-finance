@@ -5,7 +5,6 @@ interface DetailedReportsProps {
   incomeBreakdown: {
     rent: number;
     additionalCategory: number;
-    additionalAdvance: number;
   };
   totalIncome: number;
   expensesByCategory: Record<string, number>;
@@ -41,12 +40,6 @@ export const DetailedReports = ({
             </div>
           ))}
           
-          {incomeBreakdown.additionalAdvance > 0 && (
-            <div className="flex justify-between items-center border-b pb-2">
-              <span className="text-gray-600">Additional Income (Advance):</span>
-              <span className="font-semibold text-green-600">₹{incomeBreakdown.additionalAdvance.toLocaleString()}</span>
-            </div>
-          )}
 
           <div className="flex justify-between items-center pt-2 border-t font-bold">
             <span className="text-gray-900">Total:</span>

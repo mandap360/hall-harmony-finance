@@ -78,7 +78,7 @@ export const calculateIncomeData = async (bookings: any[]) => {
 
   // Calculate total receivables (only unpaid rent, not additional income)
   const totalReceivables = bookings.reduce((sum, booking) => {
-    const remaining = booking.rent - booking.paidAmount;
+    const remaining = booking.rentFinalized - booking.paidAmount;
     return sum + (remaining > 0 ? remaining : 0);
   }, 0);
 

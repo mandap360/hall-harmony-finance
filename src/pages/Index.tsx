@@ -2,7 +2,7 @@
 import { BookingsPage } from "@/components/BookingsPage";
 import { ExpensePage } from "@/components/ExpensePage";
 import { AccountsPage } from "@/components/AccountsPage";
-import { StatsPage } from "@/components/StatsPage";
+import { TransactionsPage } from "@/components/TransactionsPage";
 import { ReportsPage } from "@/components/ReportsPage";
 import { MorePage } from "@/components/MorePage";
 import { useLocation } from "react-router-dom";
@@ -19,7 +19,7 @@ const Index = ({ activeTab: propActiveTab }: IndexProps) => {
     const path = location.pathname;
     if (path === "/accounts") return "accounts";
     if (path === "/reports") return "reports";
-    if (path === "/stats") return "stats";
+    if (path === "/transactions" || path === "/stats") return "transactions";
     if (path === "/more") return "more";
     return "bookings";
   };
@@ -30,8 +30,9 @@ const Index = ({ activeTab: propActiveTab }: IndexProps) => {
     switch (activeTab) {
       case "bookings":
         return <BookingsPage />;
+      case "transactions":
       case "stats":
-        return <StatsPage />;
+        return <TransactionsPage />;
       case "accounts":
         return <AccountsPage />;
       case "reports":

@@ -9,7 +9,7 @@ interface BottomNavigationProps {
 export const BottomNavigation = ({ activeTab, onTabChange }: BottomNavigationProps) => {
   const tabs = [
     { id: "bookings", label: "Bookings", icon: Calendar },
-    { id: "stats", label: "Transactions", icon: Receipt },
+    { id: "transactions", label: "Transactions", icon: Receipt },
     { id: "reports", label: "Reports", icon: BarChart3 },
     { id: "more", label: "More", icon: Menu },
   ];

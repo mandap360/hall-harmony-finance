@@ -46,7 +46,7 @@ const PERIOD_OPTIONS = [
   { value: 'period', label: 'Period', short: 'P' }
 ];
 
-export const StatsPage = () => {
+export const TransactionsPage = () => {
   const [activeTab, setActiveTab] = useState('income');
   const [periodType, setPeriodType] = useState('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -366,7 +366,6 @@ export const StatsPage = () => {
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
                       <SelectItem value="rent">Rent</SelectItem>
-                      <SelectItem value="advance">Advance</SelectItem>
                       <SelectItem value="additional">Additional</SelectItem>
                     </SelectContent>
                   </Select>
