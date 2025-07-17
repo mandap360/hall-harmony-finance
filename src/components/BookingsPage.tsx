@@ -148,12 +148,15 @@ export const BookingsPage = () => {
             bookings={filteredBookings}
             onEditBooking={handleEditBooking}
             onCancelBooking={handleCancelBooking}
+            onProcessRefund={handleProcessRefund}
           />
         ) : (
           <BookingCalendarView
             bookings={filteredBookings}
             currentDate={currentDate}
             onEditBooking={handleEditBooking}
+            onCancelBooking={handleCancelBooking}
+            onProcessRefund={handleProcessRefund}
           />
         )}
       </div>

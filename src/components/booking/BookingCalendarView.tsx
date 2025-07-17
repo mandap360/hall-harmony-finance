@@ -8,12 +8,16 @@ interface BookingCalendarViewProps {
   bookings: any[];
   currentDate: Date;
   onEditBooking: (booking: any) => void;
+  onCancelBooking?: (bookingId: string) => void;
+  onProcessRefund?: (booking: any) => void;
 }
 
 export const BookingCalendarView = ({ 
   bookings, 
   currentDate, 
-  onEditBooking 
+  onEditBooking,
+  onCancelBooking,
+  onProcessRefund
 }: BookingCalendarViewProps) => {
   
   const monthStart = startOfMonth(currentDate);

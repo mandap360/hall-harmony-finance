@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Eye, Edit, Calendar, User, Clock, Phone, X } from "lucide-react";
+import { Eye, Edit, Calendar, User, Clock, Phone, X, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,9 +8,10 @@ interface BookingTableViewProps {
   bookings: any[];
   onEditBooking: (booking: any) => void;
   onCancelBooking?: (bookingId: string) => void;
+  onProcessRefund?: (booking: any) => void;
 }
 
-export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking }: BookingTableViewProps) => {
+export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onProcessRefund }: BookingTableViewProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed': return 'bg-blue-500 text-white';
@@ -18,6 +19,21 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking }: B
       case 'cancelled': return 'bg-red-500 text-white';
       default: return 'bg-blue-500 text-white';
     }
+  };
+
+  const canProcessRefund = (booking: any) => {
+    const totalPaid = (booking.rent_received || 0) + (booking.additionalIncomeTotal || 0);
+    return booking.status === 'cancelled' && totalPaid > 0;
+  };
+
+  const canEditBooking = (booking: any) => {
+    return booking.status !== 'cancelled';
+  };
+
+  const canCancelBooking = (booking: any) => {
+    const now = new Date();
+    const startDate = new Date(booking.start_datetime || booking.startDate);
+    return startDate >= now && booking.status !== 'cancelled';
   };
 
   if (bookings.length === 0) {
@@ -39,7 +55,7 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking }: B
         const endDate = new Date(booking.endDate);
         
         return (
-          <Card key={booking.id} className="hover:shadow-lg transition-shadow">
+          <Card key={booking.id} className={`transition-shadow ${booking.status === 'cancelled' ? '' : 'hover:shadow-lg'}`}>
             <CardContent className="p-4">
               <div className="flex items-start justify-between mb-3">
                 <h3 className="text-lg font-medium text-foreground truncate pr-2">
@@ -51,15 +67,28 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking }: B
                      booking.status === 'pending' ? 'Pending' :
                      booking.status === 'cancelled' ? 'Cancelled' : booking.status}
                   </Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEditBooking(booking)}
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  {booking.status !== 'cancelled' && onCancelBooking && (
+                  {canEditBooking(booking) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onEditBooking(booking)}
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  )}
+                  {canProcessRefund(booking) && onProcessRefund && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onProcessRefund(booking)}
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-red-600"
+                      title="Process Refund"
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                    </Button>
+                  )}
+                  {canCancelBooking(booking) && onCancelBooking && (
                     <Button
                       variant="ghost"
                       size="sm"
