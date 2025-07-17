@@ -1,5 +1,6 @@
 
 import { Calendar, User, Phone, IndianRupee, Edit, Clock, X, ArrowDown } from "lucide-react";
+import { PaymentStatCard } from "@/components/ui/payment-stat-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -96,7 +97,7 @@ export const BookingCard = ({ booking, onEdit, onCancel, onProcessRefund }: Book
 
   const canProcessRefund = () => {
     // Show refund button for cancelled bookings that have any payments (advance or additional payments)
-    const totalPaid = booking.advance + (booking.additionalIncome || 0);
+    const totalPaid = booking.rentReceived + (booking.additionalIncome || 0);
     return booking.status === 'cancelled' && totalPaid > 0 && !hasRefundProcessed();
   };
 
@@ -211,29 +212,23 @@ export const BookingCard = ({ booking, onEdit, onCancel, onProcessRefund }: Book
         </div>
         
         <div className="grid grid-cols-3 gap-4 mt-4 pt-3 border-t border-gray-100">
-          <div className="text-center">
-            <div className="flex items-center justify-center text-blue-600 mb-1">
-              <IndianRupee className="h-4 w-4" />
-              <span className="text-sm font-semibold">{booking.rent}</span>
-            </div>
-            <p className="text-xs text-gray-500">Rent Finalized</p>
-          </div>
+          <PaymentStatCard 
+            label="Rent Finalized" 
+            amount={booking.rentFinalized} 
+            variant="blue" 
+          />
           
-          <div className="text-center">
-            <div className="flex items-center justify-center text-green-600 mb-1">
-              <IndianRupee className="h-4 w-4" />
-              <span className="text-sm font-semibold">{booking.advance || 0}</span>
-            </div>
-            <p className="text-xs text-gray-500">Rent Received</p>
-          </div>
+          <PaymentStatCard 
+            label="Rent Received" 
+            amount={booking.rentReceived || 0} 
+            variant="green" 
+          />
           
-          <div className="text-center">
-            <div className="flex items-center justify-center text-purple-600 mb-1">
-              <IndianRupee className="h-4 w-4" />
-              <span className="text-sm font-semibold">{additionalIncome}</span>
-            </div>
-            <p className="text-xs text-gray-500">Additional Income</p>
-          </div>
+          <PaymentStatCard 
+            label="Additional Income" 
+            amount={additionalIncome} 
+            variant="purple" 
+          />
         </div>
       </div>
     </Card>

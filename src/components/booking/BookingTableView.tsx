@@ -3,6 +3,7 @@ import { Eye, Edit, Calendar, User, Clock, Phone, X, ArrowDown } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { PaymentStatCard } from "@/components/ui/payment-stat-card";
 
 interface BookingTableViewProps {
   bookings: any[];
@@ -22,7 +23,7 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
   };
 
   const canProcessRefund = (booking: any) => {
-    const totalPaid = (booking.advance || 0) + (booking.additionalIncomeTotal || 0);
+    const totalPaid = (booking.rentReceived || 0) + (booking.additionalIncomeTotal || 0);
     return booking.status === 'cancelled' && totalPaid > 0;
   };
 
@@ -130,27 +131,24 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border">
-                <div className="text-center">
-                  <div className="text-sm font-semibold text-blue-600">
-                    ₹ {booking.rent?.toLocaleString() || 0}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Rent Finalized</div>
-                </div>
+                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border">
+                <PaymentStatCard 
+                  label="Rent Finalized" 
+                  amount={booking.rentFinalized || 0} 
+                  variant="blue" 
+                />
                 
-                <div className="text-center">
-                  <div className="text-sm font-semibold text-green-600">
-                    ₹ {booking.advance?.toLocaleString() || 0}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Rent Received</div>
-                </div>
+                <PaymentStatCard 
+                  label="Rent Received" 
+                  amount={booking.rentReceived || 0} 
+                  variant="green" 
+                />
                 
-              <div className="text-center">
-                <div className="text-sm font-semibold text-purple-600">
-                  ₹ {booking.additionalIncomeTotal?.toLocaleString() || 0}
-                </div>
-                <div className="text-xs text-muted-foreground">Additional Income</div>
-              </div>
+                <PaymentStatCard 
+                  label="Additional Income" 
+                  amount={booking.additionalIncomeTotal || 0} 
+                  variant="purple" 
+                />
               </div>
             </CardContent>
           </Card>

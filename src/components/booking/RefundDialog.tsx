@@ -28,7 +28,7 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
   const { accounts } = useAccounts();
   const { toast } = useToast();
 
-  const totalPaid = booking?.advance || 0;
+  const totalPaid = booking?.rentReceived || 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,18 +1,19 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IndianRupee } from "lucide-react";
+import { CurrencyDisplay } from "@/components/ui/currency-display";
 
 interface PaymentSummaryCardProps {
   booking: {
-    rent: number;
-    advance: number;
+    rentFinalized: number;
+    rentReceived: number;
     paidAmount: number;
     additionalIncome: number;
   };
 }
 
 export const PaymentSummaryCard = ({ booking }: PaymentSummaryCardProps) => {
-  const remainingRent = booking.rent - booking.paidAmount;
+  const remainingRent = booking.rentFinalized - booking.paidAmount;
 
   return (
     <Card className="border-amber-200">
@@ -24,37 +25,29 @@ export const PaymentSummaryCard = ({ booking }: PaymentSummaryCardProps) => {
           <div className="flex items-center space-x-4">
             <div className="flex items-center">
               <span className="text-gray-600 mr-1">Rent Finalized:</span>
-              <div className="flex items-center font-semibold">
-                <IndianRupee className="h-3 w-3" />
-                {booking.rent}
-              </div>
+              <CurrencyDisplay amount={booking.rentFinalized} className="font-semibold" iconSize="sm" />
             </div>
             
             <div className="flex items-center">
               <span className="text-gray-600 mr-1">Rent Received:</span>
-              <div className="flex items-center font-semibold text-green-600">
-                <IndianRupee className="h-3 w-3" />
-                {booking.paidAmount}
-              </div>
+              <CurrencyDisplay amount={booking.paidAmount} className="font-semibold text-green-600" iconSize="sm" />
             </div>
             
             {booking.additionalIncome > 0 && (
               <div className="flex items-center">
                 <span className="text-gray-600 mr-1">Additional Income:</span>
-                <div className="flex items-center font-semibold text-purple-600">
-                  <IndianRupee className="h-3 w-3" />
-                  {booking.additionalIncome}
-                </div>
+                <CurrencyDisplay amount={booking.additionalIncome} className="font-semibold text-purple-600" iconSize="sm" />
               </div>
             )}
           </div>
           
           <div className="flex items-center">
             <span className="text-gray-600 mr-1">Rent Balance:</span>
-            <div className={`flex items-center font-bold ${remainingRent > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              <IndianRupee className="h-3 w-3" />
-              {remainingRent}
-            </div>
+            <CurrencyDisplay 
+              amount={remainingRent} 
+              className={`font-bold ${remainingRent > 0 ? 'text-red-600' : 'text-green-600'}`} 
+              iconSize="sm" 
+            />
           </div>
         </div>
       </CardContent>

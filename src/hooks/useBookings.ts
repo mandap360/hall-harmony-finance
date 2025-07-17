@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,8 +10,8 @@ export interface Booking {
   phoneNumber?: string;
   startDate: string;
   endDate: string;
-  rent: number;
-  advance: number;
+  rentFinalized: number;
+  rentReceived: number;
   notes?: string;
   paidAmount: number;
   payments: Payment[];
@@ -99,8 +98,8 @@ export const useBookings = () => {
           phoneNumber: booking.phone_number,
           startDate: booking.start_datetime,
           endDate: booking.end_datetime,
-          rent: booking.rent_finalized,
-          advance: booking.rent_received,
+          rentFinalized: booking.rent_finalized,
+          rentReceived: booking.rent_received,
           notes: booking.notes,
           paidAmount: booking.rent_received,
           status: booking.status || 'confirmed',
@@ -148,7 +147,7 @@ export const useBookings = () => {
           phone_number: bookingData.phoneNumber,
           start_datetime: bookingData.startDate,
           end_datetime: bookingData.endDate,
-          rent_finalized: bookingData.rent,
+          rent_finalized: bookingData.rentFinalized,
           rent_received: 0,
           notes: bookingData.notes,
           organization_id: profile.organization_id,
@@ -185,7 +184,7 @@ export const useBookings = () => {
       if (bookingData.phoneNumber !== undefined) updateData.phone_number = bookingData.phoneNumber;
       if (bookingData.startDate) updateData.start_datetime = bookingData.startDate;
       if (bookingData.endDate) updateData.end_datetime = bookingData.endDate;
-      if (bookingData.rent !== undefined) updateData.rent_finalized = bookingData.rent;
+      if (bookingData.rentFinalized !== undefined) updateData.rent_finalized = bookingData.rentFinalized;
       if (bookingData.notes !== undefined) updateData.notes = bookingData.notes;
 
       const { error } = await supabase

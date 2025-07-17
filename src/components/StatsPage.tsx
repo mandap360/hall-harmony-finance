@@ -111,7 +111,7 @@ export const StatsPage = () => {
 
   // Get pending items
   const pendingExpenses = expenses.filter(expense => !expense.isPaid);
-  const pendingBookings = bookings.filter(booking => booking.paidAmount < booking.rent);
+  const pendingBookings = bookings.filter(booking => booking.paidAmount < booking.rentFinalized);
 
   const handlePreviousPeriod = () => {
     switch (periodType) {

@@ -154,7 +154,7 @@ export const ReportsPage = () => {
   }
 
   // Calculate overdue invoices and bills for display
-  const overdueInvoices = bookings.filter(booking => booking.rent > booking.paidAmount).length;
+  const overdueInvoices = bookings.filter(booking => booking.rentFinalized > booking.paidAmount).length;
   const overdueBills = expenses.filter(expense => !expense.isPaid).length;
 
   return (

@@ -103,9 +103,9 @@ export const BookingDetailsTab = ({ booking, onSubmit, onCancel }: BookingDetail
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="rent">Rent Finalized</Label>
+        <Label htmlFor="rentFinalized">Rent Finalized</Label>
         <div className="p-2 bg-muted/50 border border-border rounded-md text-foreground">
-          ₹{booking.rent?.toLocaleString()}
+          ₹{booking.rentFinalized?.toLocaleString()}
         </div>
       </div>
 

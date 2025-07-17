@@ -88,8 +88,8 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
       phoneNumber: formData.phoneNumber,
       startDate: startDateTime,
       endDate: endDateTime,
-      rent: parseInt(formData.rent),
-      advance: 0, // Default advance to 0
+      rentFinalized: parseInt(formData.rent),
+      rentReceived: 0, // Default rent received to 0
       notes: formData.notes, // Include notes in the booking data
       paidAmount: 0,
       payments: []
@@ -200,9 +200,9 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="rent">Rent Finalized <span className="text-red-500">*</span></Label>
+            <Label htmlFor="rentFinalized">Rent Finalized <span className="text-red-500">*</span></Label>
             <Input
-              id="rent"
+              id="rentFinalized"
               type="number"
               value={formData.rent}
               onChange={(e) => handleChange("rent", e.target.value)}
