@@ -399,9 +399,24 @@ export const StatsPage = () => {
               }
 
               const formatDateRange = (startDate: string, endDate: string) => {
-                const start = format(new Date(startDate), 'dd MMM yyyy');
-                const end = format(new Date(endDate), 'dd MMM yyyy');
-                return start === end ? start : `${start} ~ ${end}`;
+                // Extract just the date part (YYYY-MM-DD) to compare dates without time
+                const startDateOnly = startDate.split('T')[0];
+                const endDateOnly = endDate.split('T')[0];
+                
+                const startDateFormatted = new Date(startDateOnly + 'T00:00:00').toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric'
+                });
+                
+                const endDateFormatted = new Date(endDateOnly + 'T00:00:00').toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric'
+                });
+
+                const isSameDate = startDateOnly === endDateOnly;
+                return isSameDate ? startDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
               };
 
               return (
@@ -409,13 +424,17 @@ export const StatsPage = () => {
                   {filteredPayments.map((payment) => {
                     const booking = bookings.find(b => b.id === payment.bookingId);
                     
-                    // Format description like account transactions
+                    // Format description exactly like account transactions
                     const getPaymentDescription = () => {
                       if (booking) {
                         const dateRange = formatDateRange(booking.startDate, booking.endDate);
-                        return `${payment.type.charAt(0).toUpperCase() + payment.type.slice(1)} payment for ${booking.eventName} (${dateRange})`;
+                        if (payment.type === 'additional') {
+                          return `Additional Income for ${dateRange}`;
+                        } else {
+                          return `Rent for ${dateRange}`;
+                        }
                       }
-                      return payment.description || `${payment.type.charAt(0).toUpperCase() + payment.type.slice(1)} payment`;
+                      return payment.description || `${payment.type.charAt(0).toUpperCase() + payment.type.slice(1)}`;
                     };
                     
                     return (
