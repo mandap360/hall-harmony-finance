@@ -270,7 +270,7 @@ export const useBookings = () => {
 
     try {
       // Add refund as a negative payment
-      const { error } = await supabase
+      const { data: paymentData, error: paymentError } = await supabase
         .from('payments')
         .insert({
           booking_id: refundData.bookingId,
@@ -280,9 +280,28 @@ export const useBookings = () => {
           description: refundData.description,
           payment_mode: refundData.paymentMode,
           organization_id: profile.organization_id
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (paymentError) throw paymentError;
+
+      // Also create a transaction entry for the account
+      if (refundData.paymentMode) {
+        const { error: transactionError } = await supabase
+          .from('transactions')
+          .insert({
+            account_id: refundData.paymentMode,
+            transaction_type: 'debit',
+            amount: Math.abs(refundData.amount),
+            description: refundData.description,
+            reference_type: 'refund',
+            reference_id: paymentData.id,
+            transaction_date: refundData.date || new Date().toISOString().split('T')[0]
+          });
+
+        if (transactionError) throw transactionError;
+      }
 
       await fetchBookings();
       toast({
