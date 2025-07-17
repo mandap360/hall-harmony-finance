@@ -18,7 +18,7 @@ const items = [
   { title: "Expenses", url: "/expenses", icon: Receipt },
   { title: "Accounts", url: "/accounts", icon: CreditCard },
   { title: "Reports", url: "/reports", icon: BarChart3 },
-  { title: "Stats", url: "/stats", icon: TrendingUp },
+  { title: "Transactions", url: "/stats", icon: TrendingUp },
   { title: "More", url: "/more", icon: Settings },
 ];
 
@@ -64,30 +64,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* User Profile Section */}
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton className="flex items-center space-x-3 p-3">
-                  <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <User className="h-4 w-4 text-primary" />
-                  </div>
-                  {state !== "collapsed" && (
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-sidebar-foreground">
-                        {profile?.business_name || "User"}
-                      </span>
-                      <span className="text-xs text-sidebar-foreground/70">
-                        {user?.email}
-                      </span>
-                    </div>
-                  )}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );
