@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Eye, Edit, Calendar, User, Clock, Phone, X, ArrowDown } from "lucide-react";
+import { Eye, Edit, Calendar, User, Clock, Phone, X, ArrowDown, IndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -62,11 +62,22 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                   {booking.eventName}
                 </h3>
                 <div className="flex items-center space-x-1 flex-shrink-0">
-                  <Badge className={`${getStatusColor(booking.status)} px-2 py-1 text-xs`}>
+                  <Badge className={`${getStatusColor(booking.status)} px-2 py-1 text-xs ${booking.status === 'cancelled' ? 'hover:bg-red-500 hover:text-white' : ''}`}>
                     {booking.status === 'confirmed' ? 'Confirmed' : 
                      booking.status === 'pending' ? 'Pending' :
                      booking.status === 'cancelled' ? 'Cancelled' : booking.status}
                   </Badge>
+                  {booking.status === 'cancelled' && canProcessRefund(booking) && onProcessRefund && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onProcessRefund(booking)}
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-green-600"
+                      title="Process Refund"
+                    >
+                      <IndianRupee className="h-3 w-3" />
+                    </Button>
+                  )}
                   {canEditBooking(booking) && (
                     <Button
                       variant="ghost"
@@ -75,17 +86,6 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                       className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                     >
                       <Edit className="h-3 w-3" />
-                    </Button>
-                  )}
-                  {canProcessRefund(booking) && onProcessRefund && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onProcessRefund(booking)}
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-red-600"
-                      title="Process Refund"
-                    >
-                      <ArrowDown className="h-3 w-3" />
                     </Button>
                   )}
                   {canCancelBooking(booking) && onCancelBooking && (
