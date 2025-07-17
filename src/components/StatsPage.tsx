@@ -266,7 +266,7 @@ export const StatsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Main Tab Navigation with Period Dropdown */}
       <div className="flex items-center justify-between border-b border-border bg-card">
         <div className="flex flex-1">
