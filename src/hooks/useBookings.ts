@@ -278,6 +278,7 @@ export const useBookings = () => {
           payment_date: refundData.date,
           payment_type: 'refund',
           description: refundData.description,
+          payment_mode: refundData.paymentMode,
           organization_id: profile.organization_id
         });
 
