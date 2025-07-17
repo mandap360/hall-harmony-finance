@@ -275,7 +275,7 @@ export const StatsPage = () => {
               className={cn(
                 "flex-1 rounded-none border-b-2 h-12 font-medium",
                 activeTab === tab.id 
-                  ? 'border-primary bg-primary text-primary-foreground' 
+                  ? 'border-emerald-500 bg-emerald-500 text-white' 
                   : 'border-transparent text-foreground hover:text-foreground hover:bg-muted'
               )}
               onClick={() => setActiveTab(tab.id)}
@@ -411,7 +411,10 @@ export const StatsPage = () => {
                           <div className="text-right">
                             <p className="font-semibold">{formatCurrency(payment.amount)}</p>
                             <p className="text-sm text-muted-foreground">
-                              Cash
+                              {(() => {
+                                const account = accounts.find(acc => acc.id === payment.payment_mode);
+                                return account ? account.name : 'Cash';
+                              })()}
                             </p>
                           </div>
                         </div>

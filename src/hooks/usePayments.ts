@@ -10,6 +10,7 @@ export interface Payment {
   date: string;
   type: "rent" | "advance" | "additional";
   description: string;
+  payment_mode?: string;
 }
 
 export const usePayments = () => {
@@ -41,7 +42,8 @@ export const usePayments = () => {
         amount: Number(payment.amount),
         date: payment.payment_date,
         type: payment.payment_type as "rent" | "advance" | "additional",
-        description: payment.description || ''
+        description: payment.description || '',
+        payment_mode: payment.payment_mode
       }));
 
       console.log("Transformed payments:", transformedPayments);
