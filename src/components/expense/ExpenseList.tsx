@@ -68,7 +68,7 @@ export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) =>
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-4">
       {expenses.map((expense) => (
         <div key={expense.id} className="relative">
           <ExpenseCard expense={expense} />

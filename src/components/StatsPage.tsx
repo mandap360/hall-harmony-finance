@@ -341,7 +341,7 @@ export const StatsPage = () => {
             </Button>
             
             <div className="flex-1">
-              <div className="flex gap-4 overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-200 pb-2">
+              <div className="flex gap-4 overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted/30 hover:scrollbar-thumb-muted/50 pb-2">
                 <div className="flex-shrink-0 min-w-0 w-full max-w-xs">
                   <Select value={selectedIncomeAccount} onValueChange={setSelectedIncomeAccount}>
                     <SelectTrigger>
@@ -378,7 +378,7 @@ export const StatsPage = () => {
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {activeTab === 'income' && (
           <div className="p-4 space-y-4">
             {/* Display payments only */}
@@ -459,7 +459,7 @@ export const StatsPage = () => {
                             <p className="text-sm text-muted-foreground">
                               {format(new Date(payment.date), 'dd MMM yyyy')}
                             </p>
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="outline" className="px-3 py-1 bg-muted/80 border-muted-foreground/20">
                               {(() => {
                                 const account = accounts.find(acc => acc.id === payment.payment_mode);
                                 return account ? account.name : 'Cash';
@@ -496,11 +496,18 @@ export const StatsPage = () => {
               }
 
               return (
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {filteredExpenseData.map((expense) => (
-                    <ExpenseCard key={expense.id} expense={expense} />
-                  ))}
-                </div>
+                <>
+                  <ExpenseList 
+                    expenses={filteredExpenseData} 
+                    onExpenseUpdated={refetch} 
+                  />
+                  
+                  {filteredExpenseData.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No expenses found for the selected filters.
+                    </div>
+                  )}
+                </>
               );
             })()}
           </div>
