@@ -43,7 +43,7 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
       year: 'numeric'
     }) : '';
 
-    const transactionDescription = `Rent Refund (Cancellation) - ${booking.eventName} for ${functionDate}`;
+    const transactionDescription = `Refund (Cancellation) for ${functionDate}`;
 
     setIsProcessing(true);
     console.log('Processing refund:', {
