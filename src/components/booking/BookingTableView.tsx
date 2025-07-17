@@ -55,7 +55,7 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
         const endDate = new Date(booking.endDate);
         
         return (
-          <Card key={booking.id} className={`transition-shadow ${booking.status === 'cancelled' ? '' : 'hover:shadow-lg'}`}>
+          <Card key={booking.id} className="transition-shadow hover:shadow-lg">
             <CardContent className="p-4">
               <div className="flex items-start justify-between mb-3">
                 <h3 className="text-lg font-medium text-foreground truncate pr-2">
