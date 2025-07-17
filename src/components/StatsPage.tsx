@@ -340,33 +340,37 @@ export const StatsPage = () => {
               <Filter className="h-4 w-4" />
             </Button>
             
-            <div className="flex-1 overflow-x-auto">
-              <div className="flex gap-4 min-w-max md:min-w-0 md:grid md:grid-cols-2">
-                <Select value={selectedIncomeAccount} onValueChange={setSelectedIncomeAccount}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Accounts" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Accounts</SelectItem>
-                    {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="flex-1">
+              <div className="flex gap-4 overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-200 pb-2">
+                <div className="flex-shrink-0 min-w-0 w-full max-w-xs">
+                  <Select value={selectedIncomeAccount} onValueChange={setSelectedIncomeAccount}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Accounts" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Accounts</SelectItem>
+                      {accounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 
-                <Select value={selectedIncomeCategory} onValueChange={setSelectedIncomeCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="rent">Rent</SelectItem>
-                    <SelectItem value="advance">Advance</SelectItem>
-                    <SelectItem value="additional">Additional</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex-shrink-0 min-w-0 w-full max-w-xs">
+                  <Select value={selectedIncomeCategory} onValueChange={setSelectedIncomeCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="rent">Rent</SelectItem>
+                      <SelectItem value="advance">Advance</SelectItem>
+                      <SelectItem value="additional">Additional</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </div>
@@ -455,12 +459,12 @@ export const StatsPage = () => {
                             <p className="text-sm text-muted-foreground">
                               {format(new Date(payment.date), 'dd MMM yyyy')}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <Badge variant="secondary" className="text-xs">
                               {(() => {
                                 const account = accounts.find(acc => acc.id === payment.payment_mode);
                                 return account ? account.name : 'Cash';
                               })()}
-                            </p>
+                            </Badge>
                           </div>
                         </div>
                       </Card>
@@ -491,7 +495,13 @@ export const StatsPage = () => {
                 });
               }
 
-              return <ExpenseList expenses={filteredExpenseData} onExpenseUpdated={refetch} />;
+              return (
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {filteredExpenseData.map((expense) => (
+                    <ExpenseCard key={expense.id} expense={expense} />
+                  ))}
+                </div>
+              );
             })()}
           </div>
         )}
