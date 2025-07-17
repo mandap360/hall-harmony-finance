@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Eye, Edit, Calendar, User, Clock, Phone, X, ArrowDown, Undo2 } from "lucide-react";
+import { Eye, Edit, Calendar, User, Clock, Phone, X, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -75,7 +75,7 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                       className="h-6 w-6 p-0 text-muted-foreground hover:text-green-600"
                       title="Process Refund"
                     >
-                      <Undo2 className="h-3 w-3" />
+                      <img src="/lovable-uploads/98d88b70-fb2e-49e2-a3a6-d0031e683c47.png" alt="Refund" className="h-3 w-3" />
                     </Button>
                   )}
                   {canEditBooking(booking) && (
