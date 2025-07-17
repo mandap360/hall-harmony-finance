@@ -275,7 +275,7 @@ export const StatsPage = () => {
               className={cn(
                 "flex-1 rounded-none border-b-2 h-12 font-medium",
                 activeTab === tab.id 
-                  ? 'border-emerald-500 bg-emerald-500 text-white' 
+                  ? 'border-orange-500 bg-transparent text-orange-600' 
                   : 'border-transparent text-foreground hover:text-foreground hover:bg-muted'
               )}
               onClick={() => setActiveTab(tab.id)}

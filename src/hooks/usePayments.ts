@@ -23,9 +23,28 @@ export const usePayments = () => {
       setLoading(true);
       console.log("Fetching payments from Supabase...");
       
+      // Get current user's organization
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('No authenticated user found');
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile) {
+        console.error('No profile found for user');
+        return;
+      }
+
       const { data: paymentsData, error } = await supabase
         .from('payments')
         .select('*')
+        .eq('organization_id', profile.organization_id)
         .order('payment_date', { ascending: false });
 
       if (error) {
