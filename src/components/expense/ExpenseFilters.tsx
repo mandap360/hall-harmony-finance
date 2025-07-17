@@ -53,10 +53,9 @@ export const ExpenseFilters = ({
           <Filter className="h-4 w-4" />
         </Button>
         
-        {/* Filter Options */}
-        {showFilters && (
-          <div className="flex-1">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Filter Options - Always visible */}
+        <div className="flex-1 overflow-x-auto">
+          <div className="flex gap-4 min-w-max md:min-w-0 md:grid md:grid-cols-3">
             {/* Categories */}
             <Select value={selectedCategory} onValueChange={onCategoryChange}>
               <SelectTrigger>
@@ -98,9 +97,8 @@ export const ExpenseFilters = ({
                 <SelectItem value="unpaid">Pending</SelectItem>
               </SelectContent>
             </Select>
-            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

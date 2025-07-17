@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CalendarDays, Filter } from "lucide-react";
+import { Calendar, CalendarDays, Filter, Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -14,6 +14,10 @@ import { useCategories } from "@/hooks/useCategories";
 import { ExpenseFilters } from "@/components/expense/ExpenseFilters";
 import { MonthNavigation } from "@/components/MonthNavigation";
 import { ExpenseCard } from "@/components/ExpenseCard";
+import { ExpenseList } from "@/components/expense/ExpenseList";
+import { AddExpenseDialog } from "@/components/AddExpenseDialog";
+import { useAccounts } from "@/hooks/useAccounts";
+import { usePayments } from "@/hooks/usePayments";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, startOfYear, endOfYear, addYears, subYears, addMonths, subMonths } from "date-fns";
 
@@ -52,13 +56,16 @@ export const StatsPage = () => {
   const [paymentStatus, setPaymentStatus] = useState('all');
   const [startDate, setStartDate] = useState<Date>(startOfWeek(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfWeek(new Date()));
+  const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
   
-  const { expenses } = useExpenses();
+  const { expenses, addExpense, refetch } = useExpenses();
   const { getExpenseCategories } = useCategories();
   const expenseCategories = getExpenseCategories();
   const { bookings } = useBookings();
   const { additionalIncomes } = useAdditionalIncome();
   const { vendors } = useVendors();
+  const { accounts } = useAccounts();
+  const { payments } = usePayments();
 
   // Get date range based on period type
   const getDateRange = () => {
@@ -134,6 +141,16 @@ export const StatsPage = () => {
 
   const formatCurrency = (amount: number) => {
     return `₹ ${amount.toLocaleString()}`;
+  };
+
+  const handleAddExpense = async (expenseData: any) => {
+    try {
+      await addExpense(expenseData);
+      setShowAddExpenseDialog(false);
+      refetch();
+    } catch (error) {
+      console.error('Error adding expense:', error);
+    }
   };
 
   const renderPeriodNavigation = () => {
@@ -305,7 +322,7 @@ export const StatsPage = () => {
           onEndDateChange={() => {}}
           expenseCategories={expenseCategories}
           vendors={vendors}
-          showFilters={showFilters}
+          showFilters={true}
           onToggleFilters={() => setShowFilters(!showFilters)}
         />
       )}
@@ -316,28 +333,50 @@ export const StatsPage = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowFilters(!showFilters)}
               className="h-8 w-8"
             >
               <Filter className="h-4 w-4" />
             </Button>
             
-            {showFilters && (
-              <div className="flex-1">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="paid">Completed</SelectItem>
-                      <SelectItem value="unpaid">Pending</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="flex-1 overflow-x-auto">
+              <div className="flex gap-4 min-w-max md:min-w-0 md:grid md:grid-cols-3">
+                <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="paid">Completed</SelectItem>
+                    <SelectItem value="unpaid">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value="all">
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Accounts" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Accounts</SelectItem>
+                    {accounts.map((account) => (
+                      <SelectItem key={account.id} value={account.name}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select value="all">
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="rent">Rent</SelectItem>
+                    <SelectItem value="additional">Additional Income</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
@@ -346,65 +385,38 @@ export const StatsPage = () => {
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'income' && (
           <div className="p-4 space-y-4">
-            {/* Apply income filters */}
+            {/* Display payments only */}
             {(() => {
-              let filteredIncomeData = [...filteredBookings, ...filteredAdditionalIncome];
-              
-              if (paymentStatus !== 'all') {
-                filteredIncomeData = filteredIncomeData.filter(item => {
-                  if ('paidAmount' in item) {
-                    // Booking
-                    return paymentStatus === 'paid' ? item.paidAmount >= item.rent : item.paidAmount < item.rent;
-                  } else {
-                    // Additional income - always completed
-                    return paymentStatus === 'paid';
-                  }
-                });
-              }
+              const filteredPayments = payments.filter(payment => {
+                const paymentDate = new Date(payment.date);
+                return paymentDate >= dateStart && paymentDate <= dateEnd;
+              });
 
               return (
                 <>
-                  {filteredIncomeData.map((item) => {
-                    if ('eventName' in item) {
-                      // Booking
-                      return (
-                        <Card key={`booking-${item.id}`} className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-semibold">{item.eventName}</h4>
-                              <p className="text-sm text-muted-foreground">{item.clientName}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {format(new Date(item.startDate), 'dd MMM yyyy')}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-semibold">{formatCurrency(item.paidAmount)}</p>
-                              <Badge variant={item.paidAmount >= item.rent ? "default" : "secondary"}>
-                                {item.paidAmount >= item.rent ? "Completed" : "Pending"}
-                              </Badge>
-                            </div>
+                  {filteredPayments.map((payment) => {
+                    const booking = bookings.find(b => b.id === payment.bookingId);
+                    
+                    return (
+                      <Card key={payment.id} className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-semibold">
+                              {booking ? `${booking.eventName} - ${booking.clientName}` : payment.description || 'Payment'}
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(payment.date), 'dd MMM yyyy')}
+                            </p>
                           </div>
-                        </Card>
-                      );
-                    } else {
-                      // Additional income
-                      return (
-                        <Card key={`income-${item.id}`} className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-semibold">{item.category}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {format(new Date(item.created_at), 'dd MMM yyyy')}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-semibold">{formatCurrency(item.amount)}</p>
-                              <Badge variant="default">Completed</Badge>
-                            </div>
+                          <div className="text-right">
+                            <p className="font-semibold">{formatCurrency(payment.amount)}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Cash
+                            </p>
                           </div>
-                        </Card>
-                      );
-                    }
+                        </div>
+                      </Card>
+                    );
                   })}
                 </>
               );
@@ -413,8 +425,7 @@ export const StatsPage = () => {
         )}
 
         {activeTab === 'expense' && (
-          <div className="p-4 space-y-4">
-            {/* Apply expense filters */}
+          <div className="p-4">
             {(() => {
               let filteredExpenseData = filteredExpenses;
               
@@ -432,21 +443,28 @@ export const StatsPage = () => {
                 });
               }
 
-              return filteredExpenseData.map((expense) => (
-                <div key={expense.id} className="relative">
-                  <ExpenseCard expense={expense} />
-                  <div className="absolute top-4 right-4">
-                    <Badge variant={expense.isPaid ? "default" : "secondary"}>
-                      {expense.isPaid ? "Completed" : "Pending"}
-                    </Badge>
-                  </div>
-                </div>
-              ));
+              return <ExpenseList expenses={filteredExpenseData} onExpenseUpdated={refetch} />;
             })()}
           </div>
         )}
       </div>
 
+      {/* Add Expense Button */}
+      {activeTab === 'expense' && (
+        <Button
+          onClick={() => setShowAddExpenseDialog(true)}
+          className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+          size="icon"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
+
+      <AddExpenseDialog
+        open={showAddExpenseDialog}
+        onOpenChange={setShowAddExpenseDialog}
+        onSubmit={handleAddExpense}
+      />
     </div>
   );
 };
