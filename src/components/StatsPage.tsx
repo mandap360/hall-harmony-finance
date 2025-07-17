@@ -439,17 +439,22 @@ export const StatsPage = () => {
                     
                     return (
                       <Card key={payment.id} className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-semibold">
-                              {getPaymentDescription()}
-                            </h4>
+                        <div className="space-y-2">
+                          {/* Description - Full line */}
+                          <h4 className="font-semibold text-foreground">
+                            {getPaymentDescription()}
+                          </h4>
+                          
+                          {/* Amount - Second line */}
+                          <p className="text-lg font-bold text-green-600">
+                            {formatCurrency(payment.amount)}
+                          </p>
+                          
+                          {/* Date and Account - Third line, opposite corners */}
+                          <div className="flex justify-between items-center">
                             <p className="text-sm text-muted-foreground">
                               {format(new Date(payment.date), 'dd MMM yyyy')}
                             </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold">{formatCurrency(payment.amount)}</p>
                             <p className="text-sm text-muted-foreground">
                               {(() => {
                                 const account = accounts.find(acc => acc.id === payment.payment_mode);
