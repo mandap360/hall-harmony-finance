@@ -477,7 +477,7 @@ export const StatsPage = () => {
         )}
 
         {activeTab === 'expense' && (
-          <div className="p-4">
+          <div className="p-4 w-full max-w-full">
             {(() => {
               let filteredExpenseData = filteredExpenses;
               

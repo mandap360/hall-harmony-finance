@@ -29,13 +29,6 @@ const App = () => (
                 </AuthenticatedLayout>
               </ProtectedRoute>
             } />
-            <Route path="/expenses" element={
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <Index activeTab="expenses" />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            } />
             <Route path="/accounts" element={
               <ProtectedRoute>
                 <AuthenticatedLayout>

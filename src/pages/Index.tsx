@@ -17,7 +17,6 @@ const Index = ({ activeTab: propActiveTab }: IndexProps) => {
   const getActiveTabFromPath = () => {
     if (propActiveTab) return propActiveTab;
     const path = location.pathname;
-    if (path === "/expenses") return "expenses";
     if (path === "/accounts") return "accounts";
     if (path === "/reports") return "reports";
     if (path === "/stats") return "stats";
@@ -31,12 +30,10 @@ const Index = ({ activeTab: propActiveTab }: IndexProps) => {
     switch (activeTab) {
       case "bookings":
         return <BookingsPage />;
-      case "expenses":
-        return <ExpensePage />;
-      case "accounts":
-        return <AccountsPage />;
       case "stats":
         return <StatsPage />;
+      case "accounts":
+        return <AccountsPage />;
       case "reports":
         return <ReportsPage />;
       case "more":

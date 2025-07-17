@@ -1,5 +1,5 @@
 
-import { Calendar, DollarSign, BarChart3, Menu } from "lucide-react";
+import { Calendar, Receipt, BarChart3, Menu } from "lucide-react";
 
 interface BottomNavigationProps {
   activeTab: string;
@@ -9,7 +9,7 @@ interface BottomNavigationProps {
 export const BottomNavigation = ({ activeTab, onTabChange }: BottomNavigationProps) => {
   const tabs = [
     { id: "bookings", label: "Bookings", icon: Calendar },
-    { id: "expenses", label: "Expense", icon: DollarSign },
+    { id: "stats", label: "Transactions", icon: Receipt },
     { id: "reports", label: "Reports", icon: BarChart3 },
     { id: "more", label: "More", icon: Menu },
   ];

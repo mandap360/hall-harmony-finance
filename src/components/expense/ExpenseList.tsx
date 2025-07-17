@@ -67,11 +67,11 @@ export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) =>
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full">
       {expenses.map((expense) => (
-        <div key={expense.id} className="bg-card rounded-lg border p-6 border-l-4 border-l-red-500">
-          <div className="flex justify-between items-start gap-4">
-            <div className="flex-1 min-w-0">
+        <div key={expense.id} className="bg-card rounded-lg border p-6 border-l-4 border-l-red-500 w-full overflow-hidden">
+          <div className="flex justify-between items-start gap-4 w-full">
+            <div className="flex-1 min-w-0 max-w-[calc(100%-120px)]">
               <div className="flex items-center text-muted-foreground mb-2">
                 <Building className="h-4 w-4 mr-2 flex-shrink-0" />
                 <span className="text-sm">{expense.category}</span>
@@ -98,7 +98,7 @@ export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) =>
               </div>
             </div>
             
-            <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            <div className="flex flex-col items-end gap-2 flex-shrink-0 w-auto min-w-[100px]">
               {expense.isPaid ? (
                 <Badge variant="outline" className="px-3 py-1 bg-green-50 text-green-700 border-green-200">
                   Completed
