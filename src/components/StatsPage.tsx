@@ -54,6 +54,8 @@ export const StatsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedVendor, setSelectedVendor] = useState('all');
   const [paymentStatus, setPaymentStatus] = useState('all');
+  const [selectedIncomeAccount, setSelectedIncomeAccount] = useState('all');
+  const [selectedIncomeCategory, setSelectedIncomeCategory] = useState('all');
   const [startDate, setStartDate] = useState<Date>(startOfWeek(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfWeek(new Date()));
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
@@ -275,7 +277,7 @@ export const StatsPage = () => {
               className={cn(
                 "flex-1 rounded-none border-b-2 h-12 font-medium",
                 activeTab === tab.id 
-                  ? 'border-orange-500 bg-transparent text-orange-600' 
+                  ? 'border-blue-500 bg-transparent text-orange-600' 
                   : 'border-transparent text-foreground hover:text-foreground hover:bg-muted'
               )}
               onClick={() => setActiveTab(tab.id)}
@@ -339,40 +341,30 @@ export const StatsPage = () => {
             </Button>
             
             <div className="flex-1 overflow-x-auto">
-              <div className="flex gap-4 min-w-max md:min-w-0 md:grid md:grid-cols-3">
-                <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="paid">Completed</SelectItem>
-                    <SelectItem value="unpaid">Pending</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select value="all">
+              <div className="flex gap-4 min-w-max md:min-w-0 md:grid md:grid-cols-2">
+                <Select value={selectedIncomeAccount} onValueChange={setSelectedIncomeAccount}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Accounts" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Accounts</SelectItem>
                     {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.name}>
+                      <SelectItem key={account.id} value={account.id}>
                         {account.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 
-                <Select value="all">
+                <Select value={selectedIncomeCategory} onValueChange={setSelectedIncomeCategory}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
                     <SelectItem value="rent">Rent</SelectItem>
-                    <SelectItem value="additional">Additional Income</SelectItem>
+                    <SelectItem value="advance">Advance</SelectItem>
+                    <SelectItem value="additional">Additional</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -387,22 +379,51 @@ export const StatsPage = () => {
           <div className="p-4 space-y-4">
             {/* Display payments only */}
             {(() => {
-              const filteredPayments = payments.filter(payment => {
+              let filteredPayments = payments.filter(payment => {
                 const paymentDate = new Date(payment.date);
                 return paymentDate >= dateStart && paymentDate <= dateEnd;
               });
+
+              // Apply account filter
+              if (selectedIncomeAccount !== 'all') {
+                filteredPayments = filteredPayments.filter(payment => 
+                  payment.payment_mode === selectedIncomeAccount
+                );
+              }
+
+              // Apply category filter
+              if (selectedIncomeCategory !== 'all') {
+                filteredPayments = filteredPayments.filter(payment => 
+                  payment.type === selectedIncomeCategory
+                );
+              }
+
+              const formatDateRange = (startDate: string, endDate: string) => {
+                const start = format(new Date(startDate), 'dd MMM yyyy');
+                const end = format(new Date(endDate), 'dd MMM yyyy');
+                return start === end ? start : `${start} ~ ${end}`;
+              };
 
               return (
                 <>
                   {filteredPayments.map((payment) => {
                     const booking = bookings.find(b => b.id === payment.bookingId);
                     
+                    // Format description like account transactions
+                    const getPaymentDescription = () => {
+                      if (booking) {
+                        const dateRange = formatDateRange(booking.startDate, booking.endDate);
+                        return `${payment.type.charAt(0).toUpperCase() + payment.type.slice(1)} payment for ${booking.eventName} (${dateRange})`;
+                      }
+                      return payment.description || `${payment.type.charAt(0).toUpperCase() + payment.type.slice(1)} payment`;
+                    };
+                    
                     return (
                       <Card key={payment.id} className="p-4">
                         <div className="flex justify-between items-start">
                           <div>
                             <h4 className="font-semibold">
-                              {booking ? `${booking.eventName} - ${booking.clientName}` : payment.description || 'Payment'}
+                              {getPaymentDescription()}
                             </h4>
                             <p className="text-sm text-muted-foreground">
                               {format(new Date(payment.date), 'dd MMM yyyy')}
