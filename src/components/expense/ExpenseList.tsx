@@ -1,9 +1,8 @@
 
 import { useState } from "react";
-import { Edit } from "lucide-react";
+import { Edit, Building, Calendar, IndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ExpenseCard } from "@/components/ExpenseCard";
 import { EditExpenseDialog } from "./EditExpenseDialog";
 
 import { useExpenses } from "@/hooks/useExpenses";
@@ -70,33 +69,58 @@ export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) =>
   return (
     <div className="space-y-4">
       {expenses.map((expense) => (
-        <div key={expense.id} className="relative">
-          <ExpenseCard expense={expense} />
-          
-          <div className="absolute top-4 right-4 flex items-center space-x-2">
-            {expense.isPaid ? (
-              <Badge variant="default" className="bg-green-100 text-green-800">
-                Completed
-                {expense.accountName && (
-                  <span className="ml-1 text-xs">via {expense.accountName}</span>
-                )}
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="bg-red-100 text-red-800">
-                Pending
-              </Badge>
-            )}
+        <div key={expense.id} className="bg-card rounded-lg border p-6 border-l-4 border-l-red-500">
+          <div className="flex justify-between items-start gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center text-muted-foreground mb-2">
+                <Building className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="text-sm">{expense.category}</span>
+              </div>
+              
+              <h3 className="font-semibold text-lg text-foreground mb-2 truncate">
+                {expense.vendorName}
+              </h3>
+              
+              <div className="flex items-center text-muted-foreground mb-3">
+                <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="text-sm">
+                  {new Date(expense.date).toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                  })}
+                </span>
+              </div>
+              
+              <div className="flex items-center text-red-600">
+                <IndianRupee className="h-4 w-4 mr-1 flex-shrink-0" />
+                <span className="font-semibold">₹{expense.totalAmount.toLocaleString()}</span>
+              </div>
+            </div>
             
-
-            {/* Edit button */}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => openEditDialog(expense)}
-              className="h-8 w-8 p-0"
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
+            <div className="flex flex-col items-end gap-2 flex-shrink-0">
+              {expense.isPaid ? (
+                <Badge variant="outline" className="px-3 py-1 bg-green-50 text-green-700 border-green-200">
+                  Completed
+                  {expense.accountName && (
+                    <span className="ml-1 text-xs">via {expense.accountName}</span>
+                  )}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="px-3 py-1 bg-red-50 text-red-700 border-red-200">
+                  Pending
+                </Badge>
+              )}
+              
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => openEditDialog(expense)}
+                className="h-8 w-8 p-0"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       ))}
