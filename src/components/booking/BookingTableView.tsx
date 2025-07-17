@@ -7,9 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 interface BookingTableViewProps {
   bookings: any[];
   onEditBooking: (booking: any) => void;
+  onCancelBooking?: (bookingId: string) => void;
 }
 
-export const BookingTableView = ({ bookings, onEditBooking }: BookingTableViewProps) => {
+export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking }: BookingTableViewProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed': return 'bg-blue-500 text-white';
@@ -58,13 +59,17 @@ export const BookingTableView = ({ bookings, onEditBooking }: BookingTableViewPr
                   >
                     <Edit className="h-3 w-3" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  {booking.status !== 'cancelled' && onCancelBooking && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onCancelBooking(booking.id)}
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-red-600"
+                      title="Cancel booking"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               </div>
 

@@ -147,6 +147,7 @@ export const BookingsPage = () => {
           <BookingTableView
             bookings={filteredBookings}
             onEditBooking={handleEditBooking}
+            onCancelBooking={handleCancelBooking}
           />
         ) : (
           <BookingCalendarView
