@@ -11,6 +11,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarHeader,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -44,10 +46,16 @@ export function AppSidebar() {
       variant="sidebar"
       collapsible="offcanvas"
     >
+      <SidebarHeader className="border-b border-sidebar-border">
+        <div className="flex items-center justify-between px-2 py-3">
+          <h2 className="text-sidebar-foreground font-semibold text-lg">Mandap360</h2>
+          <SidebarTrigger className="h-8 w-8" />
+        </div>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70 text-xs font-medium px-2 mb-2">
-            Mandap360
+            Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
