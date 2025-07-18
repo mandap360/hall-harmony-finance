@@ -65,7 +65,7 @@ const AuthenticatedLayoutContent = ({ children }: AuthenticatedLayoutProps) => {
 
 export const AuthenticatedLayout = ({ children }: AuthenticatedLayoutProps) => {
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <AuthenticatedLayoutContent>{children}</AuthenticatedLayoutContent>
     </SidebarProvider>
   );

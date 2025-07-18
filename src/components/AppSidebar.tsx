@@ -40,14 +40,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar 
-      collapsible="icon"
+      side="left"
+      variant="floating"
       className="border-r border-sidebar-border"
-      variant="sidebar"
     >
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70 text-xs font-medium px-2 mb-2">
-            {state === "expanded" && "Mandap360"}
+            Mandap360
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
