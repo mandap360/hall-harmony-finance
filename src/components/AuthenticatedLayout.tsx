@@ -18,8 +18,8 @@ const AuthenticatedLayoutContent = ({ children }: AuthenticatedLayoutProps) => {
   const isBookingsPage = location.pathname === '/';
 
   return (
-    <div className="min-h-screen flex flex-col w-full bg-background">
-      <header className="bg-[hsl(var(--header-background))] border-b border-border h-14 flex items-center w-full shrink-0 relative">
+    <div className="min-h-screen w-full bg-background">
+      <header className="fixed top-0 left-0 right-0 bg-[hsl(var(--header-background))] border-b border-border h-14 flex items-center w-full shrink-0 z-50">
         <Button
           variant="ghost"
           size="icon"
@@ -55,7 +55,7 @@ const AuthenticatedLayoutContent = ({ children }: AuthenticatedLayoutProps) => {
           </DropdownMenu>
         </header>
         
-        <div className="flex-1 flex w-full overflow-hidden">
+        <div className="pt-14 flex w-full h-screen">
           <AppSidebar />
           <main className="flex-1 min-w-0 overflow-auto">
             {children}
