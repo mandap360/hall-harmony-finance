@@ -55,9 +55,9 @@ const AuthenticatedLayoutContent = ({ children }: AuthenticatedLayoutProps) => {
           </DropdownMenu>
         </header>
         
-        <div className="pt-14 flex w-full h-screen">
+        <div className="pt-14 flex w-full">
           <AppSidebar />
-          <main className="flex-1 min-w-0 overflow-auto">
+          <main className="flex-1 min-w-0">
             {children}
           </main>
       </div>

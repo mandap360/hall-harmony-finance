@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useBookings } from "@/hooks/useBookings";
 import { useExpenses } from "@/hooks/useExpenses";
@@ -104,7 +105,7 @@ export const ReportsPage = () => {
   // Show loading state while data is being calculated
   if (!incomeData || !expenseData) {
     return (
-      <div className="min-h-screen bg-background p-4">
+      <div className="bg-background p-4">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">Financial Reports</h1>
@@ -120,7 +121,7 @@ export const ReportsPage = () => {
 
   if (hasNoData) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="bg-background flex items-center justify-center p-4">
         <div className="max-w-md mx-auto text-center">
           <Card className="p-8 shadow-lg">
             <div className="mb-6">
@@ -163,7 +164,7 @@ export const ReportsPage = () => {
   const overdueBills = expenses.filter(expense => !expense.isPaid).length;
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="bg-background p-4">
       <div className="max-w-6xl mx-auto space-y-6">
 
         {/* Dashboard Summary Cards */}
