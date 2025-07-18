@@ -25,7 +25,7 @@ const items = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, open } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
   const { user, profile } = useAuth();
@@ -44,11 +44,11 @@ export function AppSidebar() {
     <Sidebar 
       side="left"
       variant="sidebar"
-      collapsible="offcanvas"
+      collapsible="icon"
     >
       <SidebarHeader className="border-b border-sidebar-border h-14 flex items-center">
         <div className="flex items-center px-4">
-          <h2 className="text-sidebar-foreground font-semibold text-lg">Mandap360</h2>
+          {open && <h2 className="text-sidebar-foreground font-semibold text-lg">Mandap360</h2>}
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -64,7 +64,7 @@ export function AppSidebar() {
                       className={({ isActive }) => getNavCls({ isActive })}
                     >
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      {open && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
