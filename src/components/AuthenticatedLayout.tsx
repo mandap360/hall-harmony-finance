@@ -19,13 +19,13 @@ const AuthenticatedLayoutContent = ({ children }: AuthenticatedLayoutProps) => {
 
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
-      <header className="bg-[hsl(var(--header-background))] border-b border-border h-14 flex items-center px-4 w-full shrink-0 relative">
+      <header className="bg-[hsl(var(--header-background))] border-b border-border h-14 flex items-center w-full shrink-0 relative">
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleSidebar} 
-          className={`h-7 w-7 text-[hsl(var(--header-foreground))] hover:bg-white/10 transition-all duration-300 flex items-center justify-center ${
-            open ? 'ml-64' : 'mr-4'
+          className={`h-7 w-7 text-[hsl(var(--header-foreground))] hover:bg-white/10 transition-all duration-300 flex items-center justify-center absolute z-10 ${
+            open ? 'left-[272px]' : 'left-[72px]'
           }`}
         >
           <Menu className="h-4 w-4" />
