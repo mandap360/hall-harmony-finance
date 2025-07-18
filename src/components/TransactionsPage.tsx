@@ -425,27 +425,12 @@ export const TransactionsPage = () => {
               return (
                 <>
                   {filteredPayments.map((payment) => {
-                    const booking = bookings.find(b => b.id === payment.bookingId);
-                    
-                    // Format description exactly like account transactions
-                    const getPaymentDescription = () => {
-                      if (booking) {
-                        const dateRange = formatDateRange(booking.startDate, booking.endDate);
-                        if (payment.type === 'additional') {
-                          return `Additional Income for ${dateRange}`;
-                        } else {
-                          return `Rent for ${dateRange}`;
-                        }
-                      }
-                      return payment.description || `${payment.type.charAt(0).toUpperCase() + payment.type.slice(1)}`;
-                    };
-                    
                     return (
                       <Card key={payment.id} className="p-4">
                         <div className="space-y-2">
                           {/* Description - Full line */}
                           <h4 className="font-semibold text-foreground">
-                            {getPaymentDescription()}
+                            {payment.description || 'Payment'}
                           </h4>
                           
                           {/* Amount - Second line */}
