@@ -1,3 +1,4 @@
+
 import { IndianRupee } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -5,8 +6,7 @@ interface CurrencyDisplayProps {
   amount: number;
   className?: string;
   iconSize?: "sm" | "md" | "lg";
-  showIcon?: boolean;
-  prefix?: string;
+  displayMode?: "icon-only" | "text-only" | "both";
 }
 
 const iconSizes = {
@@ -19,13 +19,23 @@ export const CurrencyDisplay = ({
   amount, 
   className, 
   iconSize = "md", 
-  showIcon = true,
-  prefix = "₹"
+  displayMode = "text-only"
 }: CurrencyDisplayProps) => {
+  const formattedAmount = new Intl.NumberFormat('en-IN', {
+    style: 'decimal',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+
   return (
     <div className={cn("flex items-center", className)}>
-      {showIcon && <IndianRupee className={cn("mr-1", iconSizes[iconSize])} />}
-      <span>{prefix}{amount.toLocaleString()}</span>
+      {displayMode === "icon-only" && <IndianRupee className={cn("mr-1", iconSizes[iconSize])} />}
+      {displayMode === "both" && <IndianRupee className={cn("mr-1", iconSizes[iconSize])} />}
+      <span>
+        {displayMode === "text-only" && "₹"}
+        {displayMode === "both" && "₹"}
+        {formattedAmount}
+      </span>
     </div>
   );
 };

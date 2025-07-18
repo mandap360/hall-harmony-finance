@@ -1,7 +1,7 @@
 
 import { Card } from "@/components/ui/card";
-import { IndianRupee } from "lucide-react";
 import { useAccounts } from "@/hooks/useAccounts";
+import { CurrencyDisplay } from "@/components/ui/currency-display";
 
 interface PaymentHistoryCardProps {
   payments: Array<{
@@ -68,8 +68,7 @@ export const PaymentHistoryCard = ({ payments }: PaymentHistoryCardProps) => {
           <div key={payment.id} className="flex justify-between items-center p-2 bg-amber-50 rounded border border-amber-100">
             <div className="flex-1">
               <div className={`flex items-center ${getPaymentTypeColor(payment.type)}`}>
-                <IndianRupee className="h-4 w-4" />
-                <span className="font-semibold">{payment.amount}</span>
+                <CurrencyDisplay amount={payment.amount} className="font-semibold" displayMode="text-only" />
               </div>
               <p className="text-xs text-gray-500">
                 {new Date(payment.date).toLocaleDateString('en-IN')} • {getPaymentTypeLabel(payment.type)}

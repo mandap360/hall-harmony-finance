@@ -1,3 +1,4 @@
+
 import { CurrencyDisplay } from "@/components/ui/currency-display";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +25,7 @@ export const PaymentStatCard = ({
   return (
     <div className={cn("text-center", className)}>
       <div className={cn("flex items-center justify-center mb-1", variantStyles[variant])}>
-        <CurrencyDisplay amount={amount} className="text-sm font-semibold" />
+        <CurrencyDisplay amount={amount} className="text-sm font-semibold" displayMode="text-only" />
       </div>
       <div className="text-xs text-muted-foreground">{label}</div>
     </div>

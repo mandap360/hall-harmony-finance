@@ -1,3 +1,4 @@
+
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
@@ -32,7 +33,7 @@ export const DashboardSummaryCards = ({
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-muted-foreground">Total Income</h3>
           <div className="text-2xl font-bold text-foreground">
-            <CurrencyDisplay amount={totalIncome} />
+            <CurrencyDisplay amount={totalIncome} displayMode="text-only" />
           </div>
           <div className="flex items-center text-sm">
             <TrendingUp className="h-4 w-4 text-blue-500 mr-1" />
@@ -46,7 +47,7 @@ export const DashboardSummaryCards = ({
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-muted-foreground">Total Expenses</h3>
           <div className="text-2xl font-bold text-foreground">
-            <CurrencyDisplay amount={totalExpenses} />
+            <CurrencyDisplay amount={totalExpenses} displayMode="text-only" />
           </div>
           <div className="flex items-center text-sm">
             <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
@@ -63,7 +64,7 @@ export const DashboardSummaryCards = ({
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-muted-foreground">Receivables</h3>
           <div className="text-2xl font-bold text-foreground">
-            <CurrencyDisplay amount={totalReceivables} />
+            <CurrencyDisplay amount={totalReceivables} displayMode="text-only" />
           </div>
           <div className="flex items-center text-sm">
             <TrendingUp className="h-4 w-4 text-blue-600 mr-1" />
@@ -80,7 +81,7 @@ export const DashboardSummaryCards = ({
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-muted-foreground">Payables</h3>
           <div className="text-2xl font-bold text-foreground">
-            <CurrencyDisplay amount={totalPayables} />
+            <CurrencyDisplay amount={totalPayables} displayMode="text-only" />
           </div>
           <div className="flex items-center text-sm">
             <TrendingDown className="h-4 w-4 text-orange-500 mr-1" />

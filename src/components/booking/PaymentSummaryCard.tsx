@@ -1,6 +1,5 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { IndianRupee } from "lucide-react";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
 
 interface PaymentSummaryCardProps {
@@ -36,30 +35,30 @@ export const PaymentSummaryCard = ({ booking }: PaymentSummaryCardProps) => {
               <>
                 <div className="flex items-center">
                   <span className="text-gray-600 mr-1">Amount Received:</span>
-                  <CurrencyDisplay amount={booking.paidAmount} className="font-semibold text-green-600" iconSize="sm" />
+                  <CurrencyDisplay amount={booking.paidAmount} className="font-semibold text-green-600" displayMode="text-only" />
                 </div>
                 
                 <div className="flex items-center">
                   <span className="text-gray-600 mr-1">Amount Refunded:</span>
-                  <CurrencyDisplay amount={refundAmount} className="font-semibold text-red-600" iconSize="sm" />
+                  <CurrencyDisplay amount={refundAmount} className="font-semibold text-red-600" displayMode="text-only" />
                 </div>
               </>
             ) : (
               <>
                 <div className="flex items-center">
                   <span className="text-gray-600 mr-1">Rent Finalized:</span>
-                  <CurrencyDisplay amount={booking.rentFinalized} className="font-semibold" iconSize="sm" />
+                  <CurrencyDisplay amount={booking.rentFinalized} className="font-semibold" displayMode="text-only" />
                 </div>
                 
                 <div className="flex items-center">
                   <span className="text-gray-600 mr-1">Rent Received:</span>
-                  <CurrencyDisplay amount={booking.paidAmount} className="font-semibold text-green-600" iconSize="sm" />
+                  <CurrencyDisplay amount={booking.paidAmount} className="font-semibold text-green-600" displayMode="text-only" />
                 </div>
                 
                 {booking.additionalIncome > 0 && (
                   <div className="flex items-center">
                     <span className="text-gray-600 mr-1">Additional Income:</span>
-                    <CurrencyDisplay amount={booking.additionalIncome} className="font-semibold text-purple-600" iconSize="sm" />
+                    <CurrencyDisplay amount={booking.additionalIncome} className="font-semibold text-purple-600" displayMode="text-only" />
                   </div>
                 )}
               </>
@@ -72,7 +71,7 @@ export const PaymentSummaryCard = ({ booking }: PaymentSummaryCardProps) => {
               <CurrencyDisplay 
                 amount={remainingRent} 
                 className={`font-bold ${remainingRent > 0 ? 'text-red-600' : 'text-green-600'}`} 
-                iconSize="sm" 
+                displayMode="text-only" 
               />
             </div>
           )}

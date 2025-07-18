@@ -20,6 +20,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { usePayments } from "@/hooks/usePayments";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, startOfYear, endOfYear, addYears, subYears, addMonths, subMonths } from "date-fns";
+import { CurrencyDisplay } from "@/components/ui/currency-display";
 
 const COLORS = {
   household: '#ff6b6b',
@@ -139,10 +140,6 @@ export const TransactionsPage = () => {
         setCurrentDate(prev => addDays(prev, 7));
         break;
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return `₹ ${amount.toLocaleString()}`;
   };
 
   const handleAddExpense = async (expenseData: any) => {
@@ -434,9 +431,9 @@ export const TransactionsPage = () => {
                           </h4>
                           
                           {/* Amount - Second line */}
-                          <p className="text-lg font-bold text-green-600">
-                            {formatCurrency(payment.amount)}
-                          </p>
+                          <div className="text-lg font-bold text-green-600">
+                            <CurrencyDisplay amount={payment.amount} displayMode="text-only" />
+                          </div>
                           
                           {/* Date and Account - Third line, opposite corners */}
                           <div className="flex justify-between items-center">
