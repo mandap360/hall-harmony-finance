@@ -65,7 +65,7 @@ export const IncomeListView = ({ onBack }: IncomeListViewProps) => {
     .flatMap(booking => 
       booking.payments?.map(payment => ({
         date: payment.date,
-        description: `${payment.type === 'advance' ? 'Rent Received' : payment.type === 'rent' ? 'Rent Payment' : 'Additional Income'} payment for ${booking.eventName} (${formatDateRange(booking.startDate, booking.endDate)})`,
+        description: payment.type === 'additional' ? `Additional Income for ${formatDateRange(booking.startDate, booking.endDate)}` : `Rent for ${formatDateRange(booking.startDate, booking.endDate)}`,
         amount: payment.amount
       })) || []
     )
