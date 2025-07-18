@@ -41,17 +41,17 @@ export function AppSidebar() {
       : "hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground";
 
   return (
-    <Sidebar 
-      side="left"
-      variant="sidebar"
-      collapsible="offcanvas"
-    >
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center justify-between px-2 py-3">
-          <h2 className="text-sidebar-foreground font-semibold text-lg">Mandap360</h2>
-          <SidebarTrigger className="h-8 w-8" />
-        </div>
-      </SidebarHeader>
+    <div className="relative">
+      <Sidebar 
+        side="left"
+        variant="sidebar"
+        collapsible="offcanvas"
+      >
+        <SidebarHeader className="border-b border-sidebar-border h-14 flex items-center">
+          <div className="flex items-center px-4">
+            <h2 className="text-sidebar-foreground font-semibold text-lg">Mandap360</h2>
+          </div>
+        </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70 text-xs font-medium px-2 mb-2">
@@ -75,7 +75,11 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+        </SidebarContent>
+      </Sidebar>
+      
+      {/* Floating menu button positioned after the sidebar */}
+      <SidebarTrigger className="absolute top-4 -right-4 h-8 w-8 bg-background border border-border shadow-md rounded-md hover:bg-accent z-10" />
+    </div>
   );
 }
