@@ -41,8 +41,8 @@ export function AppSidebar() {
   return (
     <Sidebar 
       side="left"
-      variant="floating"
-      className="border-r border-sidebar-border"
+      variant="sidebar"
+      collapsible="offcanvas"
     >
       <SidebarContent>
         <SidebarGroup>
