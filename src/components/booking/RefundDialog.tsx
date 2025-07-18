@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useToast } from "@/hooks/use-toast";
+import { PaymentHistoryCard } from "./PaymentHistoryCard";
 
 interface RefundDialogProps {
   open: boolean;
@@ -28,7 +29,10 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
   const { accounts } = useAccounts();
   const { toast } = useToast();
 
-  const totalPaid = booking?.rentReceived || 0;
+  // Calculate amount received and amount refunded
+  const amountReceived = booking?.rentReceived || 0;
+  const amountRefunded = booking?.payments?.filter((p: any) => p.type === 'refund')?.reduce((sum: number, p: any) => sum + Math.abs(p.amount), 0) || 0;
+  const maxRefundAmount = amountReceived - amountRefunded;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,76 +90,92 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Process Refund</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <p className="text-sm text-gray-600">
-              Booking: <span className="font-medium">{booking?.eventName}</span>
-            </p>
-            <p className="text-sm text-gray-600">
-              Total Paid: <span className="font-medium">₹{totalPaid}</span>
-            </p>
+        <div className="space-y-4">
+          {/* Payment History */}
+          {booking?.payments && (
+            <PaymentHistoryCard payments={booking.payments} />
+          )}
+
+          {/* Amount Summary */}
+          <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Amount Received</span>
+              <span className="font-medium">₹{amountReceived}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Amount Refunded</span>
+              <span className="font-medium">₹{amountRefunded}</span>
+            </div>
           </div>
 
-          <div>
-            <Label htmlFor="refundAmount">
-              Refund Amount <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="refundAmount"
-              type="number"
-              step="0.01"
-              max={totalPaid}
-              value={refundAmount}
-              onChange={(e) => setRefundAmount(e.target.value)}
-              placeholder="Enter refund amount"
-              required
-              disabled={isProcessing}
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="refundAmount">
+                Refund Amount <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="refundAmount"
+                type="number"
+                step="0.01"
+                max={maxRefundAmount}
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+                placeholder="Enter refund amount"
+                required
+                disabled={isProcessing}
+              />
+              {maxRefundAmount <= 0 && (
+                <p className="text-sm text-red-600 mt-1">No refundable amount available</p>
+              )}
+            </div>
 
-          <div>
-            <Label htmlFor="paymentMode">
-              Payment Method <span className="text-red-500">*</span>
-            </Label>
-            <Select value={paymentMode} onValueChange={setPaymentMode} required disabled={isProcessing}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select payment method" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            <div>
+              <Label htmlFor="paymentMode">
+                Payment Method <span className="text-red-500">*</span>
+              </Label>
+              <Select value={paymentMode} onValueChange={setPaymentMode} required disabled={isProcessing}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div>
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Input
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Refund description"
-              disabled={isProcessing}
-            />
-          </div>
+            <div>
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Input
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Refund description"
+                disabled={isProcessing}
+              />
+            </div>
 
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isProcessing}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isProcessing}>
-              {isProcessing ? "Processing..." : "Process Refund"}
-            </Button>
-          </div>
-        </form>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isProcessing}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isProcessing || maxRefundAmount <= 0 || parseFloat(refundAmount) > maxRefundAmount}
+              >
+                {isProcessing ? "Processing..." : "Process Refund"}
+              </Button>
+            </div>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
