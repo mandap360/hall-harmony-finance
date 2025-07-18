@@ -1,7 +1,7 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, AlignJustify } from 'lucide-react';
+import { LogOut, User, Menu } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
@@ -19,9 +19,9 @@ export const AuthenticatedLayout = ({ children }: AuthenticatedLayoutProps) => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex flex-col w-full bg-background">
-        <header className="bg-[hsl(var(--header-background))] border-b border-border h-14 flex items-center px-4 w-full">
-          <SidebarTrigger className="mr-4">
-            <AlignJustify className="h-4 w-4" />
+        <header className="bg-[hsl(var(--header-background))] border-b border-border h-14 flex items-center px-4 w-full shrink-0">
+          <SidebarTrigger className="mr-4 p-2 hover:bg-white/10 rounded-md transition-colors">
+            <Menu className="h-4 w-4 text-[hsl(var(--header-foreground))]" />
           </SidebarTrigger>
           
           <div className="flex-1">
@@ -48,9 +48,9 @@ export const AuthenticatedLayout = ({ children }: AuthenticatedLayoutProps) => {
           </DropdownMenu>
         </header>
         
-        <div className="flex-1 flex w-full">
+        <div className="flex-1 flex w-full overflow-hidden">
           <AppSidebar />
-          <main className="flex-1 min-w-0">
+          <main className="flex-1 min-w-0 overflow-auto">
             {children}
           </main>
         </div>
