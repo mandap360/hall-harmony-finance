@@ -97,14 +97,14 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
         
         <div className="space-y-4">
           {/* Amount Summary */}
-          <div className="bg-gray-50 p-3 rounded-lg space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Amount Received</span>
-              <span className="font-medium">₹{amountReceived}</span>
+          <div className="flex gap-8 justify-center py-2">
+            <div className="text-center">
+              <div className="text-green-600 font-semibold text-lg">₹{amountReceived.toLocaleString()}</div>
+              <div className="text-sm text-muted-foreground">Amount Received</div>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Amount Refunded</span>
-              <span className="font-medium">₹{amountRefunded}</span>
+            <div className="text-center">
+              <div className="text-red-600 font-semibold text-lg">₹{amountRefunded.toLocaleString()}</div>
+              <div className="text-sm text-muted-foreground">Amount Refunded</div>
             </div>
           </div>
 
