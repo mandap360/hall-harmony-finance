@@ -3,12 +3,12 @@ import { useBookings } from "@/hooks/useBookings";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
 import { SalesExpenseSummary } from "@/components/reports/SalesExpenseSummary";
-import { ZohoStyleSummary } from "@/components/reports/ZohoStyleSummary";
-import { BankingSummaryCard } from "@/components/reports/BankingSummaryCard";
+import { DashboardSummaryCards } from "@/components/reports/DashboardSummaryCards";
 import { IncomeListView } from "@/components/reports/IncomeListView";
 import { ExpenseListView } from "@/components/reports/ExpenseListView";
 import { VendorPayablesView } from "@/components/reports/VendorPayablesView";
 import { UnpaidBillsView } from "@/components/reports/UnpaidBillsView";
+import { ReceivablesView } from "@/components/reports/ReceivablesView";
 import { AccountTransactions } from "@/components/AccountTransactions";
 import { Account } from "@/hooks/useAccounts";
 import { calculateIncomeData } from "@/components/reports/IncomeCalculator";
@@ -96,6 +96,10 @@ export const ReportsPage = () => {
     return <UnpaidBillsView onBack={() => setCurrentView("dashboard")} />;
   }
 
+  if (currentView === "receivables") {
+    return <ReceivablesView onBack={() => setCurrentView("dashboard")} />;
+  }
+
   // Show loading state while data is being calculated
   if (!incomeData || !expenseData) {
     return (
@@ -165,19 +169,14 @@ export const ReportsPage = () => {
           <p className="text-muted-foreground">Current Financial Year Overview</p>
         </div>
 
-        {/* Zoho Books Style Summary */}
-        <ZohoStyleSummary
+        {/* Dashboard Summary Cards */}
+        <DashboardSummaryCards
+          totalIncome={incomeData.totalIncome}
+          totalExpenses={expenseData.totalExpenses}
           totalReceivables={incomeData.totalReceivables}
           totalPayables={expenseData.totalPayables}
-          overdueInvoices={overdueInvoices}
-          overdueBills={overdueBills}
-          onPendingBillsClick={() => setCurrentView("unpaid-bills")}
-        />
-
-        {/* Banking Summary - Show all operational accounts */}
-        <BankingSummaryCard 
-          onAccountClick={handleAccountClick}
-          accounts={accounts}
+          onReceivablesClick={() => setCurrentView("receivables")}
+          onPayablesClick={() => setCurrentView("payables")}
         />
 
         {/* Sales & Expense Summary with dropdown functionality */}
