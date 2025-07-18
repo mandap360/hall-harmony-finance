@@ -13,18 +13,20 @@ interface AuthenticatedLayoutProps {
 
 const AuthenticatedLayoutContent = ({ children }: AuthenticatedLayoutProps) => {
   const { user, profile, signOut } = useAuth();
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, open } = useSidebar();
   const location = useLocation();
   const isBookingsPage = location.pathname === '/';
 
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
-      <header className="bg-[hsl(var(--header-background))] border-b border-border h-14 flex items-center px-4 w-full shrink-0">
+      <header className="bg-[hsl(var(--header-background))] border-b border-border h-14 flex items-center px-4 w-full shrink-0 relative">
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleSidebar} 
-          className="mr-4 h-7 w-7 text-[hsl(var(--header-foreground))] hover:bg-white/10 transition-colors flex items-center justify-center"
+          className={`h-7 w-7 text-[hsl(var(--header-foreground))] hover:bg-white/10 transition-all duration-300 flex items-center justify-center ${
+            open ? 'ml-64' : 'mr-4'
+          }`}
         >
           <Menu className="h-4 w-4" />
         </Button>

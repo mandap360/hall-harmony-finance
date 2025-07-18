@@ -41,17 +41,16 @@ export function AppSidebar() {
       : "hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground";
 
   return (
-    <div className="relative">
-      <Sidebar 
-        side="left"
-        variant="sidebar"
-        collapsible="offcanvas"
-      >
-        <SidebarHeader className="border-b border-sidebar-border h-14 flex items-center">
-          <div className="flex items-center px-4">
-            <h2 className="text-sidebar-foreground font-semibold text-lg">Mandap360</h2>
-          </div>
-        </SidebarHeader>
+    <Sidebar 
+      side="left"
+      variant="sidebar"
+      collapsible="offcanvas"
+    >
+      <SidebarHeader className="border-b border-sidebar-border h-14 flex items-center">
+        <div className="flex items-center px-4">
+          <h2 className="text-sidebar-foreground font-semibold text-lg">Mandap360</h2>
+        </div>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70 text-xs font-medium px-2 mb-2">
@@ -62,12 +61,13 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.title === "Bookings" ? "/" : item.url} 
-                      className={getNavCls}
+                    <NavLink
+                      to={item.url}
+                      end
+                      className={({ isActive }) => getNavCls({ isActive })}
                     >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{item.title}</span>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -75,11 +75,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        </SidebarContent>
-      </Sidebar>
-      
-      {/* Floating menu button positioned after the sidebar */}
-      <SidebarTrigger className="absolute top-4 -right-4 h-8 w-8 bg-background border border-border shadow-md rounded-md hover:bg-accent z-10" />
-    </div>
+      </SidebarContent>
+    </Sidebar>
   );
 }
