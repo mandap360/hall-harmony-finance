@@ -1,7 +1,7 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Menu } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
@@ -20,9 +20,7 @@ export const AuthenticatedLayout = ({ children }: AuthenticatedLayoutProps) => {
     <SidebarProvider>
       <div className="min-h-screen flex flex-col w-full bg-background">
         <header className="bg-[hsl(var(--header-background))] border-b border-border h-14 flex items-center px-4 w-full shrink-0">
-          <SidebarTrigger className="mr-4 p-2 hover:bg-white/10 rounded-md transition-colors">
-            <Menu className="h-4 w-4 text-[hsl(var(--header-foreground))]" />
-          </SidebarTrigger>
+          <SidebarTrigger className="mr-4 text-[hsl(var(--header-foreground))] hover:bg-white/10 transition-colors" />
           
           <div className="flex-1">
           </div>
