@@ -64,6 +64,13 @@ const App = () => (
                 </AuthenticatedLayout>
               </ProtectedRoute>
             } />
+            <Route path="/bookings" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Index activeTab="bookings" />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
