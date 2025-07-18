@@ -9,11 +9,20 @@ interface PaymentSummaryCardProps {
     rentReceived: number;
     paidAmount: number;
     additionalIncome: number;
+    status?: string;
+    payments?: Array<{ type: string; amount: number; }>;
   };
 }
 
 export const PaymentSummaryCard = ({ booking }: PaymentSummaryCardProps) => {
   const remainingRent = booking.rentFinalized - booking.paidAmount;
+  
+  // Check if this is a cancelled booking with refunds
+  const isCancelledWithRefund = booking.status === 'cancelled' && 
+    booking.payments?.some(payment => payment.type === 'refund');
+  
+  const refundAmount = isCancelledWithRefund ? 
+    Math.abs(booking.payments?.filter(p => p.type === 'refund').reduce((sum, p) => sum + p.amount, 0) || 0) : 0;
 
   return (
     <Card className="border-amber-200">
@@ -23,32 +32,50 @@ export const PaymentSummaryCard = ({ booking }: PaymentSummaryCardProps) => {
       <CardContent>
         <div className="flex justify-between items-center text-sm">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center">
-              <span className="text-gray-600 mr-1">Rent Finalized:</span>
-              <CurrencyDisplay amount={booking.rentFinalized} className="font-semibold" iconSize="sm" />
-            </div>
-            
-            <div className="flex items-center">
-              <span className="text-gray-600 mr-1">Rent Received:</span>
-              <CurrencyDisplay amount={booking.paidAmount} className="font-semibold text-green-600" iconSize="sm" />
-            </div>
-            
-            {booking.additionalIncome > 0 && (
-              <div className="flex items-center">
-                <span className="text-gray-600 mr-1">Additional Income:</span>
-                <CurrencyDisplay amount={booking.additionalIncome} className="font-semibold text-purple-600" iconSize="sm" />
-              </div>
+            {isCancelledWithRefund ? (
+              <>
+                <div className="flex items-center">
+                  <span className="text-gray-600 mr-1">Amount Received:</span>
+                  <CurrencyDisplay amount={booking.paidAmount} className="font-semibold text-green-600" iconSize="sm" />
+                </div>
+                
+                <div className="flex items-center">
+                  <span className="text-gray-600 mr-1">Amount Refunded:</span>
+                  <CurrencyDisplay amount={refundAmount} className="font-semibold text-red-600" iconSize="sm" />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center">
+                  <span className="text-gray-600 mr-1">Rent Finalized:</span>
+                  <CurrencyDisplay amount={booking.rentFinalized} className="font-semibold" iconSize="sm" />
+                </div>
+                
+                <div className="flex items-center">
+                  <span className="text-gray-600 mr-1">Rent Received:</span>
+                  <CurrencyDisplay amount={booking.paidAmount} className="font-semibold text-green-600" iconSize="sm" />
+                </div>
+                
+                {booking.additionalIncome > 0 && (
+                  <div className="flex items-center">
+                    <span className="text-gray-600 mr-1">Additional Income:</span>
+                    <CurrencyDisplay amount={booking.additionalIncome} className="font-semibold text-purple-600" iconSize="sm" />
+                  </div>
+                )}
+              </>
             )}
           </div>
           
-          <div className="flex items-center">
-            <span className="text-gray-600 mr-1">Rent Balance:</span>
-            <CurrencyDisplay 
-              amount={remainingRent} 
-              className={`font-bold ${remainingRent > 0 ? 'text-red-600' : 'text-green-600'}`} 
-              iconSize="sm" 
-            />
-          </div>
+          {!isCancelledWithRefund && (
+            <div className="flex items-center">
+              <span className="text-gray-600 mr-1">Rent Balance:</span>
+              <CurrencyDisplay 
+                amount={remainingRent} 
+                className={`font-bold ${remainingRent > 0 ? 'text-red-600' : 'text-green-600'}`} 
+                iconSize="sm" 
+              />
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
