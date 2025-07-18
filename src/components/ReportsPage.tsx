@@ -17,6 +17,7 @@ import { TrendingUp, FileText, PlusCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
+// Reports page component with dashboard summary cards
 export const ReportsPage = () => {
   const [currentView, setCurrentView] = useState("dashboard");
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
