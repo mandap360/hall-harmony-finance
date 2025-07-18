@@ -96,11 +96,6 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
         </DialogHeader>
         
         <div className="space-y-4">
-          {/* Payment History */}
-          {booking?.payments && (
-            <PaymentHistoryCard payments={booking.payments} />
-          )}
-
           {/* Amount Summary */}
           <div className="bg-gray-50 p-3 rounded-lg space-y-2">
             <div className="flex justify-between items-center">
@@ -175,6 +170,11 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
               </Button>
             </div>
           </form>
+
+          {/* Payment History */}
+          {booking?.payments && (
+            <PaymentHistoryCard payments={booking.payments} />
+          )}
         </div>
       </DialogContent>
     </Dialog>
