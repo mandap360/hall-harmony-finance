@@ -282,7 +282,7 @@ export const TransactionsPage = () => {
         
         <div className="px-4">
           <Select value={periodType} onValueChange={setPeriodType}>
-            <SelectTrigger className="w-20 h-8 border-none bg-transparent focus:ring-0 gap-1">
+            <SelectTrigger className="w-16 h-8 border-none bg-transparent focus:ring-0 px-1 gap-0 justify-start">
               <SelectValue>
                 {PERIOD_OPTIONS.find(option => option.value === periodType)?.short}
               </SelectValue>
