@@ -7,7 +7,7 @@ export const calculateExpenseData = async (expenses: any[]) => {
 
   // Filter expenses for current financial year and not deleted
   const currentFYExpenses = expenses.filter((expense) => 
-    isInCurrentFY(expense.expenseDate, currentFY) && !expense.isDeleted
+    isInCurrentFY(expense.date, currentFY) && !expense.isDeleted
   );
 
   // Calculate total expenses (only from expenses table, no refunds)
