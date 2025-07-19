@@ -13,7 +13,7 @@ interface AuthenticatedLayoutProps {
 
 const AuthenticatedLayoutContent = ({ children }: AuthenticatedLayoutProps) => {
   const { user, profile, signOut } = useAuth();
-  const { toggleSidebar, open } = useSidebar();
+  const { toggleSidebar, open, isMobile } = useSidebar();
   const location = useLocation();
   const isBookingsPage = location.pathname === '/';
 
@@ -25,7 +25,11 @@ const AuthenticatedLayoutContent = ({ children }: AuthenticatedLayoutProps) => {
           size="icon"
           onClick={toggleSidebar} 
           className={`h-7 w-7 text-[hsl(var(--header-foreground))] hover:bg-white/10 transition-all duration-200 flex items-center justify-center absolute z-10 ${
-            open ? 'left-[256px]' : 'left-[48px]'
+            isMobile 
+              ? 'left-2' 
+              : open 
+                ? 'left-[256px]' 
+                : 'left-[48px]'
           }`}
         >
           <Menu className="h-4 w-4" />

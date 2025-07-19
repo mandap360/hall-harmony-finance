@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +12,7 @@ interface Profile {
   phone_verified: boolean;
   email_verified: boolean;
   organization_id: string;
+  organization_name?: string;
 }
 
 interface AuthContextType {
@@ -42,7 +42,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
 
       if (error) throw error;
-      setProfile(data);
+      
+      // For now, we'll use organization_id as organization_name since we don't have a separate organizations table
+      // In a real app, you'd join with an organizations table to get the actual name
+      const profileWithOrgName = {
+        ...data,
+        organization_name: data.organization_id // This should be replaced with actual org name lookup
+      };
+      
+      setProfile(profileWithOrgName);
     } catch (error) {
       console.error('Error fetching profile:', error);
     }

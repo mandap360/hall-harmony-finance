@@ -25,7 +25,7 @@ const items = [
 ];
 
 export function AppSidebar() {
-  const { state, open } = useSidebar();
+  const { state, open, isMobile } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
   const { user, profile } = useAuth();
@@ -45,11 +45,11 @@ export function AppSidebar() {
       side="left"
       variant="sidebar"
       collapsible="icon"
-      className="w-16 group-data-[state=expanded]:w-64"
+      className={isMobile ? "w-64" : "w-16 group-data-[state=expanded]:w-64"}
     >
       <SidebarHeader className="border-b border-sidebar-border h-14 flex items-center">
         <div className="flex items-center px-4">
-          {open && <h2 className="text-sidebar-foreground font-semibold text-lg">Mandap360</h2>}
+          {(open || isMobile) && <h2 className="text-sidebar-foreground font-semibold text-lg">Mandap360</h2>}
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -65,7 +65,7 @@ export function AppSidebar() {
                       className={({ isActive }) => getNavCls({ isActive })}
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
-                      <span className={`transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0 md:opacity-0'}`}>
+                      <span className={`transition-opacity duration-200 ${(open || isMobile) ? 'opacity-100' : 'opacity-0'}`}>
                         {item.title}
                       </span>
                     </NavLink>
