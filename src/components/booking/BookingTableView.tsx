@@ -126,7 +126,7 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                 <div className="flex items-center space-x-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <span className="text-foreground">
-                    {format(startDate, "hh:mm a")} - {format(endDate, "hh:mm a")}
+                    {booking.startDate.split('T')[1]?.substring(0, 5) || '00:00'} - {booking.endDate.split('T')[1]?.substring(0, 5) || '00:00'}
                   </span>
                 </div>
               </div>
@@ -145,7 +145,7 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                 />
                 
                 <PaymentStatCard 
-                  label="Additional Income" 
+                  label="Secondary Income" 
                   amount={booking.additionalIncomeTotal || 0} 
                   variant="purple" 
                 />

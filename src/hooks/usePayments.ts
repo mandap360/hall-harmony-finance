@@ -8,7 +8,7 @@ export interface Payment {
   bookingId: string;
   amount: number;
   date: string;
-  type: "rent" | "advance" | "additional";
+  type: "rent" | "advance" | "Secondary Income" | "refund";
   description: string;
   payment_mode?: string;
 }
@@ -60,7 +60,7 @@ export const usePayments = () => {
         bookingId: payment.booking_id,
         amount: Number(payment.amount),
         date: payment.payment_date,
-        type: payment.payment_type as "rent" | "advance" | "additional",
+        type: payment.payment_type as "rent" | "advance" | "Secondary Income" | "refund",
         description: payment.description || '',
         payment_mode: payment.payment_mode
       }));
@@ -105,7 +105,7 @@ export const usePayments = () => {
         bookingId: data.booking_id,
         amount: Number(data.amount),
         date: data.payment_date,
-        type: data.payment_type as "rent" | "advance" | "additional",
+        type: data.payment_type as "rent" | "advance" | "Secondary Income" | "refund",
         description: data.description || ''
       };
 

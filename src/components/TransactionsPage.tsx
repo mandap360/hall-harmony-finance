@@ -16,6 +16,7 @@ import { MonthNavigation } from "@/components/MonthNavigation";
 import { ExpenseCard } from "@/components/ExpenseCard";
 import { ExpenseList } from "@/components/expense/ExpenseList";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
+import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 import { useAccounts } from "@/hooks/useAccounts";
 import { usePayments } from "@/hooks/usePayments";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,7 @@ export const TransactionsPage = () => {
   const [startDate, setStartDate] = useState<Date>(startOfWeek(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfWeek(new Date()));
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
+  const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   
   const { expenses, addExpense, refetch } = useExpenses();
   const { getExpenseCategories } = useCategories();
@@ -363,7 +365,8 @@ export const TransactionsPage = () => {
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
                       <SelectItem value="rent">Rent</SelectItem>
-                      <SelectItem value="additional">Additional</SelectItem>
+                      <SelectItem value="Secondary Income">Secondary Income</SelectItem>
+                      <SelectItem value="refund">Refund</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -377,6 +380,16 @@ export const TransactionsPage = () => {
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {activeTab === 'income' && (
           <div className="p-4 space-y-4">
+            {/* Floating Action Button for Income */}
+            <div className="fixed bottom-20 right-4 z-50">
+              <Button
+                onClick={() => setShowAddIncomeDialog(true)}
+                className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200"
+                size="icon"
+              >
+                <Plus className="h-6 w-6" />
+              </Button>
+            </div>
             {/* Display payments only */}
             {(() => {
               let filteredPayments = payments.filter(payment => {
@@ -419,8 +432,51 @@ export const TransactionsPage = () => {
                 return isSameDate ? startDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
               };
 
+              // Calculate income summary from all payments
+              const rentPayments = filteredPayments.filter(p => p.type === 'rent');
+              const secondaryPayments = filteredPayments.filter(p => p.type === 'Secondary Income');
+              const refundPayments = filteredPayments.filter(p => p.amount < 0);
+              
+              const totalRent = rentPayments.reduce((sum, p) => sum + p.amount, 0);
+              const totalSecondary = secondaryPayments.reduce((sum, p) => sum + p.amount, 0);
+              const totalRefunds = refundPayments.reduce((sum, p) => sum + Math.abs(p.amount), 0);
+              const netIncome = totalRent + totalSecondary - totalRefunds;
+
               return (
                 <>
+                  {/* Income Summary Card */}
+                  <Card className="p-4 mb-4 bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+                    <h3 className="text-lg font-semibold text-foreground mb-3">Income Summary</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Rent Income</p>
+                        <p className="text-xl font-bold text-green-600">
+                          <CurrencyDisplay amount={totalRent} displayMode="text-only" />
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Secondary Income</p>
+                        <p className="text-xl font-bold text-blue-600">
+                          <CurrencyDisplay amount={totalSecondary} displayMode="text-only" />
+                        </p>
+                      </div>
+                      {totalRefunds > 0 && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Refund (Cancellation)</p>
+                          <p className="text-xl font-bold text-red-600">
+                            -<CurrencyDisplay amount={totalRefunds} displayMode="text-only" />
+                          </p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm text-muted-foreground">Net Income</p>
+                        <p className="text-xl font-bold text-gray-900">
+                          <CurrencyDisplay amount={netIncome} displayMode="text-only" />
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+
                   {filteredPayments.map((payment) => {
                     return (
                       <Card key={payment.id} className="p-4">
@@ -431,7 +487,7 @@ export const TransactionsPage = () => {
                           </h4>
                           
                           {/* Amount - Second line */}
-                          <div className="text-lg font-bold text-green-600">
+                          <div className={`text-lg font-bold ${payment.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
                             <CurrencyDisplay amount={payment.amount} displayMode="text-only" />
                           </div>
                           
@@ -451,7 +507,7 @@ export const TransactionsPage = () => {
                       </Card>
                     );
                   })}
-                </>
+                 </>
               );
             })()}
           </div>
@@ -510,6 +566,15 @@ export const TransactionsPage = () => {
         open={showAddExpenseDialog}
         onOpenChange={setShowAddExpenseDialog}
         onSubmit={handleAddExpense}
+      />
+      
+      <AddIncomeDialog
+        open={showAddIncomeDialog}
+        onOpenChange={setShowAddIncomeDialog}
+        onIncomeAdded={() => {
+          // Refresh the data after adding income
+          window.location.reload();
+        }}
       />
     </div>
   );

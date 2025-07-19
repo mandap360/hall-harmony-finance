@@ -57,7 +57,7 @@ export const PaymentSummaryCard = ({ booking }: PaymentSummaryCardProps) => {
                 
                 {booking.additionalIncome > 0 && (
                   <div className="flex items-center">
-                    <span className="text-gray-600 mr-1">Additional Income:</span>
+                    <span className="text-gray-600 mr-1">Secondary Income:</span>
                     <CurrencyDisplay amount={booking.additionalIncome} className="font-semibold text-purple-600" displayMode="text-only" />
                   </div>
                 )}

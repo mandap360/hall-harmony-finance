@@ -87,9 +87,10 @@ export const useBookings = () => {
         const bookingPayments = paymentsData.filter(payment => payment.booking_id === booking.id);
         const bookingAdditionalIncome = additionalIncomeData.filter(income => income.booking_id === booking.id);
         
-        // Calculate total additional income for this booking
-        const additionalIncomeTotal = bookingAdditionalIncome.reduce((total, income) => total + (income.amount || 0), 0);
-        console.log(`Booking ${booking.id}: additionalIncome items:`, bookingAdditionalIncome, 'total:', additionalIncomeTotal);
+        // Calculate secondary income from payments instead of additional_income table
+        const secondaryIncomePayments = bookingPayments.filter(payment => payment.payment_type === 'Secondary Income');
+        const additionalIncomeTotal = secondaryIncomePayments.reduce((total, payment) => total + (payment.amount || 0), 0);
+        console.log(`Booking ${booking.id}: secondary income payments:`, secondaryIncomePayments, 'total:', additionalIncomeTotal);
         
         return {
           id: booking.id,

@@ -52,7 +52,7 @@ export const AdditionalIncomeRefundDialog = ({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-red-700">Refund Additional Income</DialogTitle>
+          <DialogTitle className="text-red-700">Refund Secondary Income</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -95,7 +95,7 @@ export const AdditionalIncomeRefundDialog = ({
             <div>
               <p className="font-medium">This action will:</p>
               <ul className="list-disc list-inside mt-1 space-y-1">
-                <li>Reduce total additional income by ₹{maxRefundAmount.toLocaleString()}</li>
+                <li>Reduce total secondary income by ₹{maxRefundAmount.toLocaleString()}</li>
                 <li>Debit ₹{maxRefundAmount.toLocaleString()} from selected account</li>
                 <li>Add refund entry to payment history</li>
                 <li>Set "Available to allocate" to ₹0</li>

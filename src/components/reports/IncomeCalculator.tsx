@@ -24,12 +24,12 @@ export const calculateIncomeData = async (bookings: any[]) => {
 
   if (bookingIds.length > 0) {
     try {
-      // Fetch additional income payments from payments table
+      // Fetch secondary income payments from payments table
       const { data: additionalPayments, error: paymentsError } = await supabase
         .from('payments')
         .select('amount')
         .in('booking_id', bookingIds)
-        .eq('payment_type', 'additional');
+        .eq('payment_type', 'Secondary Income');
 
       if (!paymentsError && additionalPayments) {
         totalAdditionalIncomeFromPayments = additionalPayments.reduce((sum, payment) => {
@@ -66,9 +66,9 @@ export const calculateIncomeData = async (bookings: any[]) => {
     "Rent": totalRentIncome, // Only rent received, not finalized
   };
 
-  // Add unallocated additional income if there's any
+  // Add unallocated secondary income if there's any
   if (unallocatedAdditionalIncome > 0) {
-    incomeByCategory["Unallocated Additional Income"] = unallocatedAdditionalIncome;
+    incomeByCategory["Unallocated Secondary Income"] = unallocatedAdditionalIncome;
   }
 
   // Add categorized additional income

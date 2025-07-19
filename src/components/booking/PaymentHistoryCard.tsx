@@ -41,7 +41,7 @@ export const PaymentHistoryCard = ({ payments }: PaymentHistoryCardProps) => {
       case 'advance':
         return 'Rent Received';
       case 'additional':
-        return 'Additional Income';
+        return 'Secondary Income';
       default:
         return 'Payment';
     }

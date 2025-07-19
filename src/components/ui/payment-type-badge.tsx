@@ -14,7 +14,7 @@ export const PaymentTypeBadge = ({ type, className }: PaymentTypeBadgeProps) => 
       case 'advance':
         return 'Rent Received';
       case 'additional':
-        return 'Additional Income';
+        return 'Secondary Income';
       default:
         return 'Payment';
     }

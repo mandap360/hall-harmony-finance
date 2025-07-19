@@ -75,7 +75,7 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="rent">Rent</SelectItem>
-                <SelectItem value="additional">Additional Income</SelectItem>
+                <SelectItem value="Secondary Income">Secondary Income</SelectItem>
               </SelectContent>
             </Select>
           </div>
