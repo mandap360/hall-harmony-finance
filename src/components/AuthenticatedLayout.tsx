@@ -40,7 +40,7 @@ const AuthenticatedLayoutContent = ({ children }: AuthenticatedLayoutProps) => {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="flex items-center space-x-2 text-[hsl(var(--header-foreground))] hover:bg-white/10">
+              <Button variant="ghost" size="sm" className="flex items-center space-x-1 text-[hsl(var(--header-foreground))] hover:bg-white/10">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline text-sm">{profile?.full_name || profile?.business_name || "User"}</span>
               </Button>

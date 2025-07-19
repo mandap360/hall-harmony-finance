@@ -62,7 +62,6 @@ export const TransactionsPage = () => {
   const [endDate, setEndDate] = useState<Date>(endOfWeek(new Date()));
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
   
-  
   const { expenses, addExpense, refetch } = useExpenses();
   const { getExpenseCategories } = useCategories();
   const expenseCategories = getExpenseCategories();
@@ -72,7 +71,6 @@ export const TransactionsPage = () => {
   const { accounts } = useAccounts();
   const { payments } = usePayments();
 
-  // Get date range based on period type
   const getDateRange = () => {
     switch (periodType) {
       case 'monthly':
@@ -90,7 +88,6 @@ export const TransactionsPage = () => {
 
   const { start: dateStart, end: dateEnd } = getDateRange();
 
-  // Filter data for current period
   const filteredExpenses = expenses.filter(expense => {
     const expenseDate = new Date(expense.date);
     return expenseDate >= dateStart && expenseDate <= dateEnd;
@@ -106,13 +103,11 @@ export const TransactionsPage = () => {
     return incomeDate >= dateStart && incomeDate <= dateEnd;
   });
 
-  // Calculate totals
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   const rentIncome = filteredBookings.reduce((sum, booking) => sum + booking.paidAmount, 0);
   const additionalIncomeTotal = filteredAdditionalIncome.reduce((sum, income) => sum + income.amount, 0);
   const totalIncome = rentIncome + additionalIncomeTotal;
 
-  // Get pending items
   const pendingExpenses = expenses.filter(expense => !expense.isPaid);
   const pendingBookings = bookings.filter(booking => booking.paidAmount < booking.rentFinalized);
 
@@ -266,7 +261,6 @@ export const TransactionsPage = () => {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      {/* Main Tab Navigation with Period Dropdown */}
       <div className="flex items-center justify-between border-b border-border bg-card">
         <div className="flex flex-1">
           {MAIN_TABS.map(tab => (
@@ -286,10 +280,9 @@ export const TransactionsPage = () => {
           ))}
         </div>
         
-        {/* Period Dropdown */}
         <div className="px-4">
           <Select value={periodType} onValueChange={setPeriodType}>
-            <SelectTrigger className="w-12 h-8 border-none bg-transparent focus:ring-0 gap-1">
+            <SelectTrigger className="w-20 h-8 border-none bg-transparent focus:ring-0 gap-1">
               <SelectValue>
                 {PERIOD_OPTIONS.find(option => option.value === periodType)?.short}
               </SelectValue>
@@ -305,10 +298,8 @@ export const TransactionsPage = () => {
         </div>
       </div>
 
-      {/* Period Navigation */}
       {renderPeriodNavigation()}
 
-      {/* Filters */}
       {activeTab === 'expense' && (
         <ExpenseFilters
           selectedCategory={selectedCategory}
@@ -376,25 +367,21 @@ export const TransactionsPage = () => {
         </div>
       )}
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {activeTab === 'income' && (
           <div className="p-4 space-y-4">
-            {/* Display payments only */}
             {(() => {
               let filteredPayments = payments.filter(payment => {
                 const paymentDate = new Date(payment.date);
                 return paymentDate >= dateStart && paymentDate <= dateEnd;
               });
 
-              // Apply account filter
               if (selectedIncomeAccount !== 'all') {
                 filteredPayments = filteredPayments.filter(payment => 
                   payment.payment_mode === selectedIncomeAccount
                 );
               }
 
-              // Apply category filter
               if (selectedIncomeCategory !== 'all') {
                 filteredPayments = filteredPayments.filter(payment => 
                   payment.type === selectedIncomeCategory
@@ -402,7 +389,6 @@ export const TransactionsPage = () => {
               }
 
               const formatDateRange = (startDate: string, endDate: string) => {
-                // Extract just the date part (YYYY-MM-DD) to compare dates without time
                 const startDateOnly = startDate.split('T')[0];
                 const endDateOnly = endDate.split('T')[0];
                 
@@ -422,7 +408,6 @@ export const TransactionsPage = () => {
                 return isSameDate ? startDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
               };
 
-              // Calculate income summary from all payments
               const rentPayments = filteredPayments.filter(p => p.type === 'rent');
               const secondaryPayments = filteredPayments.filter(p => p.type === 'Secondary Income');
               const refundPayments = filteredPayments.filter(p => p.amount < 0);
@@ -439,17 +424,14 @@ export const TransactionsPage = () => {
                     return (
                       <Card key={payment.id} className="p-4">
                         <div className="space-y-2">
-                          {/* Description - Full line */}
                           <h4 className="font-semibold text-foreground">
                             {payment.description || 'Payment'}
                           </h4>
                           
-                          {/* Amount - Second line */}
                           <div className={`text-lg font-bold ${payment.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            <CurrencyDisplay amount={payment.amount} displayMode="text-only" />
+                            <CurrencyDisplay amount={Math.abs(payment.amount)} displayMode="text-only" />
                           </div>
                           
-                          {/* Date and Account - Third line, opposite corners */}
                           <div className="flex justify-between items-center">
                             <p className="text-sm text-muted-foreground">
                               {format(new Date(payment.date), 'dd MMM yyyy')}
@@ -509,7 +491,6 @@ export const TransactionsPage = () => {
         )}
       </div>
 
-      {/* Add Expense Button */}
       {activeTab === 'expense' && (
         <Button
           onClick={() => setShowAddExpenseDialog(true)}

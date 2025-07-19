@@ -19,7 +19,8 @@ export const calculateExpenseData = async (expenses: any[]) => {
   const expensesByCategory: Record<string, number> = {};
   
   currentFYExpenses.forEach((expense) => {
-    const categoryName = expense.category?.name || expense.categoryName || 'Uncategorized';
+    // Properly access category name from the expense object structure
+    const categoryName = expense.category || 'Uncategorized';
     const amount = Number(expense.totalAmount || expense.amount);
     expensesByCategory[categoryName] = (expensesByCategory[categoryName] || 0) + amount;
   });
