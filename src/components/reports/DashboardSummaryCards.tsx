@@ -27,35 +27,7 @@ export const DashboardSummaryCards = ({
   const payablesChange = -5.3;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      {/* Total Income */}
-      <Card className="p-6 relative overflow-hidden border-l-4 border-l-blue-500">
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Total Income</h3>
-          <div className="text-2xl font-bold text-foreground">
-            <CurrencyDisplay amount={totalIncome} displayMode="text-only" />
-          </div>
-          <div className="flex items-center text-sm">
-            <TrendingUp className="h-4 w-4 text-blue-500 mr-1" />
-            <span className="text-blue-500 font-medium">{incomeChange}% from last month</span>
-          </div>
-        </div>
-      </Card>
-
-      {/* Total Expenses */}
-      <Card className="p-6 relative overflow-hidden border-l-4 border-l-red-500">
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Total Expenses</h3>
-          <div className="text-2xl font-bold text-foreground">
-            <CurrencyDisplay amount={totalExpenses} displayMode="text-only" />
-          </div>
-          <div className="flex items-center text-sm">
-            <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
-            <span className="text-red-500 font-medium">{Math.abs(expenseChange)}% from last month</span>
-          </div>
-        </div>
-      </Card>
-
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
       {/* Receivables */}
       <Card 
         className="p-6 relative overflow-hidden border-l-4 border-l-blue-600 cursor-pointer hover:shadow-md transition-shadow"
@@ -65,10 +37,6 @@ export const DashboardSummaryCards = ({
           <h3 className="text-sm font-medium text-muted-foreground">Receivables</h3>
           <div className="text-2xl font-bold text-foreground">
             <CurrencyDisplay amount={totalReceivables} displayMode="text-only" />
-          </div>
-          <div className="flex items-center text-sm">
-            <TrendingUp className="h-4 w-4 text-blue-600 mr-1" />
-            <span className="text-blue-600 font-medium">{receivablesChange}% from last month</span>
           </div>
         </div>
       </Card>
@@ -82,10 +50,6 @@ export const DashboardSummaryCards = ({
           <h3 className="text-sm font-medium text-muted-foreground">Payables</h3>
           <div className="text-2xl font-bold text-foreground">
             <CurrencyDisplay amount={totalPayables} displayMode="text-only" />
-          </div>
-          <div className="flex items-center text-sm">
-            <TrendingDown className="h-4 w-4 text-orange-500 mr-1" />
-            <span className="text-orange-500 font-medium">{Math.abs(payablesChange)}% from last month</span>
           </div>
         </div>
       </Card>

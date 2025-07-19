@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 interface Profile {
   id: string;
   business_name: string;
+  full_name?: string;
   phone_number?: string;
   email: string;
   phone_verified: boolean;
