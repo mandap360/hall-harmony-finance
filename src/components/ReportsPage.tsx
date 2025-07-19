@@ -35,18 +35,7 @@ export const ReportsPage = () => {
         const incomeResult = await calculateIncomeData(bookings);
         setIncomeData(incomeResult);
         
-        // Extract refund data from bookings
-        const bookingRefunds = bookings.flatMap(booking => 
-          (booking.payments || [])
-            .filter(payment => payment.type === 'refund')
-            .map(payment => ({
-              amount: Math.abs(payment.amount),
-              date: payment.date,
-              description: payment.description || `Refund for ${booking.eventName}`
-            }))
-        );
-
-        const expenseResult = await calculateExpenseData(expenses, bookingRefunds);
+        const expenseResult = await calculateExpenseData(expenses);
         setExpenseData(expenseResult);
       } else {
         // Set empty data when no bookings exist

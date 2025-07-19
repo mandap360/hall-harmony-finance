@@ -9,32 +9,27 @@ export const calculateIncomeData = async (bookings: any[]) => {
     isInCurrentFY(booking.startDate, currentFY)
   );
 
-  // Calculate total rent income from actual payments (paidAmount), not rent finalized
-  const totalRentIncome = currentFYBookings.reduce((sum, booking) => {
-    return sum + booking.paidAmount; // Only rent payments received
-  }, 0);
-
-  // Calculate total additional income payments from payments table
-  let totalAdditionalIncomeFromPayments = 0;
-
-  // Fetch categorized additional income from additional_income table
   const bookingIds = currentFYBookings.map(booking => booking.id);
-  let categorizedAdditionalIncome: Record<string, number> = {};
-  let totalCategorizedAdditionalIncome = 0;
+  let incomeByCategory: Record<string, number> = {};
+  let totalIncome = 0;
 
   if (bookingIds.length > 0) {
     try {
-      // Fetch secondary income payments from payments table
-      const { data: additionalPayments, error: paymentsError } = await supabase
+      // Fetch all payments from payments table for current FY bookings
+      const { data: allPayments, error: paymentsError } = await supabase
         .from('payments')
-        .select('amount')
-        .in('booking_id', bookingIds)
-        .eq('payment_type', 'Secondary Income');
+        .select('amount, payment_type')
+        .in('booking_id', bookingIds);
 
-      if (!paymentsError && additionalPayments) {
-        totalAdditionalIncomeFromPayments = additionalPayments.reduce((sum, payment) => {
-          return sum + Number(payment.amount);
-        }, 0);
+      if (!paymentsError && allPayments) {
+        // Group payments by type and calculate totals
+        allPayments.forEach(payment => {
+          const amount = Number(payment.amount);
+          const paymentType = payment.payment_type;
+          
+          incomeByCategory[paymentType] = (incomeByCategory[paymentType] || 0) + amount;
+          totalIncome += amount;
+        });
       }
 
       // Fetch categorized additional income from additional_income table
@@ -44,37 +39,16 @@ export const calculateIncomeData = async (bookings: any[]) => {
         .in('booking_id', bookingIds);
 
       if (!error && additionalIncomeData) {
-        categorizedAdditionalIncome = additionalIncomeData.reduce((acc, item) => {
-          acc[item.category] = (acc[item.category] || 0) + Number(item.amount);
-          totalCategorizedAdditionalIncome += Number(item.amount);
-          return acc;
-        }, {} as Record<string, number>);
+        additionalIncomeData.forEach(item => {
+          const amount = Number(item.amount);
+          incomeByCategory[item.category] = (incomeByCategory[item.category] || 0) + amount;
+          totalIncome += amount;
+        });
       }
     } catch (error) {
-      console.error('Error fetching additional income:', error);
+      console.error('Error fetching income data:', error);
     }
   }
-
-  // Calculate unallocated additional income (total additional income received - already allocated)
-  const unallocatedAdditionalIncome = totalAdditionalIncomeFromPayments - totalCategorizedAdditionalIncome;
-
-  // Total income combines rent, unallocated additional income, and categorized additional income
-  const totalIncome = totalRentIncome + unallocatedAdditionalIncome + totalCategorizedAdditionalIncome;
-
-  // Create detailed income breakdown
-  const incomeByCategory: Record<string, number> = {
-    "Rent": totalRentIncome, // Only rent received, not finalized
-  };
-
-  // Add unallocated secondary income if there's any
-  if (unallocatedAdditionalIncome > 0) {
-    incomeByCategory["Unallocated Secondary Income"] = unallocatedAdditionalIncome;
-  }
-
-  // Add categorized additional income
-  Object.entries(categorizedAdditionalIncome).forEach(([category, amount]) => {
-    incomeByCategory[category] = amount;
-  });
 
   // Calculate total receivables (only unpaid rent, not additional income)
   const totalReceivables = bookings.reduce((sum, booking) => {
@@ -84,8 +58,6 @@ export const calculateIncomeData = async (bookings: any[]) => {
 
   return {
     totalIncome,
-    totalRentIncome,
-    totalAdditionalIncome: unallocatedAdditionalIncome + totalCategorizedAdditionalIncome,
     incomeByCategory,
     totalReceivables
   };

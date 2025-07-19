@@ -60,7 +60,9 @@ export const SalesExpenseSummary = ({
                 {Object.entries(incomeByCategory).map(([category, amount]) => (
                   <div key={category} className="flex justify-between items-center text-sm">
                     <span className="text-green-800">{category}</span>
-                    <span className="text-green-900 font-medium">₹{amount.toLocaleString()}</span>
+                    <span className={`font-medium ${amount < 0 ? 'text-red-600' : 'text-green-900'}`}>
+                      ₹{amount.toLocaleString()}
+                    </span>
                   </div>
                 ))}
                 {Object.keys(incomeByCategory).length === 0 && (
