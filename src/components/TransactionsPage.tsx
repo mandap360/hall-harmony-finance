@@ -16,6 +16,7 @@ import { MonthNavigation } from "@/components/MonthNavigation";
 import { ExpenseCard } from "@/components/ExpenseCard";
 import { ExpenseList } from "@/components/expense/ExpenseList";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
+import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 
 import { useAccounts } from "@/hooks/useAccounts";
 import { usePayments } from "@/hooks/usePayments";
@@ -61,6 +62,7 @@ export const TransactionsPage = () => {
   const [startDate, setStartDate] = useState<Date>(startOfWeek(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfWeek(new Date()));
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
+  const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   
   const { expenses, addExpense, refetch } = useExpenses();
   const { getExpenseCategories } = useCategories();
@@ -147,6 +149,12 @@ export const TransactionsPage = () => {
     } catch (error) {
       console.error('Error adding expense:', error);
     }
+  };
+
+  const handleIncomeAdded = () => {
+    // Trigger a refresh of the data
+    refetch();
+    window.location.reload(); // Simple refresh to ensure all data is updated
   };
 
   const renderPeriodNavigation = () => {
@@ -491,10 +499,20 @@ export const TransactionsPage = () => {
         )}
       </div>
 
+      {activeTab === 'income' && (
+        <Button
+          onClick={() => setShowAddIncomeDialog(true)}
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 text-white z-50"
+          size="icon"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
+
       {activeTab === 'expense' && (
         <Button
           onClick={() => setShowAddExpenseDialog(true)}
-          className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 text-white z-50"
           size="icon"
         >
           <Plus className="h-6 w-6" />
@@ -505,6 +523,12 @@ export const TransactionsPage = () => {
         open={showAddExpenseDialog}
         onOpenChange={setShowAddExpenseDialog}
         onSubmit={handleAddExpense}
+      />
+
+      <AddIncomeDialog
+        open={showAddIncomeDialog}
+        onOpenChange={setShowAddIncomeDialog}
+        onIncomeAdded={handleIncomeAdded}
       />
       
     </div>
