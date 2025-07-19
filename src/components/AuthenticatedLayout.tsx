@@ -24,8 +24,8 @@ const AuthenticatedLayoutContent = ({ children }: AuthenticatedLayoutProps) => {
           variant="ghost"
           size="icon"
           onClick={toggleSidebar} 
-          className={`h-7 w-7 text-[hsl(var(--header-foreground))] hover:bg-white/10 transition-all duration-300 flex items-center justify-center absolute z-10 ${
-            open ? 'left-[272px]' : 'left-[72px]'
+          className={`h-7 w-7 text-[hsl(var(--header-foreground))] hover:bg-white/10 transition-all duration-200 flex items-center justify-center absolute z-10 ${
+            open ? 'left-[256px]' : 'left-[48px]'
           }`}
         >
           <Menu className="h-4 w-4" />
@@ -45,6 +45,9 @@ const AuthenticatedLayoutContent = ({ children }: AuthenticatedLayoutProps) => {
               <div className="px-2 py-1.5 text-sm">
                 <p className="font-medium">{profile?.business_name}</p>
                 <p className="text-muted-foreground">{user?.email}</p>
+                {profile?.organization_id && (
+                  <p className="text-xs text-muted-foreground mt-1">Organization: {profile.organization_id}</p>
+                )}
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut} className="text-destructive">

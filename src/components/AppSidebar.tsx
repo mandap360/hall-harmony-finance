@@ -45,6 +45,7 @@ export function AppSidebar() {
       side="left"
       variant="sidebar"
       collapsible="icon"
+      className="w-16 group-data-[state=expanded]:w-64"
     >
       <SidebarHeader className="border-b border-sidebar-border h-14 flex items-center">
         <div className="flex items-center px-4">
@@ -63,8 +64,10 @@ export function AppSidebar() {
                       end
                       className={({ isActive }) => getNavCls({ isActive })}
                     >
-                      <item.icon className="h-4 w-4" />
-                      {open && <span>{item.title}</span>}
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span className={`transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0 md:opacity-0'}`}>
+                        {item.title}
+                      </span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
