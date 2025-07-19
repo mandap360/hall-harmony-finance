@@ -280,7 +280,7 @@ export const TransactionsPage = () => {
           ))}
         </div>
         
-        <div className="px-4">
+        <div className="pl-1">
           <Select value={periodType} onValueChange={setPeriodType}>
             <SelectTrigger className="w-16 h-8 border-none bg-transparent focus:ring-0 px-1 gap-0 justify-start">
               <SelectValue>
