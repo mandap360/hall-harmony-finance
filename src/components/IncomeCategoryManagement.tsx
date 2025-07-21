@@ -112,24 +112,6 @@ export const IncomeCategoryManagement = () => {
                   required
                 />
               </div>
-              {showSubcategories && (
-                <div>
-                  <Label htmlFor="parentCategory">Parent Category (Optional)</Label>
-                  <Select value={selectedParentId || "none"} onValueChange={(value) => setSelectedParentId(value === "none" ? null : value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select parent category or leave blank for main category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None (Main Category)</SelectItem>
-                      {parentCategories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
               <div className="flex space-x-2">
                 <Button
                   type="button"
@@ -140,7 +122,7 @@ export const IncomeCategoryManagement = () => {
                   Cancel
                 </Button>
                 <Button type="submit" className="flex-1">
-                  Add
+                  Save
                 </Button>
               </div>
             </form>
