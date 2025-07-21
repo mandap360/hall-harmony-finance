@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Minus, Plus, Edit3, ChevronDown, ChevronRight } from "lucide-react";
+import { Minus, Plus, Edit3, ChevronDown, ChevronUp } from "lucide-react";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { Switch } from "@/components/ui/switch";
 
@@ -169,7 +169,7 @@ export const IncomeCategoryManagement = () => {
                       className="h-8 w-8 p-0 text-muted-foreground"
                       onClick={() => toggleCategoryExpanded(category.id)}
                     >
-                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </Button>
                   )}
                 </div>
