@@ -1,65 +1,35 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Settings, User, HelpCircle, Info, Calculator, Tag, Users, CreditCard } from "lucide-react";
+import { Settings, User, HelpCircle, Info, Calculator, Tag, Users } from "lucide-react";
 import { TaxManagement } from "@/components/TaxManagement";
-import { IncomeCategoryManagement } from "@/components/IncomeCategoryManagement";
-import { ExpenseCategoryManagement } from "@/components/ExpenseCategoryManagement";
+import { CategorySettings } from "@/components/CategorySettings";
 import { VendorManagement } from "@/components/VendorManagement";
-import { BankingPage } from "@/components/BankingPage";
 
 export const MorePage = () => {
   const [currentView, setCurrentView] = useState("menu");
 
   const menuItems = [
     { 
-      icon: CreditCard, 
-      label: "Banking", 
-      description: "Manage cash and bank accounts",
-      action: () => setCurrentView("banking")
-    },
-    { 
       icon: Calculator, 
-      label: "Tax Management", 
+      label: "Tax Settings", 
       description: "Manage GST rates",
       action: () => setCurrentView("tax")
     },
     { 
       icon: Tag, 
-      label: "Income Category Settings", 
-      description: "Manage income categories and subcategories",
-      action: () => setCurrentView("income-categories")
-    },
-    { 
-      icon: Tag, 
-      label: "Expense Category Settings", 
-      description: "Manage expense categories and subcategories",
-      action: () => setCurrentView("expense-categories")
+      label: "Category Settings", 
+      description: "Manage income and expense categories",
+      action: () => setCurrentView("categories")
     },
     { 
       icon: Users, 
-      label: "Party Management", 
+      label: "Manage Parties", 
       description: "Manage party information",
       action: () => setCurrentView("vendors")
     },
     { icon: HelpCircle, label: "Help & Support", description: "Get assistance" },
   ];
-
-  if (currentView === "banking") {
-    return (
-      <div>
-        <div className="p-4 border-b">
-          <button 
-            onClick={() => setCurrentView("menu")}
-            className="text-blue-600 hover:text-blue-800"
-          >
-            ← Back
-          </button>
-        </div>
-        <BankingPage />
-      </div>
-    );
-  }
 
   if (currentView === "tax") {
     return (
@@ -77,7 +47,7 @@ export const MorePage = () => {
     );
   }
 
-  if (currentView === "income-categories") {
+  if (currentView === "categories") {
     return (
       <div>
         <div className="p-4 border-b">
@@ -88,23 +58,7 @@ export const MorePage = () => {
             ← Back
           </button>
         </div>
-        <IncomeCategoryManagement />
-      </div>
-    );
-  }
-
-  if (currentView === "expense-categories") {
-    return (
-      <div>
-        <div className="p-4 border-b">
-          <button 
-            onClick={() => setCurrentView("menu")}
-            className="text-blue-600 hover:text-blue-800"
-          >
-            ← Back
-          </button>
-        </div>
-        <ExpenseCategoryManagement />
+        <CategorySettings />
       </div>
     );
   }

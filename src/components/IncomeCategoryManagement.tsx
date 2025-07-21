@@ -85,6 +85,7 @@ export const IncomeCategoryManagement = () => {
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0"
+              data-dialog-trigger
             >
               <Plus className="h-5 w-5" />
             </Button>
