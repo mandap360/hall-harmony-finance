@@ -26,13 +26,13 @@ export const MorePage = () => {
     },
     { 
       icon: Tag, 
-      label: "Income Categories", 
+      label: "Income Category Settings", 
       description: "Manage income categories and subcategories",
       action: () => setCurrentView("income-categories")
     },
     { 
       icon: Tag, 
-      label: "Expense Categories", 
+      label: "Expense Category Settings", 
       description: "Manage expense categories and subcategories",
       action: () => setCurrentView("expense-categories")
     },

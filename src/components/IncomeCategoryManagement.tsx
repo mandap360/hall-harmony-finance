@@ -4,18 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, ChevronRight, ChevronDown } from "lucide-react";
+import { Minus, Plus, Edit3, Menu } from "lucide-react";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
 
 export const IncomeCategoryManagement = () => {
   const { categories, addCategory, deleteCategory } = useIncomeCategories();
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [showSubcategories, setShowSubcategories] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const parentCategories = categories.filter(cat => !cat.parent_id);
   const getSubCategories = (parentId: string) => categories.filter(cat => cat.parent_id === parentId);
+  const allCategories = showSubcategories ? categories : parentCategories;
 
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,128 +30,123 @@ export const IncomeCategoryManagement = () => {
 
     setNewCategoryName("");
     setSelectedParentId(null);
-  };
-
-  const toggleExpanded = (categoryId: string) => {
-    const newExpanded = new Set(expandedCategories);
-    if (newExpanded.has(categoryId)) {
-      newExpanded.delete(categoryId);
-    } else {
-      newExpanded.add(categoryId);
-    }
-    setExpandedCategories(newExpanded);
+    setShowAddForm(false);
   };
 
   return (
-    <div className="p-4 space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-primary">Income Category Management</h1>
-        <p className="text-muted-foreground">Manage income categories and subcategories</p>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b">
+        <h1 className="text-lg font-semibold">Income</h1>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowAddForm(true)}
+          className="h-8 w-8 p-0"
+        >
+          <Plus className="h-5 w-5" />
+        </Button>
       </div>
 
-      {/* Add New Category */}
-      <Card className="p-4">
-        <h3 className="font-semibold mb-4 text-primary">Add New Category</h3>
-        <form onSubmit={handleAddCategory} className="space-y-4">
-          <div>
-            <Label htmlFor="categoryName">Category Name</Label>
-            <Input
-              id="categoryName"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              placeholder="Enter category name"
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="parentCategory">Parent Category (Optional)</Label>
-            <Select value={selectedParentId || "none"} onValueChange={(value) => setSelectedParentId(value === "none" ? null : value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select parent category or leave blank for main category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None (Main Category)</SelectItem>
-                {parentCategories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button type="submit" className="w-full">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Category
-          </Button>
-        </form>
-      </Card>
+      {/* Subcategory Toggle */}
+      <div className="p-4 border-b">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Subcategory</span>
+          <Switch
+            checked={showSubcategories}
+            onCheckedChange={setShowSubcategories}
+          />
+        </div>
+      </div>
 
       {/* Categories List */}
-      <Card className="p-4">
-        <h3 className="font-semibold mb-4 text-primary">Income Categories</h3>
-        <div className="space-y-2">
-          {parentCategories.map((category) => {
-            const subCategories = getSubCategories(category.id);
-            const isExpanded = expandedCategories.has(category.id);
-            
-            return (
-              <div key={category.id} className="border rounded-lg">
-                <Collapsible open={isExpanded} onOpenChange={() => toggleExpanded(category.id)}>
-                  <div className="flex justify-between items-center p-3 bg-primary/5 rounded-t-lg">
-                    <div className="flex items-center space-x-2">
-                      {subCategories.length > 0 && (
-                        <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="sm" className="p-0 h-auto">
-                            {isExpanded ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </CollapsibleTrigger>
-                      )}
-                      <span className="font-medium">{category.name}</span>
-                      {subCategories.length > 0 && (
-                        <span className="text-sm text-muted-foreground">
-                          ({subCategories.length} subcategories)
-                        </span>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteCategory(category.id)}
-                      className="text-destructive hover:text-destructive/80"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  {subCategories.length > 0 && (
-                    <CollapsibleContent className="border-t">
-                      <div className="p-2 space-y-1">
-                        {subCategories.map((subCategory) => (
-                          <div key={subCategory.id} className="flex justify-between items-center p-2 ml-6 bg-background rounded">
-                            <span className="text-sm">{subCategory.name}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteCategory(subCategory.id)}
-                              className="text-destructive hover:text-destructive/80"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </CollapsibleContent>
-                  )}
-                </Collapsible>
+      <div className="p-4 space-y-2">
+        {allCategories.map((category) => (
+          <div key={category.id} className="flex items-center justify-between p-3 bg-background rounded-lg border">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => deleteCategory(category.id)}
+                className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium">{category.name}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
+                <Edit3 className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
+                <Menu className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Add Category Form */}
+      {showAddForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-end z-50">
+          <div className="w-full bg-background rounded-t-lg p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Add New Category</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAddForm(false)}
+                className="h-8 w-8 p-0"
+              >
+                ×
+              </Button>
+            </div>
+            <form onSubmit={handleAddCategory} className="space-y-4">
+              <div>
+                <Label htmlFor="categoryName">Category Name</Label>
+                <Input
+                  id="categoryName"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="Enter category name"
+                  required
+                />
               </div>
-            );
-          })}
+              {showSubcategories && (
+                <div>
+                  <Label htmlFor="parentCategory">Parent Category (Optional)</Label>
+                  <Select value={selectedParentId || "none"} onValueChange={(value) => setSelectedParentId(value === "none" ? null : value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select parent category or leave blank for main category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None (Main Category)</SelectItem>
+                      {parentCategories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="flex space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAddForm(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1">
+                  Add
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
-      </Card>
+      )}
     </div>
   );
 };
