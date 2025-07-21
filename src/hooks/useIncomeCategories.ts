@@ -102,11 +102,39 @@ export const useIncomeCategories = () => {
     }
   };
 
+  const updateCategory = async (categoryId: string, categoryData: { name: string }) => {
+    try {
+      const { error } = await supabase
+        .from('income_categories')
+        .update({
+          name: categoryData.name
+        })
+        .eq('id', categoryId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Income category updated successfully",
+      });
+
+      fetchCategories();
+    } catch (error) {
+      console.error('Error updating income category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update income category",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     categories,
     loading,
     addCategory,
     deleteCategory,
+    updateCategory,
     refetch: fetchCategories
   };
 };
