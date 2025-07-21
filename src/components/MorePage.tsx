@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Settings, User, HelpCircle, Info, Calculator, Tag, Users, CreditCard } from "lucide-react";
 import { TaxManagement } from "@/components/TaxManagement";
-import { CategoryManagement } from "@/components/CategoryManagement";
+import { IncomeCategoryManagement } from "@/components/IncomeCategoryManagement";
+import { ExpenseCategoryManagement } from "@/components/ExpenseCategoryManagement";
 import { VendorManagement } from "@/components/VendorManagement";
 import { BankingPage } from "@/components/BankingPage";
 
@@ -25,9 +26,15 @@ export const MorePage = () => {
     },
     { 
       icon: Tag, 
-      label: "Category Management", 
-      description: "Manage income and expense categories",
-      action: () => setCurrentView("categories")
+      label: "Income Categories", 
+      description: "Manage income categories and subcategories",
+      action: () => setCurrentView("income-categories")
+    },
+    { 
+      icon: Tag, 
+      label: "Expense Categories", 
+      description: "Manage expense categories and subcategories",
+      action: () => setCurrentView("expense-categories")
     },
     { 
       icon: Users, 
@@ -35,10 +42,7 @@ export const MorePage = () => {
       description: "Manage party information",
       action: () => setCurrentView("vendors")
     },
-    { icon: Settings, label: "Settings", description: "App preferences" },
-    { icon: User, label: "Profile", description: "Manage your profile" },
     { icon: HelpCircle, label: "Help & Support", description: "Get assistance" },
-    { icon: Info, label: "About", description: "App information" },
   ];
 
   if (currentView === "banking") {
@@ -73,7 +77,7 @@ export const MorePage = () => {
     );
   }
 
-  if (currentView === "categories") {
+  if (currentView === "income-categories") {
     return (
       <div>
         <div className="p-4 border-b">
@@ -84,7 +88,23 @@ export const MorePage = () => {
             ← Back
           </button>
         </div>
-        <CategoryManagement />
+        <IncomeCategoryManagement />
+      </div>
+    );
+  }
+
+  if (currentView === "expense-categories") {
+    return (
+      <div>
+        <div className="p-4 border-b">
+          <button 
+            onClick={() => setCurrentView("menu")}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            ← Back
+          </button>
+        </div>
+        <ExpenseCategoryManagement />
       </div>
     );
   }

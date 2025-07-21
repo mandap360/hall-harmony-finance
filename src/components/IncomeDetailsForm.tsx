@@ -19,7 +19,7 @@ interface IncomeDetailsFormProps {
 }
 
 export const IncomeDetailsForm = ({ onSubmit, onCancel }: IncomeDetailsFormProps) => {
-  const { incomeCategories } = useIncomeCategories();
+  const { categories } = useIncomeCategories();
 
   const [formData, setFormData] = useState({
     source: "",
@@ -72,7 +72,7 @@ export const IncomeDetailsForm = ({ onSubmit, onCancel }: IncomeDetailsFormProps
             <SelectValue placeholder="Select income category" />
           </SelectTrigger>
           <SelectContent>
-            {incomeCategories.map((category) => (
+            {categories.map((category) => (
               <SelectItem key={category.id} value={category.name}>
                 {category.name}
               </SelectItem>

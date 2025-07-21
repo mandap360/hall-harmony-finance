@@ -8,6 +8,7 @@ export interface Category {
   name: string;
   type: "income" | "expense";
   createdAt: string;
+  parent_id?: string;
 }
 
 export const useCategories = () => {
@@ -41,13 +42,15 @@ export const useCategories = () => {
           id: cat.id,
           name: cat.name,
           type: "income" as const,
-          createdAt: cat.created_at
+          createdAt: cat.created_at,
+          parent_id: cat.parent_id
         })),
         ...(expenseData || []).map(cat => ({
           id: cat.id,
           name: cat.name,
           type: "expense" as const,
-          createdAt: cat.created_at
+          createdAt: cat.created_at,
+          parent_id: cat.parent_id
         }))
       ];
 
@@ -76,7 +79,8 @@ export const useCategories = () => {
       const { data, error } = await supabase
         .from(tableName)
         .insert({
-          name: categoryData.name
+          name: categoryData.name,
+          parent_id: categoryData.parent_id
         })
         .select()
         .single();

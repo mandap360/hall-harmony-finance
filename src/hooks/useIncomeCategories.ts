@@ -7,6 +7,7 @@ export interface IncomeCategory {
   name: string;
   description?: string;
   createdAt: string;
+  parent_id?: string;
 }
 
 export const useIncomeCategories = () => {
@@ -28,7 +29,8 @@ export const useIncomeCategories = () => {
         id: category.id,
         name: category.name,
         description: category.description,
-        createdAt: category.created_at
+        createdAt: category.created_at,
+        parent_id: category.parent_id
       }));
 
       setCategories(transformedCategories);
@@ -48,9 +50,63 @@ export const useIncomeCategories = () => {
     fetchCategories();
   }, []);
 
+  const addCategory = async (categoryData: { name: string; parent_id?: string | null }) => {
+    try {
+      const { error } = await supabase
+        .from('income_categories')
+        .insert({
+          name: categoryData.name,
+          parent_id: categoryData.parent_id
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Income category added successfully",
+      });
+
+      fetchCategories();
+    } catch (error) {
+      console.error('Error adding income category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add income category",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteCategory = async (categoryId: string) => {
+    try {
+      const { error } = await supabase
+        .from('income_categories')
+        .delete()
+        .eq('id', categoryId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Income category deleted successfully",
+      });
+
+      fetchCategories();
+    } catch (error) {
+      console.error('Error deleting income category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete income category",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
-    incomeCategories: categories,
+    categories,
     loading,
+    addCategory,
+    deleteCategory,
     refetch: fetchCategories
   };
 };
