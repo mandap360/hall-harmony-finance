@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Minus, Plus, Edit3, Menu } from "lucide-react";
+import { Minus, Plus, Edit3, ChevronDown, ChevronRight } from "lucide-react";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { Switch } from "@/components/ui/switch";
 
@@ -12,15 +12,24 @@ export const IncomeCategoryManagement = () => {
   const { categories, addCategory, deleteCategory, updateCategory } = useIncomeCategories();
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
-  const [showSubcategories, setShowSubcategories] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [editCategoryName, setEditCategoryName] = useState("");
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   const parentCategories = categories.filter(cat => !cat.parent_id);
   const getSubCategories = (parentId: string) => categories.filter(cat => cat.parent_id === parentId);
-  const allCategories = showSubcategories ? categories : parentCategories;
+  
+  const toggleCategoryExpanded = (categoryId: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId);
+    } else {
+      newExpanded.add(categoryId);
+    }
+    setExpandedCategories(newExpanded);
+  };
 
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +39,11 @@ export const IncomeCategoryManagement = () => {
       name: newCategoryName.trim(),
       parent_id: selectedParentId,
     });
+
+    // Auto-expand parent category if adding subcategory
+    if (selectedParentId) {
+      setExpandedCategories(prev => new Set([...prev, selectedParentId]));
+    }
 
     setNewCategoryName("");
     setSelectedParentId(null);
@@ -108,21 +122,15 @@ export const IncomeCategoryManagement = () => {
         </Dialog>
       </div>
 
-      {/* Subcategory Toggle */}
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Subcategory</span>
-          <Switch
-            checked={showSubcategories}
-            onCheckedChange={setShowSubcategories}
-          />
-        </div>
-      </div>
 
       {/* Categories List */}
       <div className="p-4 space-y-2">
-        {showSubcategories ? (
-          parentCategories.map((category) => (
+        {parentCategories.map((category) => {
+          const subCategories = getSubCategories(category.id);
+          const isExpanded = expandedCategories.has(category.id);
+          const hasSubCategories = subCategories.length > 0;
+          
+          return (
             <div key={category.id} className="space-y-2">
               {/* Parent Category */}
               <div className="flex items-center justify-between p-3 bg-background rounded-lg border">
@@ -154,14 +162,21 @@ export const IncomeCategoryManagement = () => {
                   >
                     <Edit3 className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
-                    <Menu className="h-4 w-4" />
-                  </Button>
+                  {hasSubCategories && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-muted-foreground"
+                      onClick={() => toggleCategoryExpanded(category.id)}
+                    >
+                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </Button>
+                  )}
                 </div>
               </div>
               
               {/* Subcategories */}
-              {getSubCategories(category.id).map((subCategory) => (
+              {isExpanded && subCategories.map((subCategory) => (
                 <div key={subCategory.id} className="flex items-center justify-between p-3 bg-background rounded-lg border ml-8">
                   <div className="flex items-center space-x-3">
                     <Button
@@ -183,54 +198,12 @@ export const IncomeCategoryManagement = () => {
                     >
                       <Edit3 className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
-                      <Menu className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
               ))}
             </div>
-          ))
-        ) : (
-          allCategories.map((category) => (
-            <div key={category.id} className="flex items-center justify-between p-3 bg-background rounded-lg border">
-              <div className="flex items-center space-x-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => deleteCategory(category.id)}
-                  className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <span className="text-sm font-medium">{category.name}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                {!category.parent_id && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-8 w-8 p-0 text-muted-foreground"
-                    onClick={() => openAddSubcategoryDialog(category.id)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                )}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 w-8 p-0 text-muted-foreground"
-                  onClick={() => openEditDialog(category)}
-                >
-                  <Edit3 className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))
-        )}
+          );
+        })}
       </div>
 
       {/* Edit Category Dialog */}
