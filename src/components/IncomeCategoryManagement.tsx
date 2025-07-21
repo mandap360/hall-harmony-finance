@@ -63,12 +63,12 @@ export const IncomeCategoryManagement = () => {
           </div>
           <div>
             <Label htmlFor="parentCategory">Parent Category (Optional)</Label>
-            <Select value={selectedParentId || ""} onValueChange={(value) => setSelectedParentId(value || null)}>
+            <Select value={selectedParentId || "none"} onValueChange={(value) => setSelectedParentId(value === "none" ? null : value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select parent category or leave blank for main category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None (Main Category)</SelectItem>
+                <SelectItem value="none">None (Main Category)</SelectItem>
                 {parentCategories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
