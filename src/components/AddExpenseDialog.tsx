@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
 import { useVendors } from "@/hooks/useVendors";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -37,6 +37,8 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
   });
 
   const [showAddVendorDialog, setShowAddVendorDialog] = useState(false);
+  const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const { getExpenseCategories } = useCategories();
   const { vendors, addVendor } = useVendors();
@@ -47,39 +49,42 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
   // Filter parent categories (categories without parent_id)
   const parentCategories = expenseCategories.filter(cat => !cat.parent_id);
   
-  // Create a flat list of all categories with parent/child display
-  const getAllCategoriesForDisplay = () => {
-    const result: Array<{id: string, name: string, isSubcategory: boolean, parentName?: string}> = [];
-    
-    parentCategories.forEach(parent => {
-      result.push({ id: parent.id, name: parent.name, isSubcategory: false });
-      
-      const subcategories = expenseCategories.filter(cat => cat.parent_id === parent.id);
-      subcategories.forEach(sub => {
-        result.push({ 
-          id: sub.id, 
-          name: sub.name, 
-          isSubcategory: true, 
-          parentName: parent.name 
-        });
-      });
-    });
-    
-    return result;
+  // Get subcategories for a parent
+  const getSubcategories = (parentId: string) => {
+    return expenseCategories.filter(cat => cat.parent_id === parentId);
   };
   
-  const categoriesForDisplay = getAllCategoriesForDisplay();
+  // Handle category item click
+  const handleCategoryClick = (category: any, isSubcategory: boolean) => {
+    if (isSubcategory) {
+      setFormData({ ...formData, selectedCategoryId: category.id });
+      setIsDropdownOpen(false);
+      setExpandedCategoryId(null);
+    } else {
+      const hasSubcategories = getSubcategories(category.id).length > 0;
+      if (hasSubcategories) {
+        setExpandedCategoryId(expandedCategoryId === category.id ? null : category.id);
+      } else {
+        setFormData({ ...formData, selectedCategoryId: category.id });
+        setIsDropdownOpen(false);
+        setExpandedCategoryId(null);
+      }
+    }
+  };
   
   // Get display value for selected category
   const getSelectedCategoryDisplay = () => {
     if (!formData.selectedCategoryId) return "";
     
-    const category = categoriesForDisplay.find(cat => cat.id === formData.selectedCategoryId);
-    if (!category) return "";
+    const selectedCategory = expenseCategories.find(cat => cat.id === formData.selectedCategoryId);
+    if (!selectedCategory) return "";
     
-    return category.isSubcategory 
-      ? `${category.parentName}/${category.name}`
-      : category.name;
+    if (selectedCategory.parent_id) {
+      const parentCategory = expenseCategories.find(cat => cat.id === selectedCategory.parent_id);
+      return parentCategory ? `${parentCategory.name}/${selectedCategory.name}` : selectedCategory.name;
+    }
+    
+    return selectedCategory.name;
   };
   
   // Filter accounts for payment
@@ -237,26 +242,45 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {categoriesForDisplay.map((category) => (
-                    <SelectItem 
-                      key={category.id} 
-                      value={category.id}
-                      className={category.isSubcategory ? "pl-6" : ""}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <span>
-                          {category.isSubcategory 
-                            ? `${category.parentName}/${category.name}`
-                            : category.name
-                          }
-                        </span>
-                        {!category.isSubcategory && 
-                         expenseCategories.some(cat => cat.parent_id === category.id) && (
-                          <ChevronDown className="h-4 w-4 ml-2" />
+                  {parentCategories.map((category) => {
+                    const subcategories = getSubcategories(category.id);
+                    const hasSubcategories = subcategories.length > 0;
+                    const isExpanded = expandedCategoryId === category.id;
+                    
+                    return (
+                      <div key={category.id}>
+                        <SelectItem 
+                          value={hasSubcategories ? "" : category.id}
+                          onClick={() => handleCategoryClick(category, false)}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span>{category.name}</span>
+                            {hasSubcategories && (
+                              isExpanded ? (
+                                <ChevronUp className="h-4 w-4 ml-2" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 ml-2" />
+                              )
+                            )}
+                          </div>
+                        </SelectItem>
+                        {hasSubcategories && isExpanded && (
+                          <>
+                            {subcategories.map((subcategory) => (
+                              <SelectItem 
+                                key={subcategory.id} 
+                                value={subcategory.id}
+                                className="pl-6"
+                                onClick={() => handleCategoryClick(subcategory, true)}
+                              >
+                                {subcategory.name}
+                              </SelectItem>
+                            ))}
+                          </>
                         )}
                       </div>
-                    </SelectItem>
-                  ))}
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
