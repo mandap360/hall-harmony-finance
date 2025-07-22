@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronDown } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
 import { useVendors } from "@/hooks/useVendors";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -29,8 +30,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
     vendorId: "",
     billNumber: "",
     date: dateUtils.getTodayString(),
-    category: "",
-    selectedParentCategory: "",
+    selectedCategoryId: "",
     amount: "",
     taxRateId: APP_CONSTANTS.DEFAULTS.TAX_RATE_ID as string,
     paidThrough: "",
@@ -47,13 +47,40 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
   // Filter parent categories (categories without parent_id)
   const parentCategories = expenseCategories.filter(cat => !cat.parent_id);
   
-  // Filter subcategories based on selected parent
-  const subcategories = formData.selectedParentCategory 
-    ? expenseCategories.filter(cat => cat.parent_id === formData.selectedParentCategory)
-    : [];
+  // Create a flat list of all categories with parent/child display
+  const getAllCategoriesForDisplay = () => {
+    const result: Array<{id: string, name: string, isSubcategory: boolean, parentName?: string}> = [];
     
-  // Determine if we should show subcategories dropdown
-  const showSubcategories = formData.selectedParentCategory && subcategories.length > 0;
+    parentCategories.forEach(parent => {
+      result.push({ id: parent.id, name: parent.name, isSubcategory: false });
+      
+      const subcategories = expenseCategories.filter(cat => cat.parent_id === parent.id);
+      subcategories.forEach(sub => {
+        result.push({ 
+          id: sub.id, 
+          name: sub.name, 
+          isSubcategory: true, 
+          parentName: parent.name 
+        });
+      });
+    });
+    
+    return result;
+  };
+  
+  const categoriesForDisplay = getAllCategoriesForDisplay();
+  
+  // Get display value for selected category
+  const getSelectedCategoryDisplay = () => {
+    if (!formData.selectedCategoryId) return "";
+    
+    const category = categoriesForDisplay.find(cat => cat.id === formData.selectedCategoryId);
+    if (!category) return "";
+    
+    return category.isSubcategory 
+      ? `${category.parentName}/${category.name}`
+      : category.name;
+  };
   
   // Filter accounts for payment
   const paymentAccounts = accounts.filter(acc => 
@@ -70,11 +97,9 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Determine the final category to use
-    const finalCategory = showSubcategories ? formData.category : formData.selectedParentCategory;
-    const finalCategoryName = expenseCategories.find(cat => cat.id === finalCategory)?.name || "";
+    const finalCategoryName = expenseCategories.find(cat => cat.id === formData.selectedCategoryId)?.name || "";
     
-    if (!formData.vendorId || !formData.amount || !finalCategory || !formData.paidThrough) return;
+    if (!formData.vendorId || !formData.amount || !formData.selectedCategoryId || !formData.paidThrough) return;
 
     const selectedVendor = vendors.find(v => v.id === formData.vendorId);
 
@@ -97,8 +122,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
       vendorId: "",
       billNumber: "",
       date: dateUtils.getTodayString(),
-      category: "",
-      selectedParentCategory: "",
+      selectedCategoryId: "",
       amount: "",
       taxRateId: APP_CONSTANTS.DEFAULTS.TAX_RATE_ID as string,
       paidThrough: "",
@@ -201,48 +225,41 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
                 Expense Category <span className="text-red-500">*</span>
               </Label>
               <Select 
-                value={formData.selectedParentCategory} 
+                value={formData.selectedCategoryId} 
                 onValueChange={(value) => setFormData({ 
                   ...formData, 
-                  selectedParentCategory: value,
-                  category: "" // Reset subcategory when parent changes
+                  selectedCategoryId: value
                 })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder="Select category">
+                    {getSelectedCategoryDisplay()}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {parentCategories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
+                  {categoriesForDisplay.map((category) => (
+                    <SelectItem 
+                      key={category.id} 
+                      value={category.id}
+                      className={category.isSubcategory ? "pl-6" : ""}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span>
+                          {category.isSubcategory 
+                            ? `${category.parentName}/${category.name}`
+                            : category.name
+                          }
+                        </span>
+                        {!category.isSubcategory && 
+                         expenseCategories.some(cat => cat.parent_id === category.id) && (
+                          <ChevronDown className="h-4 w-4 ml-2" />
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
-            {showSubcategories && (
-              <div>
-                <Label htmlFor="subcategory">
-                  Subcategory <span className="text-red-500">*</span>
-                </Label>
-                <Select 
-                  value={formData.category} 
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select subcategory" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subcategories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             {/* Amount and Tax in same line */}
             <div className="grid grid-cols-2 gap-4">

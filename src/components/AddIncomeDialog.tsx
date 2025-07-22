@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -23,8 +23,7 @@ interface AddIncomeDialogProps {
 
 export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncomeDialogProps) => {
   const [amount, setAmount] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [selectedParentId, setSelectedParentId] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [accountId, setAccountId] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState<Date>(new Date());
@@ -40,21 +39,45 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
   // Filter parent categories (categories without parent_id)
   const parentCategories = incomeCategories.filter(cat => !cat.parent_id);
   
-  // Filter subcategories based on selected parent
-  const subcategories = selectedParentId 
-    ? incomeCategories.filter(cat => cat.parent_id === selectedParentId)
-    : [];
+  // Create a flat list of all categories with parent/child display
+  const getAllCategoriesForDisplay = () => {
+    const result: Array<{id: string, name: string, isSubcategory: boolean, parentName?: string}> = [];
     
-  // Determine if we should show subcategories dropdown
-  const showSubcategories = selectedParentId && subcategories.length > 0;
+    parentCategories.forEach(parent => {
+      result.push({ id: parent.id, name: parent.name, isSubcategory: false });
+      
+      const subcategories = incomeCategories.filter(cat => cat.parent_id === parent.id);
+      subcategories.forEach(sub => {
+        result.push({ 
+          id: sub.id, 
+          name: sub.name, 
+          isSubcategory: true, 
+          parentName: parent.name 
+        });
+      });
+    });
+    
+    return result;
+  };
+  
+  const categoriesForDisplay = getAllCategoriesForDisplay();
+  
+  // Get display value for selected category
+  const getSelectedCategoryDisplay = () => {
+    if (!selectedCategoryId) return "";
+    
+    const category = categoriesForDisplay.find(cat => cat.id === selectedCategoryId);
+    if (!category) return "";
+    
+    return category.isSubcategory 
+      ? `${category.parentName}/${category.name}`
+      : category.name;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Determine the final category ID to use
-    const finalCategoryId = showSubcategories ? categoryId : selectedParentId;
-    
-    if (!amount || !finalCategoryId || !accountId || !profile?.organization_id) {
+    if (!amount || !selectedCategoryId || !accountId || !profile?.organization_id) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -70,7 +93,7 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
       const formattedDate = format(date, 'yyyy-MM-dd');
       
       // Find the selected category name
-      const selectedCategory = incomeCategories.find(cat => cat.id === finalCategoryId);
+      const selectedCategory = incomeCategories.find(cat => cat.id === selectedCategoryId);
       if (!selectedCategory) {
         throw new Error("Invalid category selected");
       }
@@ -123,8 +146,7 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
 
       // Reset form
       setAmount("");
-      setCategoryId("");
-      setSelectedParentId("");
+      setSelectedCategoryId("");
       setAccountId("");
       setDescription("");
       setDate(new Date());
@@ -171,43 +193,39 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
           <div className="space-y-2">
             <Label htmlFor="category">Category *</Label>
             <Select 
-              value={selectedParentId} 
-              onValueChange={(value) => {
-                setSelectedParentId(value);
-                setCategoryId(""); // Reset subcategory when parent changes
-              }} 
+              value={selectedCategoryId} 
+              onValueChange={setSelectedCategoryId} 
               required
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select category" />
+                <SelectValue placeholder="Select category">
+                  {getSelectedCategoryDisplay()}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {parentCategories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+                {categoriesForDisplay.map((category) => (
+                  <SelectItem 
+                    key={category.id} 
+                    value={category.id}
+                    className={category.isSubcategory ? "pl-6" : ""}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span>
+                        {category.isSubcategory 
+                          ? `${category.parentName}/${category.name}`
+                          : category.name
+                        }
+                      </span>
+                      {!category.isSubcategory && 
+                       incomeCategories.some(cat => cat.parent_id === category.id) && (
+                        <ChevronDown className="h-4 w-4 ml-2" />
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
-          {showSubcategories && (
-            <div className="space-y-2">
-              <Label htmlFor="subcategory">Subcategory *</Label>
-              <Select value={categoryId} onValueChange={setCategoryId} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select subcategory" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subcategories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           <div className="space-y-2">
             <Label htmlFor="account">Account *</Label>
