@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,8 +12,6 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useTaxCalculation } from "@/hooks/useTaxCalculation";
 import { useTax } from "@/hooks/useTax";
 import { AddVendorDialog } from "@/components/AddVendorDialog";
-import { IncomeDetailsForm } from "@/components/IncomeDetailsForm";
-import { TransferForm } from "@/components/TransferForm";
 import { dateUtils, APP_CONSTANTS } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
@@ -38,7 +35,6 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
 
   const [showAddVendorDialog, setShowAddVendorDialog] = useState(false);
   const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const { getExpenseCategories } = useCategories();
   const { vendors, addVendor } = useVendors();
@@ -54,21 +50,22 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
     return expenseCategories.filter(cat => cat.parent_id === parentId);
   };
   
-  // Handle category item click
-  const handleCategoryClick = (category: any, isSubcategory: boolean) => {
-    if (isSubcategory) {
-      setFormData({ ...formData, selectedCategoryId: category.id });
-      setIsDropdownOpen(false);
-      setExpandedCategoryId(null);
+  // Handle category selection from the Select component
+  const handleCategorySelect = (value: string) => {
+    const selectedCategory = expenseCategories.find(cat => cat.id === value);
+    if (!selectedCategory) return;
+    
+    const hasSubcategories = getSubcategories(selectedCategory.id).length > 0;
+    
+    if (hasSubcategories && !selectedCategory.parent_id) {
+      // This is a parent category with subcategories - expand/collapse it
+      setExpandedCategoryId(expandedCategoryId === selectedCategory.id ? null : selectedCategory.id);
+    } else if (selectedCategory.parent_id) {
+      // This is a subcategory - select it
+      setFormData({ ...formData, selectedCategoryId: selectedCategory.id });
     } else {
-      const hasSubcategories = getSubcategories(category.id).length > 0;
-      if (hasSubcategories) {
-        setExpandedCategoryId(expandedCategoryId === category.id ? null : category.id);
-      } else {
-        setFormData({ ...formData, selectedCategoryId: category.id });
-        setIsDropdownOpen(false);
-        setExpandedCategoryId(null);
-      }
+      // This is a parent category without subcategories - select it
+      setFormData({ ...formData, selectedCategoryId: selectedCategory.id });
     }
   };
   
@@ -81,7 +78,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
     
     if (selectedCategory.parent_id) {
       const parentCategory = expenseCategories.find(cat => cat.id === selectedCategory.parent_id);
-      return parentCategory ? `${parentCategory.name}/${selectedCategory.name}` : selectedCategory.name;
+      return parentCategory ? `${parentCategory.name} / ${selectedCategory.name}` : selectedCategory.name;
     }
     
     return selectedCategory.name;
@@ -231,10 +228,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
               </Label>
               <Select 
                 value={formData.selectedCategoryId} 
-                onValueChange={(value) => setFormData({ 
-                  ...formData, 
-                  selectedCategoryId: value
-                })}
+                onValueChange={handleCategorySelect}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category">
@@ -250,8 +244,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
                     return (
                       <div key={category.id}>
                         <SelectItem 
-                          value={hasSubcategories ? "" : category.id}
-                          onClick={() => handleCategoryClick(category, false)}
+                          value={category.id}
                         >
                           <div className="flex items-center justify-between w-full">
                             <span>{category.name}</span>
@@ -271,7 +264,6 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
                                 key={subcategory.id} 
                                 value={subcategory.id}
                                 className="pl-6"
-                                onClick={() => handleCategoryClick(subcategory, true)}
                               >
                                 {subcategory.name}
                               </SelectItem>

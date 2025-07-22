@@ -29,7 +29,6 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
   const [date, setDate] = useState<Date>(new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   const { accounts } = useAccounts();
   const { getIncomeCategories } = useCategories();
@@ -46,21 +45,22 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
     return incomeCategories.filter(cat => cat.parent_id === parentId);
   };
   
-  // Handle category item click
-  const handleCategoryClick = (category: any, isSubcategory: boolean) => {
-    if (isSubcategory) {
-      setSelectedCategoryId(category.id);
-      setIsDropdownOpen(false);
-      setExpandedCategoryId(null);
+  // Handle category selection from the Select component
+  const handleCategorySelect = (value: string) => {
+    const selectedCategory = incomeCategories.find(cat => cat.id === value);
+    if (!selectedCategory) return;
+    
+    const hasSubcategories = getSubcategories(selectedCategory.id).length > 0;
+    
+    if (hasSubcategories && !selectedCategory.parent_id) {
+      // This is a parent category with subcategories - expand/collapse it
+      setExpandedCategoryId(expandedCategoryId === selectedCategory.id ? null : selectedCategory.id);
+    } else if (selectedCategory.parent_id) {
+      // This is a subcategory - select it
+      setSelectedCategoryId(selectedCategory.id);
     } else {
-      const hasSubcategories = getSubcategories(category.id).length > 0;
-      if (hasSubcategories) {
-        setExpandedCategoryId(expandedCategoryId === category.id ? null : category.id);
-      } else {
-        setSelectedCategoryId(category.id);
-        setIsDropdownOpen(false);
-        setExpandedCategoryId(null);
-      }
+      // This is a parent category without subcategories - select it
+      setSelectedCategoryId(selectedCategory.id);
     }
   };
   
@@ -73,7 +73,7 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
     
     if (selectedCategory.parent_id) {
       const parentCategory = incomeCategories.find(cat => cat.id === selectedCategory.parent_id);
-      return parentCategory ? `${parentCategory.name}/${selectedCategory.name}` : selectedCategory.name;
+      return parentCategory ? `${parentCategory.name} / ${selectedCategory.name}` : selectedCategory.name;
     }
     
     return selectedCategory.name;
@@ -199,7 +199,7 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
             <Label htmlFor="category">Category *</Label>
             <Select 
               value={selectedCategoryId} 
-              onValueChange={setSelectedCategoryId} 
+              onValueChange={handleCategorySelect}
               required
             >
               <SelectTrigger>
@@ -216,8 +216,7 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
                   return (
                     <div key={category.id}>
                       <SelectItem 
-                        value={hasSubcategories ? "" : category.id}
-                        onClick={() => handleCategoryClick(category, false)}
+                        value={category.id}
                       >
                         <div className="flex items-center justify-between w-full">
                           <span>{category.name}</span>
@@ -237,7 +236,6 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
                               key={subcategory.id} 
                               value={subcategory.id}
                               className="pl-6"
-                              onClick={() => handleCategoryClick(subcategory, true)}
                             >
                               {subcategory.name}
                             </SelectItem>
