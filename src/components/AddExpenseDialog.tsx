@@ -30,6 +30,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
     billNumber: "",
     date: dateUtils.getTodayString(),
     category: "",
+    selectedParentCategory: "",
     amount: "",
     taxRateId: APP_CONSTANTS.DEFAULTS.TAX_RATE_ID as string,
     paidThrough: "",
@@ -42,6 +43,17 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
   const { accounts, transferAmount } = useAccounts();
   const { taxRates } = useTax();
   const expenseCategories = getExpenseCategories();
+  
+  // Filter parent categories (categories without parent_id)
+  const parentCategories = expenseCategories.filter(cat => !cat.parent_id);
+  
+  // Filter subcategories based on selected parent
+  const subcategories = formData.selectedParentCategory 
+    ? expenseCategories.filter(cat => cat.parent_id === formData.selectedParentCategory)
+    : [];
+    
+  // Determine if we should show subcategories dropdown
+  const showSubcategories = formData.selectedParentCategory && subcategories.length > 0;
   
   // Filter accounts for payment
   const paymentAccounts = accounts.filter(acc => 
@@ -57,12 +69,18 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.vendorId || !formData.amount || !formData.category || !formData.paidThrough) return;
+    
+    // Determine the final category to use
+    const finalCategory = showSubcategories ? formData.category : formData.selectedParentCategory;
+    const finalCategoryName = expenseCategories.find(cat => cat.id === finalCategory)?.name || "";
+    
+    if (!formData.vendorId || !formData.amount || !finalCategory || !formData.paidThrough) return;
 
     const selectedVendor = vendors.find(v => v.id === formData.vendorId);
 
     onSubmit({
       ...formData,
+      category: finalCategoryName,
       vendorName: selectedVendor?.businessName || "",
       amount: parseFloat(formData.amount),
       cgstAmount,
@@ -80,6 +98,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
       billNumber: "",
       date: dateUtils.getTodayString(),
       category: "",
+      selectedParentCategory: "",
       amount: "",
       taxRateId: APP_CONSTANTS.DEFAULTS.TAX_RATE_ID as string,
       paidThrough: "",
@@ -181,19 +200,49 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
               <Label htmlFor="category">
                 Expense Category <span className="text-red-500">*</span>
               </Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+              <Select 
+                value={formData.selectedParentCategory} 
+                onValueChange={(value) => setFormData({ 
+                  ...formData, 
+                  selectedParentCategory: value,
+                  category: "" // Reset subcategory when parent changes
+                })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {expenseCategories.map((category) => (
-                    <SelectItem key={category.id} value={category.name}>
+                  {parentCategories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {showSubcategories && (
+              <div>
+                <Label htmlFor="subcategory">
+                  Subcategory <span className="text-red-500">*</span>
+                </Label>
+                <Select 
+                  value={formData.category} 
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select subcategory" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subcategories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Amount and Tax in same line */}
             <div className="grid grid-cols-2 gap-4">

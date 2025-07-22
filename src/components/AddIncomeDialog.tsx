@@ -24,6 +24,7 @@ interface AddIncomeDialogProps {
 export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncomeDialogProps) => {
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [selectedParentId, setSelectedParentId] = useState("");
   const [accountId, setAccountId] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState<Date>(new Date());
@@ -35,11 +36,25 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
   const { profile } = useAuth();
   
   const incomeCategories = getIncomeCategories();
+  
+  // Filter parent categories (categories without parent_id)
+  const parentCategories = incomeCategories.filter(cat => !cat.parent_id);
+  
+  // Filter subcategories based on selected parent
+  const subcategories = selectedParentId 
+    ? incomeCategories.filter(cat => cat.parent_id === selectedParentId)
+    : [];
+    
+  // Determine if we should show subcategories dropdown
+  const showSubcategories = selectedParentId && subcategories.length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || !categoryId || !accountId || !profile?.organization_id) {
+    // Determine the final category ID to use
+    const finalCategoryId = showSubcategories ? categoryId : selectedParentId;
+    
+    if (!amount || !finalCategoryId || !accountId || !profile?.organization_id) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -55,7 +70,7 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
       const formattedDate = format(date, 'yyyy-MM-dd');
       
       // Find the selected category name
-      const selectedCategory = incomeCategories.find(cat => cat.id === categoryId);
+      const selectedCategory = incomeCategories.find(cat => cat.id === finalCategoryId);
       if (!selectedCategory) {
         throw new Error("Invalid category selected");
       }
@@ -109,6 +124,7 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
       // Reset form
       setAmount("");
       setCategoryId("");
+      setSelectedParentId("");
       setAccountId("");
       setDescription("");
       setDate(new Date());
@@ -154,12 +170,19 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
 
           <div className="space-y-2">
             <Label htmlFor="category">Category *</Label>
-            <Select value={categoryId} onValueChange={setCategoryId} required>
+            <Select 
+              value={selectedParentId} 
+              onValueChange={(value) => {
+                setSelectedParentId(value);
+                setCategoryId(""); // Reset subcategory when parent changes
+              }} 
+              required
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {incomeCategories.map((category) => (
+                {parentCategories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
                   </SelectItem>
@@ -167,6 +190,24 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
               </SelectContent>
             </Select>
           </div>
+
+          {showSubcategories && (
+            <div className="space-y-2">
+              <Label htmlFor="subcategory">Subcategory *</Label>
+              <Select value={categoryId} onValueChange={setCategoryId} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select subcategory" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subcategories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="account">Account *</Label>
