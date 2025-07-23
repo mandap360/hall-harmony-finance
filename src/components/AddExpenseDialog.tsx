@@ -228,7 +228,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="category">
                 Expense Category <span className="text-red-500">*</span>
               </Label>
