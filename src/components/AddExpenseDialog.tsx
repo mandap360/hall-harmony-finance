@@ -271,7 +271,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
                             <>
                               {subcategories.map((subcategory) => (
                                 <div key={subcategory.id} className="flex items-center">
-                                  <div className="w-4 h-0.5 bg-red-500 mr-2 ml-2"></div>
+                                  <div className="w-4 h-0.5 bg-red-500 mr-2 ml-1"></div>
                                   <SelectItem 
                                     value={subcategory.id}
                                     className="flex-1"

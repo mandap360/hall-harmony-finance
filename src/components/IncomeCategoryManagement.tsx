@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Minus, Plus, Edit3, ChevronDown, ChevronUp } from "lucide-react";
+import { Minus, Plus, Edit3, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { Switch } from "@/components/ui/switch";
 
@@ -89,14 +89,6 @@ export const IncomeCategoryManagement = () => {
               {/* Parent Category */}
               <div className="group flex items-center justify-between p-3 bg-background rounded-lg border">
                 <div className="flex items-center space-x-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteCategory(category.id)}
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
                   <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
                   <span className="text-sm font-medium">{category.name}</span>
                 </div>
@@ -127,6 +119,14 @@ export const IncomeCategoryManagement = () => {
                       {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </Button>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteCategory(category.id)}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
               
@@ -134,14 +134,6 @@ export const IncomeCategoryManagement = () => {
               {isExpanded && subCategories.map((subCategory) => (
                 <div key={subCategory.id} className="group flex items-center justify-between p-3 bg-background rounded-lg border ml-8">
                   <div className="flex items-center space-x-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteCategory(subCategory.id)}
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
                     <div className="w-4 h-0.5 bg-green-500 flex-shrink-0"></div>
                     <span className="text-sm font-medium">{subCategory.name}</span>
                   </div>
@@ -153,6 +145,14 @@ export const IncomeCategoryManagement = () => {
                       onClick={() => openEditDialog(subCategory)}
                     >
                       <Edit3 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteCategory(subCategory.id)}
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
