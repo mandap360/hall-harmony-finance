@@ -272,7 +272,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
                                 <SelectItem 
                                   key={subcategory.id}
                                   value={subcategory.id}
-                                  className="pl-2"
+                                  className="pl-4"
                                 >
                                   {subcategory.name}
                                 </SelectItem>
