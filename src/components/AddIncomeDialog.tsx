@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -50,17 +51,23 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
     const selectedCategory = incomeCategories.find(cat => cat.id === value);
     if (!selectedCategory) return;
     
-    const hasSubcategories = getSubcategories(selectedCategory.id).length > 0;
+    // Only set selected category ID for actual selections (subcategories or parent categories without subcategories)
+    setSelectedCategoryId(selectedCategory.id);
+  };
+
+  // Handle parent category click for expansion
+  const handleParentCategoryClick = (categoryId: string) => {
+    const category = incomeCategories.find(cat => cat.id === categoryId);
+    if (!category) return;
     
-    if (hasSubcategories && !selectedCategory.parent_id) {
-      // This is a parent category with subcategories - expand/collapse it
-      setExpandedCategoryId(expandedCategoryId === selectedCategory.id ? null : selectedCategory.id);
-    } else if (selectedCategory.parent_id) {
-      // This is a subcategory - select it
-      setSelectedCategoryId(selectedCategory.id);
+    const hasSubcategories = getSubcategories(categoryId).length > 0;
+    
+    if (hasSubcategories) {
+      // Toggle expansion for parent categories with subcategories
+      setExpandedCategoryId(expandedCategoryId === categoryId ? null : categoryId);
     } else {
-      // This is a parent category without subcategories - select it
-      setSelectedCategoryId(selectedCategory.id);
+      // Select parent categories without subcategories
+      setSelectedCategoryId(categoryId);
     }
   };
   
@@ -215,20 +222,23 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
                   
                   return (
                     <div key={category.id}>
-                      <SelectItem 
-                        value={category.id}
-                      >
-                        <div className="flex items-center justify-between w-full">
+                      {hasSubcategories ? (
+                        <div 
+                          className="flex items-center justify-between w-full px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
+                          onClick={() => handleParentCategoryClick(category.id)}
+                        >
                           <span>{category.name}</span>
-                          {hasSubcategories && (
-                            isExpanded ? (
-                              <ChevronUp className="h-4 w-4 ml-2" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 ml-2" />
-                            )
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 ml-2" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 ml-2" />
                           )}
                         </div>
-                      </SelectItem>
+                      ) : (
+                        <SelectItem value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      )}
                       {hasSubcategories && isExpanded && (
                         <>
                           {subcategories.map((subcategory) => (
