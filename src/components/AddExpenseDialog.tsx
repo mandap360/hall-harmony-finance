@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -273,7 +272,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
                                 <SelectItem 
                                   key={subcategory.id}
                                   value={subcategory.id}
-                                  className="ml-4"
+                                  className="pl-2"
                                 >
                                   {subcategory.name}
                                 </SelectItem>

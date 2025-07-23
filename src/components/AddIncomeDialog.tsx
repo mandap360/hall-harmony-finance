@@ -246,7 +246,7 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
                               <SelectItem 
                                 key={subcategory.id}
                                 value={subcategory.id}
-                                className="ml-4"
+                                className="pl-2"
                               >
                                 {subcategory.name}
                               </SelectItem>
