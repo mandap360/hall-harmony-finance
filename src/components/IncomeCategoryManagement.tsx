@@ -87,13 +87,13 @@ export const IncomeCategoryManagement = () => {
           return (
             <div key={category.id} className="space-y-2">
               {/* Parent Category */}
-              <div className="flex items-center justify-between p-3 bg-background rounded-lg border">
+              <div className="group flex items-center justify-between p-3 bg-background rounded-lg border">
                 <div className="flex items-center space-x-3">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => deleteCategory(category.id)}
-                    className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
@@ -132,13 +132,13 @@ export const IncomeCategoryManagement = () => {
               
               {/* Subcategories */}
               {isExpanded && subCategories.map((subCategory) => (
-                <div key={subCategory.id} className="flex items-center justify-between p-3 bg-background rounded-lg border ml-8">
+                <div key={subCategory.id} className="group flex items-center justify-between p-3 bg-background rounded-lg border ml-8">
                   <div className="flex items-center space-x-3">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => deleteCategory(subCategory.id)}
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
