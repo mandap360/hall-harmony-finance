@@ -270,15 +270,13 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
                           {hasSubcategories && isExpanded && (
                             <>
                               {subcategories.map((subcategory) => (
-                                <div key={subcategory.id} className="flex items-center">
-                                  <div className="w-4 h-0.5 bg-red-500 mr-2 ml-1"></div>
-                                  <SelectItem 
-                                    value={subcategory.id}
-                                    className="flex-1"
-                                  >
-                                    {subcategory.name}
-                                  </SelectItem>
-                                </div>
+                                <SelectItem 
+                                  key={subcategory.id}
+                                  value={subcategory.id}
+                                  className="ml-4"
+                                >
+                                  {subcategory.name}
+                                </SelectItem>
                               ))}
                             </>
                           )}
