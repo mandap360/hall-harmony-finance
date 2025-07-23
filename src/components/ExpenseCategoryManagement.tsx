@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,7 @@ export const ExpenseCategoryManagement = () => {
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
+                  <div className="w-3 h-3 bg-red-500 rounded-full flex-shrink-0"></div>
                   <span className="text-sm font-medium">{category.name}</span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -115,6 +117,7 @@ export const ExpenseCategoryManagement = () => {
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
+                    <div className="w-4 h-0.5 bg-red-500 flex-shrink-0"></div>
                     <span className="text-sm font-medium">{subCategory.name}</span>
                   </div>
                   <div className="flex items-center space-x-2">

@@ -242,46 +242,50 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {parentCategories.map((category) => {
-                    const subcategories = getSubcategories(category.id);
-                    const hasSubcategories = subcategories.length > 0;
-                    const isExpanded = expandedCategoryId === category.id;
-                    
-                    return (
-                      <div key={category.id}>
-                        {hasSubcategories ? (
-                          <div 
-                            className="flex items-center justify-between w-full px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
-                            onClick={() => handleParentCategoryClick(category.id)}
-                          >
-                            <span>{category.name}</span>
-                            {isExpanded ? (
-                              <ChevronUp className="h-4 w-4 ml-2" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 ml-2" />
-                            )}
-                          </div>
-                        ) : (
-                          <SelectItem value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        )}
-                        {hasSubcategories && isExpanded && (
-                          <>
-                            {subcategories.map((subcategory) => (
-                              <SelectItem 
-                                key={subcategory.id} 
-                                value={subcategory.id}
-                                className="pl-6"
-                              >
-                                {subcategory.name}
-                              </SelectItem>
-                            ))}
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
+                  <div className="space-y-1">
+                    {parentCategories.map((category) => {
+                      const subcategories = getSubcategories(category.id);
+                      const hasSubcategories = subcategories.length > 0;
+                      const isExpanded = expandedCategoryId === category.id;
+                      
+                      return (
+                        <div key={category.id}>
+                          {hasSubcategories ? (
+                            <div 
+                              className="flex items-center justify-between w-full px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
+                              onClick={() => handleParentCategoryClick(category.id)}
+                            >
+                              <span>{category.name}</span>
+                              {isExpanded ? (
+                                <ChevronUp className="h-4 w-4 ml-2" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 ml-2" />
+                              )}
+                            </div>
+                          ) : (
+                            <SelectItem value={category.id} className="pl-2">
+                              {category.name}
+                            </SelectItem>
+                          )}
+                          {hasSubcategories && isExpanded && (
+                            <>
+                              {subcategories.map((subcategory) => (
+                                <div key={subcategory.id} className="flex items-center">
+                                  <div className="w-4 h-0.5 bg-red-500 mr-2 ml-2"></div>
+                                  <SelectItem 
+                                    value={subcategory.id}
+                                    className="flex-1"
+                                  >
+                                    {subcategory.name}
+                                  </SelectItem>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </SelectContent>
               </Select>
             </div>

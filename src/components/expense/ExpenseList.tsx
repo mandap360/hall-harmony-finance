@@ -7,6 +7,7 @@ import { EditExpenseDialog } from "./EditExpenseDialog";
 
 import { useExpenses } from "@/hooks/useExpenses";
 import { useTransactions } from "@/hooks/useTransactions";
+import { useCategories } from "@/hooks/useCategories";
 import type { Expense } from "@/hooks/useExpenses";
 
 interface ExpenseListProps {
@@ -19,6 +20,21 @@ export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) =>
   const [showEditDialog, setShowEditDialog] = useState(false);
   const { markAsPaid, updateExpense } = useExpenses();
   const { addTransaction } = useTransactions();
+  const { getExpenseCategories } = useCategories();
+
+  const expenseCategories = getExpenseCategories();
+
+  const getCategoryDisplayName = (categoryName: string) => {
+    const category = expenseCategories.find(cat => cat.name === categoryName);
+    if (!category) return categoryName;
+    
+    if (category.parent_id) {
+      const parentCategory = expenseCategories.find(cat => cat.id === category.parent_id);
+      return parentCategory ? `${parentCategory.name} / ${category.name}` : category.name;
+    }
+    
+    return category.name;
+  };
 
   const handleRecordPayment = async (expenseId: string, accountId: string, paymentDate: string) => {
     const expense = expenses.find(e => e.id === expenseId);
@@ -60,7 +76,6 @@ export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) =>
     }
   };
 
-
   const openEditDialog = (expense: Expense) => {
     setSelectedExpense(expense);
     setShowEditDialog(true);
@@ -74,7 +89,7 @@ export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) =>
             <div className="flex-1 min-w-0 max-w-[calc(100%-120px)]">
               <div className="flex items-center text-muted-foreground mb-2">
                 <Building className="h-4 w-4 mr-2 flex-shrink-0" />
-                <span className="text-sm">{expense.category}</span>
+                <span className="text-sm">{getCategoryDisplayName(expense.category)}</span>
               </div>
               
               <h3 className="font-semibold text-lg text-foreground mb-2 truncate">

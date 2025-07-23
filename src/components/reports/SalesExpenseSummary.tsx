@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, BarChart3, ChevronDown, ChevronUp } from "luc
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useCategories } from "@/hooks/useCategories";
 
 interface SalesExpenseSummaryProps {
   totalIncome: number;
@@ -21,6 +22,57 @@ export const SalesExpenseSummary = ({
 }: SalesExpenseSummaryProps) => {
   const [showIncomeBreakdown, setShowIncomeBreakdown] = useState(false);
   const [showExpenseBreakdown, setShowExpenseBreakdown] = useState(false);
+  const [expandedIncomeCategories, setExpandedIncomeCategories] = useState<Set<string>>(new Set());
+  const [expandedExpenseCategories, setExpandedExpenseCategories] = useState<Set<string>>(new Set());
+
+  const { getIncomeCategories, getExpenseCategories } = useCategories();
+  const incomeCategories = getIncomeCategories();
+  const expenseCategories = getExpenseCategories();
+
+  const getParentCategories = (categories: any[], categoryData: Record<string, number>) => {
+    const parentCategories = categories.filter(cat => !cat.parent_id);
+    return parentCategories.map(parent => {
+      const subcategories = categories.filter(cat => cat.parent_id === parent.id);
+      let parentTotal = categoryData[parent.name] || 0;
+      
+      // Add subcategory amounts to parent total
+      subcategories.forEach(sub => {
+        parentTotal += categoryData[sub.name] || 0;
+      });
+      
+      return {
+        ...parent,
+        total: parentTotal,
+        subcategories: subcategories.map(sub => ({
+          ...sub,
+          total: categoryData[sub.name] || 0
+        }))
+      };
+    }).filter(cat => cat.total > 0);
+  };
+
+  const toggleIncomeCategory = (categoryId: string) => {
+    const newExpanded = new Set(expandedIncomeCategories);
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId);
+    } else {
+      newExpanded.add(categoryId);
+    }
+    setExpandedIncomeCategories(newExpanded);
+  };
+
+  const toggleExpenseCategory = (categoryId: string) => {
+    const newExpanded = new Set(expandedExpenseCategories);
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId);
+    } else {
+      newExpanded.add(categoryId);
+    }
+    setExpandedExpenseCategories(newExpanded);
+  };
+
+  const incomeParentCategories = getParentCategories(incomeCategories, incomeByCategory);
+  const expenseParentCategories = getParentCategories(expenseCategories, expensesByCategory);
 
   return (
     <div className="space-y-4">
@@ -57,15 +109,44 @@ export const SalesExpenseSummary = ({
             
             {showIncomeBreakdown && (
               <div className="mt-4 space-y-2 border-t border-green-200 pt-3">
-                {Object.entries(incomeByCategory).map(([category, amount]) => (
-                  <div key={category} className="flex justify-between items-center text-sm">
-                    <span className="text-green-800">{category}</span>
-                    <span className={`font-medium ${amount < 0 ? 'text-red-600' : 'text-green-900'}`}>
-                      ₹{amount.toLocaleString()}
-                    </span>
+                {incomeParentCategories.map((category) => (
+                  <div key={category.id} className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <span className="text-green-800 font-medium">{category.name}</span>
+                        {category.subcategories.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleIncomeCategory(category.id)}
+                            className="h-4 w-4 p-0 ml-2 hover:bg-green-200"
+                          >
+                            {expandedIncomeCategories.has(category.id) ? (
+                              <ChevronUp className="h-3 w-3 text-green-700" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3 text-green-700" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                      <span className="text-green-900 font-medium">
+                        ₹{category.total.toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    {expandedIncomeCategories.has(category.id) && category.subcategories.length > 0 && (
+                      <div className="ml-4 space-y-1">
+                        {category.subcategories.map((subcategory) => (
+                          <div key={subcategory.id} className="flex justify-between items-center text-sm">
+                            <span className="text-green-700">{subcategory.name}</span>
+                            <span className="text-green-800">₹{subcategory.total.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
-                {Object.keys(incomeByCategory).length === 0 && (
+                {incomeParentCategories.length === 0 && (
                   <p className="text-green-600 text-sm">No income recorded</p>
                 )}
               </div>
@@ -98,13 +179,44 @@ export const SalesExpenseSummary = ({
             
             {showExpenseBreakdown && (
               <div className="mt-4 space-y-2 border-t border-red-200 pt-3">
-                {Object.entries(expensesByCategory).map(([category, amount]) => (
-                  <div key={category} className="flex justify-between items-center text-sm">
-                    <span className="text-red-800">{category}</span>
-                    <span className="text-red-900 font-medium">₹{amount.toLocaleString()}</span>
+                {expenseParentCategories.map((category) => (
+                  <div key={category.id} className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <span className="text-red-800 font-medium">{category.name}</span>
+                        {category.subcategories.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleExpenseCategory(category.id)}
+                            className="h-4 w-4 p-0 ml-2 hover:bg-red-200"
+                          >
+                            {expandedExpenseCategories.has(category.id) ? (
+                              <ChevronUp className="h-3 w-3 text-red-700" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3 text-red-700" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                      <span className="text-red-900 font-medium">
+                        ₹{category.total.toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    {expandedExpenseCategories.has(category.id) && category.subcategories.length > 0 && (
+                      <div className="ml-4 space-y-1">
+                        {category.subcategories.map((subcategory) => (
+                          <div key={subcategory.id} className="flex justify-between items-center text-sm">
+                            <span className="text-red-700">{subcategory.name}</span>
+                            <span className="text-red-800">₹{subcategory.total.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
-                {Object.keys(expensesByCategory).length === 0 && (
+                {expenseParentCategories.length === 0 && (
                   <p className="text-red-600 text-sm">No expenses recorded</p>
                 )}
               </div>
