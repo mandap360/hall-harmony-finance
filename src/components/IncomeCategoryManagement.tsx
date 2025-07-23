@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Minus, Plus, Edit3, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Plus, Edit3, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
-import { Switch } from "@/components/ui/switch";
 
 export const IncomeCategoryManagement = () => {
   const { categories, addCategory, deleteCategory, updateCategory } = useIncomeCategories();
@@ -89,7 +88,7 @@ export const IncomeCategoryManagement = () => {
               {/* Parent Category */}
               <div className="group flex items-center justify-between p-3 bg-background rounded-lg border">
                 <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
+                  <div className="w-3 h-3 rounded-full flex-shrink-0 bg-green-500"></div>
                   <span className="text-sm font-medium">{category.name}</span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -134,7 +133,7 @@ export const IncomeCategoryManagement = () => {
               {isExpanded && subCategories.map((subCategory) => (
                 <div key={subCategory.id} className="group flex items-center justify-between p-3 bg-background rounded-lg border ml-8">
                   <div className="flex items-center space-x-3">
-                    <div className="w-4 h-0.5 bg-green-500 flex-shrink-0"></div>
+                    <div className="w-4 h-0.5 flex-shrink-0 bg-green-500"></div>
                     <span className="text-sm font-medium">{subCategory.name}</span>
                   </div>
                   <div className="flex items-center space-x-2">
