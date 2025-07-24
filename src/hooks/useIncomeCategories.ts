@@ -8,6 +8,7 @@ export interface IncomeCategory {
   description?: string;
   createdAt: string;
   parent_id?: string;
+  is_default?: boolean;
 }
 
 export const useIncomeCategories = () => {
@@ -20,7 +21,8 @@ export const useIncomeCategories = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('income_categories')
-        .select('*')
+        .select('id, name, description, created_at, parent_id, is_default, organization_id')
+        .or('organization_id.is.null,organization_id.eq.null')
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -30,7 +32,8 @@ export const useIncomeCategories = () => {
         name: category.name,
         description: category.description,
         createdAt: category.created_at,
-        parent_id: category.parent_id
+        parent_id: category.parent_id,
+        is_default: category.is_default
       }));
 
       setCategories(transformedCategories);
