@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +10,7 @@ export interface IncomeCategory {
   createdAt: string;
   parent_id?: string;
   is_default?: boolean;
+  organization_id?: string;
 }
 
 export const useIncomeCategories = () => {
@@ -19,13 +21,36 @@ export const useIncomeCategories = () => {
   const fetchCategories = async () => {
     try {
       setLoading(true);
+      console.log('Fetching income categories...');
+      
+      // First, get user's organization_id
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+        throw profileError;
+      }
+
+      const userOrgId = profile?.organization_id;
+      console.log('User organization ID:', userOrgId);
+
+      // Fetch both default categories (organization_id is null) and organization-specific categories
       const { data, error } = await supabase
         .from('income_categories')
         .select('*')
-        .or('organization_id.is.null,organization_id.eq.null')
+        .or(`organization_id.is.null,organization_id.eq.${userOrgId}`)
         .order('name', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase query error:', error);
+        throw error;
+      }
+
+      console.log('Raw categories data:', data);
 
       const transformedCategories: IncomeCategory[] = (data || []).map(category => ({
         id: category.id,
@@ -33,15 +58,17 @@ export const useIncomeCategories = () => {
         description: category.description,
         createdAt: category.created_at,
         parent_id: category.parent_id,
-        is_default: category.is_default
+        is_default: category.is_default,
+        organization_id: category.organization_id
       }));
 
+      console.log('Transformed categories:', transformedCategories);
       setCategories(transformedCategories);
     } catch (error) {
       console.error('Error fetching income categories:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch income categories",
+        description: "Failed to fetch income categories. Please check the console for details.",
         variant: "destructive",
       });
     } finally {
@@ -55,14 +82,33 @@ export const useIncomeCategories = () => {
 
   const addCategory = async (categoryData: { name: string; parent_id?: string | null }) => {
     try {
+      console.log('Adding category:', categoryData);
+      
+      // Get user's organization_id
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+        throw profileError;
+      }
+
       const { error } = await supabase
         .from('income_categories')
         .insert({
           name: categoryData.name,
-          parent_id: categoryData.parent_id
+          parent_id: categoryData.parent_id,
+          organization_id: profile?.organization_id,
+          is_default: false
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding category:', error);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -74,7 +120,7 @@ export const useIncomeCategories = () => {
       console.error('Error adding income category:', error);
       toast({
         title: "Error",
-        description: "Failed to add income category",
+        description: "Failed to add income category. Please check the console for details.",
         variant: "destructive",
       });
     }
@@ -82,12 +128,17 @@ export const useIncomeCategories = () => {
 
   const deleteCategory = async (categoryId: string) => {
     try {
+      console.log('Deleting category:', categoryId);
+      
       const { error } = await supabase
         .from('income_categories')
         .delete()
         .eq('id', categoryId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting category:', error);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -99,7 +150,7 @@ export const useIncomeCategories = () => {
       console.error('Error deleting income category:', error);
       toast({
         title: "Error",
-        description: "Failed to delete income category",
+        description: "Failed to delete income category. Please check the console for details.",
         variant: "destructive",
       });
     }
@@ -107,6 +158,8 @@ export const useIncomeCategories = () => {
 
   const updateCategory = async (categoryId: string, categoryData: { name: string }) => {
     try {
+      console.log('Updating category:', categoryId, categoryData);
+      
       const { error } = await supabase
         .from('income_categories')
         .update({
@@ -114,7 +167,10 @@ export const useIncomeCategories = () => {
         })
         .eq('id', categoryId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating category:', error);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -126,7 +182,7 @@ export const useIncomeCategories = () => {
       console.error('Error updating income category:', error);
       toast({
         title: "Error",
-        description: "Failed to update income category",
+        description: "Failed to update income category. Please check the console for details.",
         variant: "destructive",
       });
     }
