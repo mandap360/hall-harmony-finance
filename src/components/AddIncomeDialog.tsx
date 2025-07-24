@@ -141,7 +141,7 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
 
       // Create additional income record for categorization
       const { error: incomeError } = await supabase
-        .from('additional_income')
+        .from('secondary_income')
         .insert({
           booking_id: null,
           category: selectedCategory.name,

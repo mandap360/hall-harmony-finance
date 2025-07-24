@@ -134,7 +134,7 @@ export const useIncomeCategories = () => {
       const categoryToDelete = categories.find(cat => cat.id === categoryId);
       if (categoryToDelete && !categoryToDelete.organization_id) {
         toast({
-          title: "⚠️ This category cannot be deleted as it is mandatory.",
+          title: "⚠️ You cannot delete this category because it is a required system category.",
           variant: "destructive",
         });
         return;
@@ -169,6 +169,16 @@ export const useIncomeCategories = () => {
   const updateCategory = async (categoryId: string, categoryData: { name: string }) => {
     try {
       console.log('Updating category:', categoryId, categoryData);
+      
+      // Check if category is a default category (organization_id is null)
+      const categoryToUpdate = categories.find(cat => cat.id === categoryId);
+      if (categoryToUpdate && !categoryToUpdate.organization_id) {
+        toast({
+          title: "⚠️ Editing is not allowed for default system categories.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       const { error } = await supabase
         .from('income_categories')

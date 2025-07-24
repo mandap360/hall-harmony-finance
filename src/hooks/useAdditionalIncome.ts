@@ -24,7 +24,7 @@ export const useAdditionalIncome = () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('additional_income')
+        .from('secondary_income')
         .select('*')
         .eq('booking_id', bookingId)
         .eq('organization_id', profile.organization_id)
@@ -49,7 +49,7 @@ export const useAdditionalIncome = () => {
     
     try {
       const { data, error } = await supabase
-        .from('additional_income')
+        .from('secondary_income')
         .insert([
           {
             booking_id: bookingId,
@@ -89,7 +89,7 @@ export const useAdditionalIncome = () => {
   const deleteAdditionalIncome = async (id: string) => {
     try {
       const { error } = await supabase
-        .from('additional_income')
+        .from('secondary_income')
         .delete()
         .eq('id', id);
 

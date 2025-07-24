@@ -32,9 +32,9 @@ export const calculateIncomeData = async (bookings: any[]) => {
         });
       }
 
-      // Fetch categorized additional income from additional_income table
+      // Fetch categorized additional income from secondary_income table
       const { data: additionalIncomeData, error } = await supabase
-        .from('additional_income')
+        .from('secondary_income')
         .select('category, amount')
         .in('booking_id', bookingIds);
 

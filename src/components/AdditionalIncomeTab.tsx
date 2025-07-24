@@ -32,7 +32,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
     }
   }, [bookingId, fetchAdditionalIncomes]);
 
-  // Calculate totals from payments table instead of additional_income table
+  // Calculate totals from payments table instead of secondary_income table
   const [totalAdditionalIncome, setTotalAdditionalIncome] = useState(0);
   const [allocatedAmount, setAllocatedAmount] = useState(0);
 
@@ -53,7 +53,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
         const total = (payments || []).reduce((sum, payment) => sum + Number(payment.amount), 0);
         setTotalAdditionalIncome(total);
 
-        // Calculate allocated amount from additional_income table
+        // Calculate allocated amount from secondary_income table
         const allocated = additionalIncomes.reduce((sum, item) => sum + item.amount, 0);
         setAllocatedAmount(allocated);
       } catch (error) {
@@ -167,7 +167,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
           transaction_type: 'debit',
           amount: refundAmount,
           description: refundDescription,
-          reference_type: 'additional_income_refund',
+          reference_type: 'secondary_income_refund',
           reference_id: bookingId,
           transaction_date: new Date().toISOString().split('T')[0]
         });

@@ -69,7 +69,7 @@ export const useBookings = () => {
 
         // Fetch additional income for each booking
         const { data: additionalIncome, error: additionalIncomeError } = await supabase
-          .from('additional_income')
+          .from('secondary_income')
           .select('*')
           .in('booking_id', bookingIds);
         
@@ -87,7 +87,7 @@ export const useBookings = () => {
         const bookingPayments = paymentsData.filter(payment => payment.booking_id === booking.id);
         const bookingAdditionalIncome = additionalIncomeData.filter(income => income.booking_id === booking.id);
         
-        // Calculate secondary income from payments instead of additional_income table
+        // Calculate secondary income from payments instead of secondary_income table
         const secondaryIncomePayments = bookingPayments.filter(payment => payment.payment_type === 'Secondary Income');
         const additionalIncomeTotal = secondaryIncomePayments.reduce((total, payment) => total + (payment.amount || 0), 0);
         console.log(`Booking ${booking.id}: secondary income payments:`, secondaryIncomePayments, 'total:', additionalIncomeTotal);

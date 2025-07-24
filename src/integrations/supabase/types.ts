@@ -61,48 +61,6 @@ export type Database = {
           },
         ]
       }
-      additional_income: {
-        Row: {
-          amount: number
-          booking_id: string | null
-          category: string
-          created_at: string | null
-          id: string
-          organization_id: string | null
-        }
-        Insert: {
-          amount: number
-          booking_id?: string | null
-          category: string
-          created_at?: string | null
-          id?: string
-          organization_id?: string | null
-        }
-        Update: {
-          amount?: number
-          booking_id?: string | null
-          category?: string
-          created_at?: string | null
-          id?: string
-          organization_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "additional_income_booking_id_fkey"
-            columns: ["booking_id"]
-            isOneToOne: false
-            referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "additional_income_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       bookings: {
         Row: {
           client_name: string
@@ -425,6 +383,48 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      secondary_income: {
+        Row: {
+          amount: number
+          booking_id: string | null
+          category: string
+          created_at: string | null
+          id: string
+          organization_id: string | null
+        }
+        Insert: {
+          amount: number
+          booking_id?: string | null
+          category: string
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+        }
+        Update: {
+          amount?: number
+          booking_id?: string | null
+          category?: string
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "additional_income_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "additional_income_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
