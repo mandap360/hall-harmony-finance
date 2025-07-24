@@ -53,7 +53,7 @@ export const useCategories = () => {
           type: "expense" as const,
           createdAt: cat.created_at,
           parent_id: cat.parent_id,
-          organization_id: cat.organization_id
+          organization_id: (cat as any).organization_id
         }))
       ];
 

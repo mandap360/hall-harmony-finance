@@ -122,24 +122,37 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_default: boolean | null
           name: string
+          organization_id: string | null
           parent_id: string | null
         }
         Insert: {
           created_at?: string
           description?: string | null
           id?: string
+          is_default?: boolean | null
           name: string
+          organization_id?: string | null
           parent_id?: string | null
         }
         Update: {
           created_at?: string
           description?: string | null
           id?: string
+          is_default?: boolean | null
           name?: string
+          organization_id?: string | null
           parent_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "expense_categories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expense_categories_parent_id_fkey"
             columns: ["parent_id"]
