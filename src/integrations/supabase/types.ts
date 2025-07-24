@@ -284,21 +284,27 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          is_default: boolean | null
           name: string
+          organization_id: string | null
           parent_id: string | null
         }
         Insert: {
           created_at?: string | null
           description?: string | null
           id?: string
+          is_default?: boolean | null
           name: string
+          organization_id?: string | null
           parent_id?: string | null
         }
         Update: {
           created_at?: string | null
           description?: string | null
           id?: string
+          is_default?: boolean | null
           name?: string
+          organization_id?: string | null
           parent_id?: string | null
         }
         Relationships: [

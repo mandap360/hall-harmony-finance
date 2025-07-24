@@ -21,7 +21,7 @@ export const useIncomeCategories = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('income_categories')
-        .select('id, name, description, created_at, parent_id, is_default, organization_id')
+        .select('*')
         .or('organization_id.is.null,organization_id.eq.null')
         .order('name', { ascending: true });
 
