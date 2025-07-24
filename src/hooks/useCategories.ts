@@ -9,6 +9,7 @@ export interface Category {
   type: "income" | "expense";
   createdAt: string;
   parent_id?: string;
+  organization_id?: string;
 }
 
 export const useCategories = () => {
@@ -43,14 +44,16 @@ export const useCategories = () => {
           name: cat.name,
           type: "income" as const,
           createdAt: cat.created_at,
-          parent_id: cat.parent_id
+          parent_id: cat.parent_id,
+          organization_id: cat.organization_id
         })),
         ...(expenseData || []).map(cat => ({
           id: cat.id,
           name: cat.name,
           type: "expense" as const,
           createdAt: cat.created_at,
-          parent_id: cat.parent_id
+          parent_id: cat.parent_id,
+          organization_id: cat.organization_id
         }))
       ];
 
@@ -110,6 +113,15 @@ export const useCategories = () => {
     try {
       const category = categories.find(cat => cat.id === categoryId);
       if (!category) return;
+
+      // Check if category is a default category (organization_id is null)
+      if (!category.organization_id) {
+        toast({
+          title: "⚠️ You cannot delete this category because it is a required system category.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const tableName = category.type === 'income' ? 'income_categories' : 'expense_categories';
       
