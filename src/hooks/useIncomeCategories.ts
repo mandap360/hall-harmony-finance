@@ -130,6 +130,16 @@ export const useIncomeCategories = () => {
     try {
       console.log('Deleting category:', categoryId);
       
+      // Check if category is a default category (organization_id is null)
+      const categoryToDelete = categories.find(cat => cat.id === categoryId);
+      if (categoryToDelete && !categoryToDelete.organization_id) {
+        toast({
+          title: "⚠️ This category cannot be deleted as it is mandatory.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const { error } = await supabase
         .from('income_categories')
         .delete()
