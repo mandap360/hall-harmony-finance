@@ -7,7 +7,7 @@ interface PaymentsTabProps {
   onAddPayment: (payment: { 
     amount: string; 
     date: string; 
-    type: string; 
+    categoryId: string; 
     description: string; 
     accountId: string; 
   }) => void;

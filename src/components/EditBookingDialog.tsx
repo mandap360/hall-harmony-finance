@@ -7,6 +7,7 @@ import { AdditionalIncomeTab } from "@/components/AdditionalIncomeTab";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useBookings } from "@/hooks/useBookings";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EditBookingDialogProps {
   open: boolean;
@@ -89,26 +90,35 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
   const handleAddPayment = async (paymentData: { 
     amount: string; 
     date: string; 
-    type: string; 
+    categoryId: string; 
     description: string; 
     accountId: string; 
   }) => {
-    if (!paymentData.amount || !paymentData.date || !paymentData.accountId) return;
+    if (!paymentData.amount || !paymentData.date || !paymentData.accountId || !paymentData.categoryId) return;
 
     const amount = parseInt(paymentData.amount);
     
     try {
+      // Get category name from categoryId for description
+      const { data: category } = await supabase
+        .from('income_categories')
+        .select('name')
+        .eq('id', paymentData.categoryId)
+        .single();
+
+      const categoryName = category?.name || 'Unknown';
+
       // Create standardized description
       const transactionDescription = formatTransactionDescription(
-        paymentData.type, 
+        categoryName, 
         currentBooking.startDate, 
         currentBooking.endDate,
         currentBooking.eventName
       );
 
-      // Add payment to database with payment_mode
+      // Add payment to database with category_id
       if (onAddPayment) {
-        await onAddPayment(currentBooking.id, amount, paymentData.date, paymentData.type, transactionDescription, paymentData.accountId);
+        await onAddPayment(currentBooking.id, amount, paymentData.date, categoryName, transactionDescription, paymentData.accountId);
       }
 
       // Add corresponding transaction to the selected account

@@ -54,13 +54,13 @@ export const usePayments = () => {
 
       console.log("Raw payments data:", paymentsData);
 
-      // Transform the data and ensure payment_type is cast correctly
+      // Transform the data and ensure category_id is used correctly
       const transformedPayments: Payment[] = (paymentsData || []).map(payment => ({
         id: payment.id,
         bookingId: payment.booking_id,
         amount: Number(payment.amount),
         date: payment.payment_date,
-        type: payment.payment_type as "rent" | "advance" | "Secondary Income" | "refund",
+        type: payment.category_id as "rent" | "advance" | "Secondary Income" | "refund",
         description: payment.description || '',
         payment_mode: payment.payment_mode
       }));
@@ -91,7 +91,7 @@ export const usePayments = () => {
           booking_id: paymentData.bookingId,
           amount: paymentData.amount,
           payment_date: paymentData.date,
-          payment_type: paymentData.type,
+          category_id: paymentData.type,
           description: paymentData.description
         })
         .select()
@@ -105,7 +105,7 @@ export const usePayments = () => {
         bookingId: data.booking_id,
         amount: Number(data.amount),
         date: data.payment_date,
-        type: data.payment_type as "rent" | "advance" | "Secondary Income" | "refund",
+        type: data.category_id as "rent" | "advance" | "Secondary Income" | "refund",
         description: data.description || ''
       };
 

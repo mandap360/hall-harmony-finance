@@ -7,12 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useCategories } from "@/hooks/useCategories";
 
 interface AddPaymentFormProps {
   onAddPayment: (payment: { 
     amount: string; 
     date: string; 
-    type: string; 
+    categoryId: string; 
     description: string; 
     accountId: string; 
   }) => void;
@@ -21,21 +22,23 @@ interface AddPaymentFormProps {
 export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [type, setType] = useState("rent");
+  const [categoryId, setCategoryId] = useState("");
   const [accountId, setAccountId] = useState("");
   const [description, setDescription] = useState("");
   
   const { accounts } = useAccounts();
+  const { getIncomeCategories } = useCategories();
   const operationalAccounts = accounts.filter(acc => acc.account_type === 'operational');
+  const defaultIncomeCategories = getIncomeCategories().filter(cat => !cat.parent_id);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !date || !accountId) return;
+    if (!amount || !date || !accountId || !categoryId) return;
 
     onAddPayment({
       amount,
       date,
-      type,
+      categoryId,
       description,
       accountId
     });
@@ -68,14 +71,17 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="type">Type</Label>
-            <Select value={type} onValueChange={setType}>
+            <Label htmlFor="category">Category</Label>
+            <Select value={categoryId} onValueChange={setCategoryId} required>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="rent">Rent</SelectItem>
-                <SelectItem value="Secondary Income">Secondary Income</SelectItem>
+                {defaultIncomeCategories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

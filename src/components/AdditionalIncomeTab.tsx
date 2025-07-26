@@ -44,13 +44,19 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
         // Get additional income payments from payments table
         const { data: payments, error } = await supabase
           .from('payments')
-          .select('amount')
-          .eq('booking_id', bookingId)
-          .eq('payment_type', 'additional');
+          .select(`
+            amount,
+            income_categories!category_id (
+              name
+            )
+          `)
+          .eq('booking_id', bookingId);
 
         if (error) throw error;
 
-        const total = (payments || []).reduce((sum, payment) => sum + Number(payment.amount), 0);
+        const total = (payments || [])
+          .filter(payment => payment.income_categories?.name === 'Secondary Income')
+          .reduce((sum, payment) => sum + Number(payment.amount), 0);
         setTotalAdditionalIncome(total);
 
         // Calculate allocated amount from secondary_income table
@@ -145,6 +151,14 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
       const dateRange = isSameDate ? startDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
       const refundDescription = `Additional Income Refund for ${dateRange}`;
 
+      // Get Secondary Income category ID
+      const { data: secondaryIncomeCategory } = await supabase
+        .from('income_categories')
+        .select('id')
+        .eq('name', 'Secondary Income')
+        .eq('is_default', true)
+        .single();
+
       // Add negative payment to reduce additional income
       const { error: paymentError } = await supabase
         .from('payments')
@@ -152,7 +166,7 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
           booking_id: bookingId,
           amount: -refundAmount,
           payment_date: new Date().toISOString().split('T')[0],
-          payment_type: 'additional',
+          category_id: secondaryIncomeCategory?.id,
           description: refundDescription,
           payment_mode: accountId
         });

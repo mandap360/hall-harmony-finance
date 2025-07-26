@@ -15,19 +15,24 @@ export const calculateIncomeData = async (bookings: any[]) => {
 
   if (bookingIds.length > 0) {
     try {
-      // Fetch all payments from payments table for current FY bookings
+      // Fetch all payments from payments table for current FY bookings with category details
       const { data: allPayments, error: paymentsError } = await supabase
         .from('payments')
-        .select('amount, payment_type')
+        .select(`
+          amount,
+          income_categories!category_id (
+            name
+          )
+        `)
         .in('booking_id', bookingIds);
 
       if (!paymentsError && allPayments) {
-        // Group payments by type and calculate totals
+        // Group payments by category and calculate totals
         allPayments.forEach(payment => {
           const amount = Number(payment.amount);
-          const paymentType = payment.payment_type;
+          const categoryName = payment.income_categories?.name || 'Uncategorized';
           
-          incomeByCategory[paymentType] = (incomeByCategory[paymentType] || 0) + amount;
+          incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + amount;
           totalIncome += amount;
         });
       }
