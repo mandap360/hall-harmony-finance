@@ -73,6 +73,7 @@ export type Database = {
           phone_number: string | null
           rent_finalized: number
           rent_received: number
+          secondary_income: number | null
           start_datetime: string
           status: string | null
           updated_at: string | null
@@ -88,6 +89,7 @@ export type Database = {
           phone_number?: string | null
           rent_finalized: number
           rent_received?: number
+          secondary_income?: number | null
           start_datetime: string
           status?: string | null
           updated_at?: string | null
@@ -103,6 +105,7 @@ export type Database = {
           phone_number?: string | null
           rent_finalized?: number
           rent_received?: number
+          secondary_income?: number | null
           start_datetime?: string
           status?: string | null
           updated_at?: string | null
@@ -313,37 +316,44 @@ export type Database = {
         Row: {
           amount: number
           booking_id: string
+          category_id: string | null
           created_at: string
           description: string | null
           id: string
           organization_id: string | null
           payment_date: string
           payment_mode: string | null
-          payment_type: string
         }
         Insert: {
           amount: number
           booking_id: string
+          category_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
           organization_id?: string | null
           payment_date?: string
           payment_mode?: string | null
-          payment_type?: string
         }
         Update: {
           amount?: number
           booking_id?: string
+          category_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
           organization_id?: string | null
           payment_date?: string
           payment_mode?: string | null
-          payment_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "income_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_payment_mode_fkey"
             columns: ["payment_mode"]
