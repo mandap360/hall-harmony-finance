@@ -71,10 +71,10 @@ export const PaymentHistoryCard = ({ payments }: PaymentHistoryCardProps) => {
                 <CurrencyDisplay amount={payment.amount} className="font-semibold" displayMode="text-only" />
               </div>
               <p className="text-xs text-gray-500">
-                {new Date(payment.date).toLocaleDateString('en-IN')} • {getPaymentTypeLabel(payment.type)}
+                {new Date(payment.date).toLocaleDateString('en-IN')}
               </p>
               <p className="text-xs text-gray-600">
-                Payment Method: {getPaymentMethod(payment.payment_mode)}
+                Payment mode: {getPaymentMethod(payment.payment_mode)}
               </p>
               {payment.description && (
                 <p className="text-xs text-gray-600">{payment.description}</p>

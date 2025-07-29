@@ -131,14 +131,14 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
 
             <div>
               <Label htmlFor="paymentMode">
-                Payment Method <span className="text-red-500">*</span>
+                Payment Mode <span className="text-red-500">*</span>
               </Label>
               <Select value={paymentMode} onValueChange={setPaymentMode} required disabled={isProcessing}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select payment method" />
+                  <SelectValue placeholder="Select payment mode" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accounts.map((account) => (
+                  {accounts.filter(account => account.account_type === 'operational').map((account) => (
                     <SelectItem key={account.id} value={account.id}>
                       {account.name}
                     </SelectItem>

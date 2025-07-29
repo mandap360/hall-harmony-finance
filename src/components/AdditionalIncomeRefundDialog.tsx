@@ -70,10 +70,10 @@ export const AdditionalIncomeRefundDialog = ({
             </div>
           </div>
 
-          {/* Payment Method Selection */}
+          {/* Payment Mode Selection */}
           <div className="space-y-2">
             <Label htmlFor="accountId" className="text-gray-700">
-              Select Payment Method *
+              Select Payment Mode *
             </Label>
             <Select value={accountId} onValueChange={setAccountId} required>
               <SelectTrigger className="border-red-200 focus:border-red-500">

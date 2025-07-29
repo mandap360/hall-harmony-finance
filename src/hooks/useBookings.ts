@@ -269,14 +269,22 @@ export const useBookings = () => {
     if (!profile?.organization_id) return;
 
     try {
-      // Add refund as a negative payment
+      // Get "Booking Cancellation" subcategory ID (under Refund category)
+      const { data: bookingCancellationCategory } = await supabase
+        .from('income_categories')
+        .select('id')
+        .eq('name', 'Booking Cancellation')
+        .eq('is_default', true)
+        .single();
+
+      // Add refund payment
       const { data: paymentData, error: paymentError } = await supabase
         .from('payments')
         .insert({
           booking_id: refundData.bookingId,
-          amount: -Math.abs(refundData.amount),
-          payment_date: refundData.date,
-          payment_type: 'refund',
+          amount: refundData.amount,
+          payment_date: refundData.date || new Date().toISOString().split('T')[0],
+          category_id: bookingCancellationCategory?.id,
           description: refundData.description,
           payment_mode: refundData.paymentMode,
           organization_id: profile.organization_id
@@ -293,7 +301,7 @@ export const useBookings = () => {
           .insert({
             account_id: refundData.paymentMode,
             transaction_type: 'debit',
-            amount: Math.abs(refundData.amount),
+            amount: refundData.amount,
             description: refundData.description,
             reference_type: 'refund',
             reference_id: paymentData.id,

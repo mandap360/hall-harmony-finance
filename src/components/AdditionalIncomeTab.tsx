@@ -151,22 +151,22 @@ export const AdditionalIncomeTab = ({ bookingId, booking }: AdditionalIncomeTabP
       const dateRange = isSameDate ? startDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
       const refundDescription = `Additional Income Refund for ${dateRange}`;
 
-      // Get Secondary Income category ID
-      const { data: secondaryIncomeCategory } = await supabase
+      // Get "Excess Advance" subcategory ID (under Refund category)
+      const { data: excessAdvanceCategory } = await supabase
         .from('income_categories')
         .select('id')
-        .eq('name', 'Secondary Income')
+        .eq('name', 'Excess Advance')
         .eq('is_default', true)
         .single();
 
-      // Add negative payment to reduce additional income
+      // Add refund payment
       const { error: paymentError } = await supabase
         .from('payments')
         .insert({
           booking_id: bookingId,
-          amount: -refundAmount,
+          amount: refundAmount,
           payment_date: new Date().toISOString().split('T')[0],
-          category_id: secondaryIncomeCategory?.id,
+          category_id: excessAdvanceCategory?.id,
           description: refundDescription,
           payment_mode: accountId
         });
