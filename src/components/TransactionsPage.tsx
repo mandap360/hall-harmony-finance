@@ -107,8 +107,8 @@ export const TransactionsPage = () => {
 
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   const rentIncome = filteredBookings.reduce((sum, booking) => sum + booking.paidAmount, 0);
-  const additionalIncomeTotal = filteredAdditionalIncome.reduce((sum, income) => sum + income.amount, 0);
-  const totalIncome = rentIncome + additionalIncomeTotal;
+  const secondaryIncomeTotal = filteredAdditionalIncome.reduce((sum, income) => sum + income.amount, 0);
+  const totalIncome = rentIncome + secondaryIncomeTotal;
 
   const pendingExpenses = expenses.filter(expense => !expense.isPaid);
   const pendingBookings = bookings.filter(booking => booking.paidAmount < booking.rentFinalized);

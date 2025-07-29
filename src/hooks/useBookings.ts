@@ -19,7 +19,7 @@ export interface Booking {
   organization_id?: string;
   status?: string;
   refundedAmount?: number;
-  additionalIncomeTotal?: number;
+  secondaryIncomeNet?: number;
 }
 
 export interface Payment {
@@ -103,21 +103,20 @@ export const useBookings = () => {
         const refundPayments = bookingPayments.filter(payment => payment.amount < 0);
         const totalRefunded = Math.abs(refundPayments.reduce((total, payment) => total + payment.amount, 0));
         
-        // Calculate secondary income from both payments and secondary_income tables
-        // Include payments from "Advance" and "Refund" categories (both under "Secondary Income")
-        const secondaryIncomeFromPayments = bookingPayments
-          .filter(payment => 
-            payment.category_id === advanceCategory?.id || 
-            payment.category_id === refundCategory?.id ||
-            payment.amount > 0 // Include positive payments that might be categorized as secondary income
-          )
+        // Calculate net secondary income: Advance - Refund
+        const advanceAmount = bookingPayments
+          .filter(payment => payment.category_id === advanceCategory?.id)
+          .reduce((total, payment) => total + payment.amount, 0);
+          
+        const refundAmount = bookingPayments
+          .filter(payment => payment.category_id === refundCategory?.id)
           .reduce((total, payment) => total + Math.abs(payment.amount), 0);
         
         // Add amounts from secondary_income table
         const secondaryIncomeFromTable = bookingAdditionalIncome
           .reduce((total, income) => total + income.amount, 0);
         
-        const additionalIncomeTotal = secondaryIncomeFromPayments + secondaryIncomeFromTable;
+        const secondaryIncomeNet = advanceAmount + secondaryIncomeFromTable - refundAmount;
         
         return {
           id: booking.id,
@@ -132,7 +131,7 @@ export const useBookings = () => {
           paidAmount: booking.rent_received,
           status: booking.status || 'confirmed',
           refundedAmount: totalRefunded,
-          additionalIncomeTotal, // Add the calculated secondary income
+          secondaryIncomeNet, // Net secondary income (Advance - Refund)
           payments: bookingPayments.map((payment: any) => ({
             id: payment.id,
             amount: payment.amount,

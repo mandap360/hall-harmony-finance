@@ -23,7 +23,7 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
   };
 
   const canProcessRefund = (booking: any) => {
-    const totalPaid = (booking.rentReceived || 0) + (booking.additionalIncomeTotal || 0);
+    const totalPaid = (booking.rentReceived || 0) + (booking.secondaryIncomeNet || 0);
     return booking.status === 'cancelled' && totalPaid > 0;
   };
 
@@ -146,7 +146,7 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                 
                 <PaymentStatCard 
                   label="Secondary Income" 
-                  amount={booking.additionalIncomeTotal || 0} 
+                  amount={booking.secondaryIncomeNet || 0} 
                   variant="purple" 
                 />
               </div>
