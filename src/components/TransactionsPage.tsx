@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useBookings } from "@/hooks/useBookings";
-import { useAdditionalIncome } from "@/hooks/useAdditionalIncome";
+
 import { useVendors } from "@/hooks/useVendors";
 import { useCategories } from "@/hooks/useCategories";
 import { ExpenseFilters } from "@/components/expense/ExpenseFilters";
@@ -68,7 +68,6 @@ export const TransactionsPage = () => {
   const { getExpenseCategories } = useCategories();
   const expenseCategories = getExpenseCategories();
   const { bookings } = useBookings();
-  const { additionalIncomes } = useAdditionalIncome();
   const { vendors } = useVendors();
   const { accounts } = useAccounts();
   const { payments } = usePayments();
@@ -100,15 +99,8 @@ export const TransactionsPage = () => {
     return bookingDate >= dateStart && bookingDate <= dateEnd;
   });
 
-  const filteredAdditionalIncome = additionalIncomes.filter(income => {
-    const incomeDate = new Date(income.created_at);
-    return incomeDate >= dateStart && incomeDate <= dateEnd;
-  });
-
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   const rentIncome = filteredBookings.reduce((sum, booking) => sum + booking.paidAmount, 0);
-  const secondaryIncomeTotal = filteredAdditionalIncome.reduce((sum, income) => sum + income.amount, 0);
-  const totalIncome = rentIncome + secondaryIncomeTotal;
 
   const pendingExpenses = expenses.filter(expense => !expense.isPaid);
   const pendingBookings = bookings.filter(booking => booking.paidAmount < booking.rentFinalized);

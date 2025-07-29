@@ -1,6 +1,5 @@
 
 import { BookingsPage } from "@/components/BookingsPage";
-import { ExpensePage } from "@/components/ExpensePage";
 import { AccountsPage } from "@/components/AccountsPage";
 import { TransactionsPage } from "@/components/TransactionsPage";
 import { ReportsPage } from "@/components/ReportsPage";
