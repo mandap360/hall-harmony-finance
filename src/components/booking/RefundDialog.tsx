@@ -47,7 +47,7 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
       year: 'numeric'
     }) : '';
 
-    const transactionDescription = `Refund (Cancellation) for ${functionDate}`;
+    const transactionDescription = `Refund for ${functionDate}`;
 
     setIsProcessing(true);
     console.log('Processing refund:', {
