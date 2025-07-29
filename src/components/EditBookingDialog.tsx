@@ -43,11 +43,7 @@ const formatTransactionDescription = (
   const isSameDate = startDateOnly === endDateOnly;
   const dateRange = isSameDate ? startDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
 
-  if (isRefund) {
-    return `${paymentType} Refund for ${dateRange}`;
-  } else {
-    return `${paymentType} for ${dateRange}`;
-  }
+  return `${paymentType} for ${dateRange}`;
 };
 
 export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking, onSubmit, onAddPayment }: EditBookingDialogProps) => {
