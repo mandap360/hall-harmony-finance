@@ -29,16 +29,29 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
   const { accounts } = useAccounts();
   const { getIncomeCategories } = useCategories();
   const operationalAccounts = accounts.filter(acc => acc.account_type === 'operational');
-  const defaultIncomeCategories = getIncomeCategories().filter(cat => !cat.parent_id);
+  const incomeCategories = getIncomeCategories();
+  const defaultIncomeCategories = incomeCategories.filter(cat => !cat.parent_id);
+  
+  // Find the "Advance" subcategory under "Secondary Income"
+  const secondaryIncomeCategory = incomeCategories.find(cat => cat.name === "Secondary Income" && !cat.parent_id);
+  const advanceCategory = incomeCategories.find(cat => 
+    cat.parent_id === secondaryIncomeCategory?.id && cat.name === "Advance"
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !date || !accountId || !categoryId) return;
 
+    // If Secondary Income is selected, use Advance subcategory instead
+    let finalCategoryId = categoryId;
+    if (categoryId === secondaryIncomeCategory?.id && advanceCategory) {
+      finalCategoryId = advanceCategory.id;
+    }
+
     onAddPayment({
       amount,
       date,
-      categoryId,
+      categoryId: finalCategoryId,
       description,
       accountId
     });
