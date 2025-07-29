@@ -45,17 +45,9 @@ const formatTransactionDescription = (
   const dateRange = isSameDate ? startDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
 
   if (isRefund) {
-    if (paymentType === 'additional') {
-      return `Additional Income Refund for ${dateRange}`;
-    } else {
-      return `Rent Refund for ${dateRange}`;
-    }
+    return `${paymentType} Refund for ${dateRange}`;
   } else {
-    if (paymentType === 'additional') {
-      return `Additional Income for ${dateRange}`;
-    } else {
-      return `Rent for ${dateRange}`;
-    }
+    return `${paymentType} for ${dateRange}`;
   }
 };
 
@@ -99,18 +91,24 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
     const amount = parseInt(paymentData.amount);
     
     try {
-      // Get category name from categoryId for description
+      // Get category name and parent category name from categoryId for description
       const { data: category } = await supabase
         .from('income_categories')
-        .select('name')
+        .select(`
+          name,
+          parent_id,
+          parent:income_categories!parent_id(name)
+        `)
         .eq('id', paymentData.categoryId)
         .single();
 
+      const parentName = category?.parent?.name;
       const categoryName = category?.name || 'Unknown';
+      const formattedCategoryName = parentName ? `${parentName} - ${categoryName}` : categoryName;
 
       // Create standardized description
       const transactionDescription = formatTransactionDescription(
-        categoryName, 
+        formattedCategoryName, 
         currentBooking.startDate, 
         currentBooking.endDate,
         currentBooking.eventName
