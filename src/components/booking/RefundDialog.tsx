@@ -31,7 +31,7 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
 
   // Calculate amount received and amount refunded
   const amountReceived = booking?.rentReceived || 0;
-  const amountRefunded = booking?.payments?.filter((p: any) => p.type === 'refund')?.reduce((sum: number, p: any) => sum + Math.abs(p.amount), 0) || 0;
+  const amountRefunded = booking?.refundedAmount || 0;
   const maxRefundAmount = amountReceived - amountRefunded;
 
   const handleSubmit = async (e: React.FormEvent) => {

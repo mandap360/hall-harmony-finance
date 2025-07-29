@@ -18,7 +18,7 @@ export interface Booking {
   createdAt: string;
   organization_id?: string;
   status?: string;
-  additionalIncomeTotal?: number;
+  refundedAmount?: number;
 }
 
 export interface Payment {
@@ -27,6 +27,7 @@ export interface Payment {
   date: string;
   type: string;
   description?: string;
+  payment_mode?: string;
 }
 
 export const useBookings = () => {
@@ -87,10 +88,9 @@ export const useBookings = () => {
         const bookingPayments = paymentsData.filter(payment => payment.booking_id === booking.id);
         const bookingAdditionalIncome = additionalIncomeData.filter(income => income.booking_id === booking.id);
         
-        // Calculate secondary income from payments instead of secondary_income table
-        const secondaryIncomePayments = bookingPayments.filter(payment => payment.payment_type === 'Secondary Income');
-        const additionalIncomeTotal = secondaryIncomePayments.reduce((total, payment) => total + (payment.amount || 0), 0);
-        console.log(`Booking ${booking.id}: secondary income payments:`, secondaryIncomePayments, 'total:', additionalIncomeTotal);
+        // Filter refund payments (those with negative amounts or refund category)
+        const refundPayments = bookingPayments.filter(payment => payment.amount < 0);
+        const totalRefunded = Math.abs(refundPayments.reduce((total, payment) => total + payment.amount, 0));
         
         return {
           id: booking.id,
@@ -104,13 +104,14 @@ export const useBookings = () => {
           notes: booking.notes,
           paidAmount: booking.rent_received,
           status: booking.status || 'confirmed',
-          additionalIncomeTotal,
+          refundedAmount: totalRefunded,
           payments: bookingPayments.map((payment: any) => ({
             id: payment.id,
             amount: payment.amount,
             date: payment.payment_date,
-            type: payment.payment_type,
-            description: payment.description
+            type: payment.category_id,
+            description: payment.description,
+            payment_mode: payment.payment_mode
           })),
           createdAt: booking.created_at,
           organization_id: booking.organization_id
@@ -277,12 +278,12 @@ export const useBookings = () => {
         .eq('is_default', true)
         .single();
 
-      // Add refund payment
+      // Add refund payment with negative amount
       const { data: paymentData, error: paymentError } = await supabase
         .from('payments')
         .insert({
           booking_id: refundData.bookingId,
-          amount: refundData.amount,
+          amount: -Math.abs(refundData.amount), // Store as negative for refunds
           payment_date: refundData.date || new Date().toISOString().split('T')[0],
           category_id: bookingCancellationCategory?.id,
           description: refundData.description,
@@ -326,7 +327,7 @@ export const useBookings = () => {
     }
   };
 
-  const addPayment = async (bookingId: string, amount: number, date: string, type: string, description?: string, paymentMode?: string) => {
+  const addPayment = async (bookingId: string, amount: number, date: string, categoryId: string, description?: string, paymentMode?: string) => {
     if (!profile?.organization_id) return;
 
     try {
@@ -337,7 +338,7 @@ export const useBookings = () => {
           booking_id: bookingId,
           amount: amount,
           payment_date: date,
-          payment_type: type,
+          category_id: categoryId,
           description: description,
           payment_mode: paymentMode,
           organization_id: profile.organization_id
@@ -354,8 +355,15 @@ export const useBookings = () => {
 
       if (fetchError) throw fetchError;
 
-      // Only update rent_received when payment type is 'rent'
-      if (type === 'rent') {
+      // Get category name to check if it's a rent payment
+      const { data: category } = await supabase
+        .from('income_categories')
+        .select('name')
+        .eq('id', categoryId)
+        .single();
+
+      // Only update rent_received for rent-related categories
+      if (category?.name === 'Rent') {
         const newRentReceived = (currentBooking.rent_received || 0) + amount;
         const { error: updateError } = await supabase
           .from('bookings')

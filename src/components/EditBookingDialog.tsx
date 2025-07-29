@@ -116,9 +116,21 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
         currentBooking.eventName
       );
 
+      // For Secondary Income, use "Unallocated" subcategory
+      let finalCategoryId = paymentData.categoryId;
+      if (categoryName === 'Secondary Income') {
+        const { data: unallocatedCategory } = await supabase
+          .from('income_categories')
+          .select('id')
+          .eq('name', 'Unallocated')
+          .eq('is_default', true)
+          .single();
+        finalCategoryId = unallocatedCategory?.id || paymentData.categoryId;
+      }
+
       // Add payment to database with category_id
       if (onAddPayment) {
-        await onAddPayment(currentBooking.id, amount, paymentData.date, categoryName, transactionDescription, paymentData.accountId);
+        await onAddPayment(currentBooking.id, amount, paymentData.date, finalCategoryId, transactionDescription, paymentData.accountId);
       }
 
       // Add corresponding transaction to the selected account
