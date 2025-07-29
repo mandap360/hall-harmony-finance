@@ -19,6 +19,7 @@ export interface Booking {
   organization_id?: string;
   status?: string;
   refundedAmount?: number;
+  additionalIncomeTotal?: number;
 }
 
 export interface Payment {
@@ -83,6 +84,16 @@ export const useBookings = () => {
         }
       }
 
+      // Get income categories to identify "Advance" and "Refund" categories
+      const { data: incomeCategories } = await supabase
+        .from('income_categories')
+        .select('id, name, parent_id')
+        .in('name', ['Secondary Income', 'Advance', 'Refund']);
+
+      const secondaryIncomeCategory = incomeCategories?.find(cat => cat.name === 'Secondary Income');
+      const advanceCategory = incomeCategories?.find(cat => cat.name === 'Advance');
+      const refundCategory = incomeCategories?.find(cat => cat.name === 'Refund');
+
       // Transform the data to match the expected format
       const transformedBookings: Booking[] = (bookingsData || []).map(booking => {
         const bookingPayments = paymentsData.filter(payment => payment.booking_id === booking.id);
@@ -91,6 +102,22 @@ export const useBookings = () => {
         // Filter refund payments (those with negative amounts or refund category)
         const refundPayments = bookingPayments.filter(payment => payment.amount < 0);
         const totalRefunded = Math.abs(refundPayments.reduce((total, payment) => total + payment.amount, 0));
+        
+        // Calculate secondary income from both payments and secondary_income tables
+        // Include payments from "Advance" and "Refund" categories (both under "Secondary Income")
+        const secondaryIncomeFromPayments = bookingPayments
+          .filter(payment => 
+            payment.category_id === advanceCategory?.id || 
+            payment.category_id === refundCategory?.id ||
+            payment.amount > 0 // Include positive payments that might be categorized as secondary income
+          )
+          .reduce((total, payment) => total + Math.abs(payment.amount), 0);
+        
+        // Add amounts from secondary_income table
+        const secondaryIncomeFromTable = bookingAdditionalIncome
+          .reduce((total, income) => total + income.amount, 0);
+        
+        const additionalIncomeTotal = secondaryIncomeFromPayments + secondaryIncomeFromTable;
         
         return {
           id: booking.id,
@@ -105,6 +132,7 @@ export const useBookings = () => {
           paidAmount: booking.rent_received,
           status: booking.status || 'confirmed',
           refundedAmount: totalRefunded,
+          additionalIncomeTotal, // Add the calculated secondary income
           payments: bookingPayments.map((payment: any) => ({
             id: payment.id,
             amount: payment.amount,
@@ -270,13 +298,12 @@ export const useBookings = () => {
     if (!profile?.organization_id) return;
 
     try {
-      // Get "Booking Cancellation" subcategory ID (under Refund category)
+      // Get "Refund - Cancellation" subcategory ID
       const { data: bookingCancellationCategory } = await supabase
         .from('income_categories')
         .select('id')
-        .eq('name', 'Booking Cancellation')
-        .eq('is_default', true)
-        .single();
+        .eq('name', 'Refund - Cancellation')
+        .maybeSingle();
 
       // Add refund payment with negative amount
       const { data: paymentData, error: paymentError } = await supabase

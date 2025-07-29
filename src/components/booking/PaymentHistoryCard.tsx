@@ -2,6 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { useAccounts } from "@/hooks/useAccounts";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
+import { PaymentTypeBadge } from "@/components/ui/payment-type-badge";
 
 interface PaymentHistoryCardProps {
   payments: Array<{
@@ -34,31 +35,6 @@ export const PaymentHistoryCard = ({ payments }: PaymentHistoryCardProps) => {
     );
   }
 
-  const getPaymentTypeLabel = (type: string) => {
-    switch (type) {
-      case 'rent':
-        return 'Rent Payment';
-      case 'advance':
-        return 'Rent Received';
-      case 'additional':
-        return 'Secondary Income';
-      default:
-        return 'Payment';
-    }
-  };
-
-  const getPaymentTypeColor = (type: string) => {
-    switch (type) {
-      case 'rent':
-        return 'text-blue-600';
-      case 'advance':
-        return 'text-green-600';
-      case 'additional':
-        return 'text-purple-600';
-      default:
-        return 'text-gray-600';
-    }
-  };
 
   return (
     <Card className="p-4 border-amber-200">
@@ -67,8 +43,9 @@ export const PaymentHistoryCard = ({ payments }: PaymentHistoryCardProps) => {
         {payments.map((payment) => (
           <div key={payment.id} className="flex justify-between items-center p-2 bg-amber-50 rounded border border-amber-100">
             <div className="flex-1">
-              <div className={`flex items-center ${getPaymentTypeColor(payment.type)}`}>
+              <div className="flex items-center gap-2 mb-1">
                 <CurrencyDisplay amount={payment.amount} className="font-semibold" displayMode="text-only" />
+                <PaymentTypeBadge type={payment.type} />
               </div>
               <p className="text-xs text-gray-500">
                 {new Date(payment.date).toLocaleDateString('en-IN')}
