@@ -42,13 +42,14 @@ export const calculateIncomeData = async () => {
     // Fetch additional income from secondary_income table for user's organization
     const { data: additionalIncomeData, error } = await supabase
       .from('secondary_income')
-      .select('category, amount')
+      .select('amount, income_categories!inner(name)')
       .eq('organization_id', profile.organization_id);
 
     if (!error && additionalIncomeData) {
       additionalIncomeData.forEach(item => {
         const amount = Number(item.amount);
-        incomeByCategory[item.category] = (incomeByCategory[item.category] || 0) + amount;
+        const categoryName = item.income_categories.name;
+        incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + amount;
         totalIncome += amount;
       });
     }

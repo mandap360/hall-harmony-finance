@@ -56,42 +56,41 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
         setCategories(secondaryIncomeCategories);
       }
 
-      // Get existing income records for this booking to calculate advance amount
+      // Get advance amount from income table (Advance category payments)
       const { data: incomeData } = await supabase
         .from('income')
         .select(`
-          id,
           amount,
-          category_id,
           income_categories!inner(name, parent_id, parent:income_categories!parent_id(name))
         `)
         .eq('booking_id', booking.id);
 
       if (incomeData) {
-        // Calculate advance amount (Advance subcategory payments)
-        const advancePayments = incomeData.filter(income => 
-          income.income_categories.name === 'Advance' || 
-          income.income_categories.parent?.name === 'Secondary Income'
-        );
-        
-        const totalAdvance = advancePayments
-          .filter(payment => payment.income_categories.name === 'Advance')
+        const totalAdvance = incomeData
+          .filter(income => income.income_categories.name === 'Advance')
           .reduce((sum, payment) => sum + Number(payment.amount), 0);
         
         setAdvanceAmount(totalAdvance);
+      }
 
-        // Get existing allocations (non-Advance secondary income)
-        const existingAllocations = incomeData
-          .filter(income => 
-            income.income_categories.parent?.name === 'Secondary Income' && 
-            income.income_categories.name !== 'Advance'
-          )
-          .map(income => ({
-            id: income.id,
-            categoryId: income.category_id,
-            categoryName: income.income_categories.name,
-            amount: Number(income.amount)
-          }));
+      // Get existing allocations from secondary_income table
+      const { data: allocationsData } = await supabase
+        .from('secondary_income')
+        .select(`
+          id,
+          amount,
+          category_id,
+          income_categories!inner(name)
+        `)
+        .eq('booking_id', booking.id);
+
+      if (allocationsData) {
+        const existingAllocations = allocationsData.map(allocation => ({
+          id: allocation.id,
+          categoryId: allocation.category_id,
+          categoryName: allocation.income_categories.name,
+          amount: Number(allocation.amount)
+        }));
         
         setAllocations(existingAllocations);
       }
@@ -131,15 +130,13 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
     try {
       const selectedCat = categories.find(cat => cat.id === selectedCategory);
       
-      // Add income record for allocation
-      const { data: incomeData, error } = await supabase
-        .from('income')
+      // Add record to secondary_income table
+      const { data: allocationData, error } = await supabase
+        .from('secondary_income')
         .insert({
           booking_id: booking.id,
           amount: amount,
           category_id: selectedCategory,
-          payment_date: new Date().toISOString().split('T')[0],
-          description: `Allocated from Advance to ${selectedCat?.name}`,
           organization_id: booking.organization_id
         })
         .select()
@@ -149,7 +146,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
 
       // Update local state
       setAllocations(prev => [...prev, {
-        id: incomeData.id,
+        id: allocationData.id,
         categoryId: selectedCategory,
         categoryName: selectedCat?.name || '',
         amount: amount
@@ -178,7 +175,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
     setLoading(true);
     try {
       const { error } = await supabase
-        .from('income')
+        .from('secondary_income')
         .delete()
         .eq('id', allocationId);
 
@@ -214,34 +211,12 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Summary Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Advance Allocation Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Total Advance Received:</span>
-            <CurrencyDisplay amount={advanceAmount} className="font-medium" />
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Total Allocated:</span>
-            <CurrencyDisplay amount={totalAllocated} className="font-medium" />
-          </div>
-          <div className="flex justify-between items-center border-t pt-2">
-            <span className="font-medium">Remaining Advance:</span>
-            <CurrencyDisplay 
-              amount={remainingAdvance} 
-              className={`font-medium ${remainingAdvance < 0 ? 'text-destructive' : 'text-primary'}`} 
-            />
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Add New Allocation */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Allocate to Category</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            Advance: <CurrencyDisplay amount={remainingAdvance} className="font-medium" />
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

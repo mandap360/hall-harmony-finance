@@ -417,7 +417,7 @@ export type Database = {
         Row: {
           amount: number
           booking_id: string | null
-          category: string
+          category_id: string | null
           created_at: string | null
           id: string
           organization_id: string | null
@@ -425,7 +425,7 @@ export type Database = {
         Insert: {
           amount: number
           booking_id?: string | null
-          category: string
+          category_id?: string | null
           created_at?: string | null
           id?: string
           organization_id?: string | null
@@ -433,7 +433,7 @@ export type Database = {
         Update: {
           amount?: number
           booking_id?: string | null
-          category?: string
+          category_id?: string | null
           created_at?: string | null
           id?: string
           organization_id?: string | null
@@ -451,6 +451,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "secondary_income_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "income_categories"
             referencedColumns: ["id"]
           },
         ]
