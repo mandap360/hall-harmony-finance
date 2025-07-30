@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BookingDetailsTab } from "@/components/booking/BookingDetailsTab";
 import { PaymentsTab } from "@/components/booking/PaymentsTab";
-import { SecondaryIncomeTab } from "@/components/booking/SecondaryIncomeTab";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useBookings } from "@/hooks/useBookings";
@@ -177,16 +176,6 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
           >
             Payments
           </button>
-          <button
-            onClick={() => setActiveTab("secondary-income")}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-              activeTab === "secondary-income"
-                ? "text-primary border-b-2 border-primary bg-primary/5"
-                : "text-muted-foreground hover:text-primary"
-            }`}
-          >
-            Secondary Income
-          </button>
         </div>
 
         {activeTab === "details" && (
@@ -202,10 +191,6 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
             booking={currentBooking}
             onAddPayment={handleAddPayment}
           />
-        )}
-
-        {activeTab === "secondary-income" && (
-          <SecondaryIncomeTab booking={currentBooking} />
         )}
 
       </DialogContent>

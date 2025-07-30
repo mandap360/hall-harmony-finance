@@ -1,6 +1,5 @@
 
 import { Card } from "@/components/ui/card";
-import { formatBalance } from "@/utils/currency";
 
 interface OpeningBalanceRowProps {
   openingBalance: number;
@@ -9,7 +8,12 @@ interface OpeningBalanceRowProps {
 
 export const OpeningBalanceRow = ({ openingBalance, showBalance = true }: OpeningBalanceRowProps) => {
   const formatAmount = (amount: number) => {
-    return formatBalance(amount);
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
   return (

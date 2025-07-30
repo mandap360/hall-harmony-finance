@@ -15,7 +15,6 @@ import { TransactionRow } from "@/components/account/TransactionRow";
 import { TransactionFilter } from "@/components/account/TransactionFilter";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { formatCurrency } from "@/utils/currency";
 
 interface AccountTransactionsProps {
   account: Account;
@@ -225,19 +224,19 @@ export const AccountTransactions = ({
               <div className="text-center">
                 <div className="text-gray-500 text-xs">Current Balance</div>
                 <div className="font-bold text-xl text-blue-600">
-                  ₹{formatCurrency(currentBalance)}
+                  ₹{currentBalance.toLocaleString()}
                 </div>
               </div>
               <div className="text-center">
                 <div className="text-gray-500 text-xs">Money In</div>
                 <div className="font-semibold text-green-600">
-                  ₹{formatCurrency(moneyIn)}
+                  ₹{moneyIn.toLocaleString()}
                 </div>
               </div>
               <div className="text-center">
                 <div className="text-gray-500 text-xs">Money Out</div>
                 <div className="font-semibold text-red-600">
-                  ₹{formatCurrency(moneyOut)}
+                  ₹{moneyOut.toLocaleString()}
                 </div>
               </div>
             </div>

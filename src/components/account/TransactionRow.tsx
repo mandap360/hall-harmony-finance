@@ -1,7 +1,6 @@
 
 import { Card } from "@/components/ui/card";
 import { Plus, Minus } from "lucide-react";
-import { formatBalance } from "@/utils/currency";
 
 interface Transaction {
   id: string;
@@ -20,7 +19,12 @@ interface TransactionRowProps {
 
 export const TransactionRow = ({ transaction, runningBalance, showBalance = true }: TransactionRowProps) => {
   const formatAmount = (amount: number) => {
-    return formatBalance(amount);
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
   const formatDate = (dateString: string) => {

@@ -2,7 +2,6 @@
 import { ArrowLeft, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Account } from "@/hooks/useAccounts";
-import { formatBalance } from "@/utils/currency";
 
 interface AccountHeaderProps {
   account: Account;
@@ -11,8 +10,13 @@ interface AccountHeaderProps {
 }
 
 export const AccountHeader = ({ account, onBack, onOpeningBalanceClick }: AccountHeaderProps) => {
-  const formatBalanceDisplay = (balance: number) => {
-    return formatBalance(balance);
+  const formatBalance = (balance: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(balance);
   };
 
   return (
@@ -37,7 +41,7 @@ export const AccountHeader = ({ account, onBack, onOpeningBalanceClick }: Accoun
         className="ml-4"
       >
         <Settings className="h-4 w-4 mr-2" />
-        Opening Balance {formatBalanceDisplay(account.opening_balance || 0)}
+        Opening Balance {formatBalance(account.opening_balance || 0)}
       </Button>
     </div>
   );

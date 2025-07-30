@@ -53,14 +53,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfile(profileWithOrgName);
     } catch (error) {
       console.error('Error fetching profile:', error);
-      // Set profile to null on error so app doesn't stay in loading state
-      setProfile(null);
     }
   };
 
   useEffect(() => {
-    let isInitialized = false;
-
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -68,39 +64,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          setTimeout(() => {
+            fetchProfile(session.user.id);
+          }, 0);
         } else {
           setProfile(null);
         }
-        
-        // Only set loading to false after initial load is complete
-        if (isInitialized) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     );
 
     // Check for existing session
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setProfile(null);
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        setProfile(null);
-      } finally {
-        isInitialized = true;
-        setLoading(false);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
       }
-    };
-
-    initializeAuth();
+      setLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
