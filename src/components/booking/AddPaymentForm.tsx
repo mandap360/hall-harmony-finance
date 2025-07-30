@@ -42,11 +42,8 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
     e.preventDefault();
     if (!amount || !date || !accountId || !categoryId) return;
 
-    // If Secondary Income is selected, use Advance subcategory instead
+    // Keep Secondary Income selection as is - the EditBookingDialog will handle the logic
     let finalCategoryId = categoryId;
-    if (categoryId === secondaryIncomeCategory?.id && advanceCategory) {
-      finalCategoryId = advanceCategory.id;
-    }
 
     onAddPayment({
       amount,

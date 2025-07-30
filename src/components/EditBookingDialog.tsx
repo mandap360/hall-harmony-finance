@@ -110,16 +110,51 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
         currentBooking.eventName
       );
 
-      // For Secondary Income, use "Unallocated" subcategory
+      // Store payments with "Secondary Income" category as "Secondary Income"
       let finalCategoryId = paymentData.categoryId;
+      
+      // If "Secondary Income" category is selected, keep it as Secondary Income
+      // and create an entry in secondary_income table with "Advance" category
       if (categoryName === 'Secondary Income') {
-        const { data: unallocatedCategory } = await supabase
+        // Keep the payment as Secondary Income in the income table
+        finalCategoryId = paymentData.categoryId;
+        
+        // Create or update entry in secondary_income table with Advance category
+        const { data: advanceCategory } = await supabase
           .from('income_categories')
           .select('id')
-          .eq('name', 'Unallocated')
+          .eq('name', 'Advance')
           .eq('is_default', true)
           .single();
-        finalCategoryId = unallocatedCategory?.id || paymentData.categoryId;
+          
+        if (advanceCategory) {
+          // Check if advance entry already exists for this booking
+          const { data: existingAdvance } = await supabase
+            .from('secondary_income')
+            .select('*')
+            .eq('booking_id', currentBooking.id)
+            .eq('category_id', advanceCategory.id)
+            .single();
+            
+          if (existingAdvance) {
+            // Update existing advance entry
+            await supabase
+              .from('secondary_income')
+              .update({ amount: existingAdvance.amount + amount })
+              .eq('id', existingAdvance.id);
+          } else {
+            // Create new advance entry
+            await supabase
+              .from('secondary_income')
+              .insert({
+                booking_id: currentBooking.id,
+                amount: amount,
+                category_id: advanceCategory.id,
+                organization_id: (await supabase.auth.getUser()).data.user?.id ? 
+                  (await supabase.from('profiles').select('organization_id').eq('id', (await supabase.auth.getUser()).data.user?.id).single()).data?.organization_id : null
+              });
+          }
+        }
       }
 
       // Add payment to database with category_id

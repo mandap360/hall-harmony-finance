@@ -40,6 +40,7 @@ export const calculateIncomeData = async () => {
     }
 
     // Fetch additional income from secondary_income table for user's organization
+    // This includes allocated advance amounts and other secondary income categories
     const { data: additionalIncomeData, error } = await supabase
       .from('secondary_income')
       .select('amount, income_categories!inner(name)')
