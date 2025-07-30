@@ -142,7 +142,7 @@ export const BookingsPage = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 pt-4">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         {viewMode === 'list' ? (
           <BookingTableView
             bookings={filteredBookings}
