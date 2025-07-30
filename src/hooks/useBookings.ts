@@ -103,20 +103,16 @@ export const useBookings = () => {
         const refundPayments = bookingPayments.filter(payment => payment.amount < 0);
         const totalRefunded = Math.abs(refundPayments.reduce((total, payment) => total + payment.amount, 0));
         
-        // Calculate net secondary income: Advance - Refund
-        const advanceAmount = bookingPayments
-          .filter(payment => payment.category_id === advanceCategory?.id)
+        // Calculate net secondary income: Secondary Income payments - Refund payments (only from income table)
+        const secondaryIncomeAmount = bookingPayments
+          .filter(payment => payment.category_id === secondaryIncomeCategory?.id)
           .reduce((total, payment) => total + payment.amount, 0);
           
         const refundAmount = bookingPayments
           .filter(payment => payment.category_id === refundCategory?.id)
           .reduce((total, payment) => total + Math.abs(payment.amount), 0);
         
-        // Add amounts from secondary_income table
-        const secondaryIncomeFromTable = bookingAdditionalIncome
-          .reduce((total, income) => total + income.amount, 0);
-        
-        const secondaryIncomeNet = advanceAmount + secondaryIncomeFromTable - refundAmount;
+        const secondaryIncomeNet = secondaryIncomeAmount - refundAmount;
         
         return {
           id: booking.id,
