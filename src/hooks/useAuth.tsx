@@ -59,6 +59,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    let isInitialized = false;
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -70,7 +72,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
           setProfile(null);
         }
-        setLoading(false);
+        
+        // Only set loading to false after initial load is complete
+        if (isInitialized) {
+          setLoading(false);
+        }
       }
     );
 
@@ -82,10 +88,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        setProfile(null);
       } finally {
+        isInitialized = true;
         setLoading(false);
       }
     };
