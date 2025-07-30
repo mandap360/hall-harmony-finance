@@ -1,13 +1,23 @@
 
-import { getCurrentFY, isInCurrentFY } from "./FinancialYearCalculator";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export const calculateIncomeData = async () => {
+  // Get current user's organization
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('organization_id')
+    .eq('id', (await supabase.auth.getUser()).data.user?.id)
+    .single();
+
+  if (!profile?.organization_id) {
+    return { totalIncome: 0, incomeByCategory: {} };
+  }
   let incomeByCategory: Record<string, number> = {};
   let totalIncome = 0;
 
   try {
-    // Fetch all income with category details
+    // Fetch all income with category details for user's organization
     const { data: allIncome, error: incomeError } = await supabase
       .from('income')
       .select(`
@@ -15,7 +25,8 @@ export const calculateIncomeData = async () => {
         income_categories!category_id (
           name
         )
-      `);
+      `)
+      .eq('organization_id', profile.organization_id);
 
     if (!incomeError && allIncome) {
       // Group income by category and calculate totals
@@ -28,10 +39,11 @@ export const calculateIncomeData = async () => {
       });
     }
 
-    // Fetch additional income from secondary_income table
+    // Fetch additional income from secondary_income table for user's organization
     const { data: additionalIncomeData, error } = await supabase
       .from('secondary_income')
-      .select('category, amount');
+      .select('category, amount')
+      .eq('organization_id', profile.organization_id);
 
     if (!error && additionalIncomeData) {
       additionalIncomeData.forEach(item => {
