@@ -43,16 +43,27 @@ export const calculateIncomeData = async () => {
     // This includes allocated advance amounts and other secondary income categories
     const { data: additionalIncomeData, error } = await supabase
       .from('secondary_income')
-      .select('amount, income_categories!inner(name)')
+      .select('amount, income_categories!inner(name, parent_id)')
       .eq('organization_id', profile.organization_id);
 
     if (!error && additionalIncomeData) {
+      let secondaryIncomeTotal = 0;
       additionalIncomeData.forEach(item => {
         const amount = Number(item.amount);
         const categoryName = item.income_categories.name;
-        incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + amount;
-        totalIncome += amount;
+        
+        // Only include subcategories in individual totals (not the parent "Secondary Income")
+        if (item.income_categories.parent_id) {
+          incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + amount;
+          secondaryIncomeTotal += amount;
+        }
       });
+      
+      // Set "Secondary Income" to be the total of its subcategories, not from income table
+      if (secondaryIncomeTotal > 0) {
+        incomeByCategory['Secondary Income'] = secondaryIncomeTotal;
+        totalIncome += secondaryIncomeTotal;
+      }
     }
   } catch (error) {
     console.error('Error fetching income data:', error);

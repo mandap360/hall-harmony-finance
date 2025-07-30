@@ -210,6 +210,37 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
         if (updateError) throw updateError;
       }
 
+      // Update Advance amount in secondary_income table
+      const advanceCategory = categories.find(cat => cat.name === 'Advance');
+      if (advanceCategory) {
+        const { data: existingAdvance } = await supabase
+          .from('secondary_income')
+          .select('id')
+          .eq('booking_id', booking.id)
+          .eq('category_id', advanceCategory.id)
+          .single();
+
+        if (existingAdvance) {
+          const { error: advanceUpdateError } = await supabase
+            .from('secondary_income')
+            .update({ amount: remainingAdvance })
+            .eq('id', existingAdvance.id);
+
+          if (advanceUpdateError) throw advanceUpdateError;
+        } else {
+          const { error: advanceInsertError } = await supabase
+            .from('secondary_income')
+            .insert({
+              booking_id: booking.id,
+              amount: remainingAdvance,
+              category_id: advanceCategory.id,
+              organization_id: booking.organization_id
+            });
+
+          if (advanceInsertError) throw advanceInsertError;
+        }
+      }
+
       toast({
         title: "Success",
         description: "Allocations saved successfully",
@@ -258,16 +289,24 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
             Advance: <CurrencyDisplay amount={remainingAdvance} className="font-medium" />
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
+          {/* Headers */}
+          <div className="grid grid-cols-[1fr_100px_40px_40px] gap-2 text-sm font-medium text-muted-foreground">
+            <div>Category</div>
+            <div>Amount</div>
+            <div></div>
+            <div></div>
+          </div>
+          
           {formRows.map((row, index) => (
-            <div key={row.id} className="flex items-center gap-3 p-3 border border-border rounded-lg">
-              <div className="flex-1">
+            <div key={row.id} className="grid grid-cols-[1fr_100px_40px_40px] gap-2 items-center">
+              <div>
                 {row.isNew ? (
                   <Select 
                     value={row.categoryId} 
                     onValueChange={(value) => updateFormRow(row.id, 'categoryId', value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9">
                       <SelectValue placeholder="Select Category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -279,17 +318,18 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <span className="font-medium">{getCategoryName(row.categoryId)}</span>
+                  <span className="text-sm">{getCategoryName(row.categoryId)}</span>
                 )}
               </div>
               
-              <div className="w-32">
+              <div>
                 <Input
                   type="number"
                   placeholder="Amount"
                   value={row.amount}
                   onChange={(e) => updateFormRow(row.id, 'amount', e.target.value)}
                   min="1"
+                  className="h-9"
                 />
               </div>
               
@@ -297,7 +337,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
                 variant="outline"
                 size="sm"
                 onClick={() => addNewRow()}
-                className="w-10 h-10 p-0"
+                className="h-9 w-9 p-0"
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -308,7 +348,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
                   size="sm"
                   onClick={() => removeRow(row.id, row.isNew)}
                   disabled={loading}
-                  className="w-10 h-10 p-0 text-destructive hover:text-destructive"
+                  className="h-9 w-9 p-0 text-destructive hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
