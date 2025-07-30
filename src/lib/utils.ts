@@ -9,6 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 export { financialUtils } from '@/utils/financial';
 export { dateUtils } from '@/utils/dateUtils';
 export { APP_CONSTANTS } from '@/utils/constants';
+export { formatCurrency, formatCurrencyWithSymbol, formatBalance } from '@/utils/currency';
 export type { 
   AccountType, 
   TransactionType, 

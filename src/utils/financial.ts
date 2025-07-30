@@ -1,4 +1,5 @@
 import { APP_CONSTANTS } from './constants';
+import { formatCurrency, formatCurrencyWithSymbol, formatBalance } from './currency';
 
 // Financial utility functions
 export const financialUtils = {
@@ -29,26 +30,9 @@ export const financialUtils = {
   },
 
   // Format currency in Indian format
-  formatCurrency(amount: number, options: { 
-    minimumFractionDigits?: number; 
-    maximumFractionDigits?: number;
-    showSymbol?: boolean;
-  } = {}): string {
-    const {
-      minimumFractionDigits = 0,
-      maximumFractionDigits = 0,
-      showSymbol = true
-    } = options;
-
-    const formatted = new Intl.NumberFormat('en-IN', {
-      style: showSymbol ? 'currency' : 'decimal',
-      currency: 'INR',
-      minimumFractionDigits,
-      maximumFractionDigits,
-    }).format(amount);
-
-    return formatted;
-  },
+  formatCurrency: formatCurrencyWithSymbol,
+  formatAmount: formatCurrency,
+  formatBalance,
 
   // Calculate tax amounts
   calculateTax(baseAmount: number, taxPercentage: number): {

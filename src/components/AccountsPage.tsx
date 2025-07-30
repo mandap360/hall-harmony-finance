@@ -6,6 +6,7 @@ import { TransferDialog } from "@/components/TransferDialog";
 import { AccountSection } from "@/components/banking/AccountSection";
 import { BankingActionButtons } from "@/components/banking/BankingActionButtons";
 import { BankingEmptyState } from "@/components/banking/BankingEmptyState";
+import { formatBalance } from "@/utils/currency";
 
 export const AccountsPage = () => {
   const { accounts, loading, addAccount, transferAmount, refreshAccounts } = useAccounts();
@@ -24,13 +25,8 @@ export const AccountsPage = () => {
     setSelectedAccount(null);
   };
 
-  const formatBalance = (balance: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(balance);
+  const formatBalanceDisplay = (balance: number) => {
+    return formatBalance(balance);
   };
 
   const getAccountTypeDisplay = (account: Account) => {
@@ -73,7 +69,7 @@ export const AccountsPage = () => {
           title="Operational Accounts"
           accounts={operationalAccounts}
           onAccountClick={setSelectedAccount}
-          formatBalance={formatBalance}
+          formatBalance={formatBalanceDisplay}
           getAccountTypeDisplay={getAccountTypeDisplay}
         />
 
@@ -81,7 +77,7 @@ export const AccountsPage = () => {
           title="Capital Accounts"
           accounts={capitalAccounts}
           onAccountClick={setSelectedAccount}
-          formatBalance={formatBalance}
+          formatBalance={formatBalanceDisplay}
           getAccountTypeDisplay={getAccountTypeDisplay}
         />
 
@@ -89,7 +85,7 @@ export const AccountsPage = () => {
           title="Other Accounts"
           accounts={otherAccounts}
           onAccountClick={setSelectedAccount}
-          formatBalance={formatBalance}
+          formatBalance={formatBalanceDisplay}
           getAccountTypeDisplay={getAccountTypeDisplay}
         />
 

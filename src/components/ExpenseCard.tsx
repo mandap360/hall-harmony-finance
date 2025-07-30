@@ -2,6 +2,7 @@
 import { Calendar, IndianRupee, Building } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import type { Expense } from "@/hooks/useExpenses";
+import { formatCurrency } from "@/utils/currency";
 
 interface ExpenseCardProps {
   expense: Expense;
@@ -36,7 +37,7 @@ export const ExpenseCard = ({ expense }: ExpenseCardProps) => {
           
           <div className="flex items-center text-red-600">
             <IndianRupee className="h-4 w-4 mr-1" />
-            <span className="font-semibold">₹{expense.totalAmount.toLocaleString()}</span>
+            <span className="font-semibold">₹{formatCurrency(expense.totalAmount)}</span>
           </div>
         </div>
       </div>

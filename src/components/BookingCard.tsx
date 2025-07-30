@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { formatCurrency } from "@/utils/currency";
 
 interface BookingCardProps {
   booking: any;
@@ -139,7 +140,7 @@ export const BookingCard = ({ booking, onEdit, onCancel, onProcessRefund }: Book
           {hasRefundProcessed() && (
             <div className="mt-2 p-2 bg-blue-50 rounded-md">
               <span className="text-sm text-blue-700">
-                Refund of {getRefundAmount().toLocaleString()} processed
+                Refund of ₹{formatCurrency(getRefundAmount())} processed
               </span>
             </div>
           )}
