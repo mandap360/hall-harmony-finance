@@ -253,6 +253,57 @@ export type Database = {
           },
         ]
       }
+      income: {
+        Row: {
+          amount: number
+          booking_id: string
+          category_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          organization_id: string | null
+          payment_date: string
+          payment_mode: string | null
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          organization_id?: string | null
+          payment_date?: string
+          payment_mode?: string | null
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          organization_id?: string | null
+          payment_date?: string
+          payment_mode?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "income_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_payment_mode_fkey"
+            columns: ["payment_mode"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       income_categories: {
         Row: {
           created_at: string | null
@@ -311,57 +362,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      payments: {
-        Row: {
-          amount: number
-          booking_id: string
-          category_id: string | null
-          created_at: string
-          description: string | null
-          id: string
-          organization_id: string | null
-          payment_date: string
-          payment_mode: string | null
-        }
-        Insert: {
-          amount: number
-          booking_id: string
-          category_id?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          organization_id?: string | null
-          payment_date?: string
-          payment_mode?: string | null
-        }
-        Update: {
-          amount?: number
-          booking_id?: string
-          category_id?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          organization_id?: string | null
-          payment_date?: string
-          payment_mode?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payments_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "income_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_payment_mode_fkey"
-            columns: ["payment_mode"]
-            isOneToOne: false
-            referencedRelation: "accounts"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       profiles: {
         Row: {

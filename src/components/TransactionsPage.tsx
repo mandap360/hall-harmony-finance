@@ -19,7 +19,7 @@ import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 
 import { useAccounts } from "@/hooks/useAccounts";
-import { usePayments } from "@/hooks/usePayments";
+import { useIncome } from "@/hooks/useIncome";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, startOfYear, endOfYear, addYears, subYears, addMonths, subMonths } from "date-fns";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
@@ -70,7 +70,7 @@ export const TransactionsPage = () => {
   const { bookings } = useBookings();
   const { vendors } = useVendors();
   const { accounts } = useAccounts();
-  const { payments } = usePayments();
+  const { income } = useIncome();
 
   const getDateRange = () => {
     switch (periodType) {
@@ -371,19 +371,19 @@ export const TransactionsPage = () => {
         {activeTab === 'income' && (
           <div className="p-4 space-y-4">
             {(() => {
-              let filteredPayments = payments.filter(payment => {
+              let filteredIncome = income.filter(payment => {
                 const paymentDate = new Date(payment.date);
                 return paymentDate >= dateStart && paymentDate <= dateEnd;
               });
 
               if (selectedIncomeAccount !== 'all') {
-                filteredPayments = filteredPayments.filter(payment => 
+                filteredIncome = filteredIncome.filter(payment => 
                   payment.payment_mode === selectedIncomeAccount
                 );
               }
 
               if (selectedIncomeCategory !== 'all') {
-                filteredPayments = filteredPayments.filter(payment => 
+                filteredIncome = filteredIncome.filter(payment => 
                   payment.type === selectedIncomeCategory
                 );
               }
@@ -408,9 +408,9 @@ export const TransactionsPage = () => {
                 return isSameDate ? startDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
               };
 
-              const rentPayments = filteredPayments.filter(p => p.type === 'rent');
-              const secondaryPayments = filteredPayments.filter(p => p.type === 'Secondary Income');
-              const refundPayments = filteredPayments.filter(p => p.amount < 0);
+              const rentPayments = filteredIncome.filter(p => p.type === 'rent');
+              const secondaryPayments = filteredIncome.filter(p => p.type === 'Secondary Income');
+              const refundPayments = filteredIncome.filter(p => p.amount < 0);
               
               const totalRent = rentPayments.reduce((sum, p) => sum + p.amount, 0);
               const totalSecondary = secondaryPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -420,7 +420,7 @@ export const TransactionsPage = () => {
               return (
                 <>
 
-                  {filteredPayments.map((payment) => {
+                  {filteredIncome.map((payment) => {
                     return (
                       <Card key={payment.id} className="p-4">
                         <div className="space-y-2">

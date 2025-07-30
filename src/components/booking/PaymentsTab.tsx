@@ -15,7 +15,7 @@ interface PaymentsTabProps {
 
 export const PaymentsTab = ({ booking, onAddPayment }: PaymentsTabProps) => {
   // Show all payments from the payments table (rent, advance, and additional)
-  const allPayments = booking.payments || [];
+  const allPayments = booking.income || [];
 
   return (
     <div className="space-y-4">

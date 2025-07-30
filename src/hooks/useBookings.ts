@@ -14,7 +14,7 @@ export interface Booking {
   rentReceived: number;
   notes?: string;
   paidAmount: number;
-  payments: Payment[];
+  income: Payment[];
   createdAt: string;
   organization_id?: string;
   status?: string;
@@ -59,7 +59,7 @@ export const useBookings = () => {
       
       if (bookingIds.length > 0) {
         const { data: payments, error: paymentsError } = await supabase
-          .from('payments')
+          .from('income')
           .select('*')
           .in('booking_id', bookingIds);
         
@@ -132,7 +132,7 @@ export const useBookings = () => {
           status: booking.status || 'confirmed',
           refundedAmount: totalRefunded,
           secondaryIncomeNet, // Net secondary income (Advance - Refund)
-          payments: bookingPayments.map((payment: any) => ({
+          income: bookingPayments.map((payment: any) => ({
             id: payment.id,
             amount: payment.amount,
             date: payment.payment_date,
@@ -164,7 +164,7 @@ export const useBookings = () => {
     }
   }, [profile?.organization_id]);
 
-  const addBooking = async (bookingData: Omit<Booking, 'id' | 'createdAt' | 'paidAmount' | 'payments'>) => {
+  const addBooking = async (bookingData: Omit<Booking, 'id' | 'createdAt' | 'paidAmount' | 'income'>) => {
     if (!profile?.organization_id) return;
 
     try {
@@ -306,7 +306,7 @@ export const useBookings = () => {
 
       // Add refund payment with negative amount
       const { data: paymentData, error: paymentError } = await supabase
-        .from('payments')
+        .from('income')
         .insert({
           booking_id: refundData.bookingId,
           amount: -Math.abs(refundData.amount), // Store as negative for refunds
@@ -359,7 +359,7 @@ export const useBookings = () => {
     try {
       // Add the payment record
       const { error: paymentError } = await supabase
-        .from('payments')
+        .from('income')
         .insert({
           booking_id: bookingId,
           amount: amount,

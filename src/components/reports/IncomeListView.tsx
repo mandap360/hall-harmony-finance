@@ -61,9 +61,9 @@ export const IncomeListView = ({ onBack }: IncomeListViewProps) => {
 
   // Create income entries from payments
   const incomeEntries = currentFYBookings
-    .filter(booking => (booking.payments?.length || 0) > 0)
+    .filter(booking => (booking.income?.length || 0) > 0)
     .flatMap(booking => 
-      booking.payments?.map(payment => ({
+      booking.income?.map(payment => ({
         date: payment.date,
         description: payment.description || 'Payment',
         amount: payment.amount

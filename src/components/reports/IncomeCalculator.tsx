@@ -17,7 +17,7 @@ export const calculateIncomeData = async (bookings: any[]) => {
     try {
       // Fetch all payments from payments table for current FY bookings with category details
       const { data: allPayments, error: paymentsError } = await supabase
-        .from('payments')
+        .from('income')
         .select(`
           amount,
           income_categories!category_id (

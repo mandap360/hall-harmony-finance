@@ -9,7 +9,7 @@ interface PaymentSummaryCardProps {
     paidAmount: number;
     additionalIncome: number;
     status?: string;
-    payments?: Array<{ type: string; amount: number; }>;
+    income?: Array<{ type: string; amount: number; }>;
   };
 }
 
@@ -18,10 +18,10 @@ export const PaymentSummaryCard = ({ booking }: PaymentSummaryCardProps) => {
   
   // Check if this is a cancelled booking with refunds
   const isCancelledWithRefund = booking.status === 'cancelled' && 
-    booking.payments?.some(payment => payment.type === 'refund');
+    booking.income?.some(payment => payment.type === 'refund');
   
   const refundAmount = isCancelledWithRefund ? 
-    Math.abs(booking.payments?.filter(p => p.type === 'refund').reduce((sum, p) => sum + p.amount, 0) || 0) : 0;
+    Math.abs(booking.income?.filter(p => p.type === 'refund').reduce((sum, p) => sum + p.amount, 0) || 0) : 0;
 
   return (
     <Card className="border-amber-200">

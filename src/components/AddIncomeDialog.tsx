@@ -112,7 +112,7 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
 
       // Create the payment record
       const { error: paymentError } = await supabase
-        .from('payments')
+        .from('income')
         .insert({
           booking_id: null, // Standalone income not tied to a booking
           amount: parsedAmount,

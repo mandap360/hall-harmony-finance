@@ -172,8 +172,8 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
           </form>
 
           {/* Payment History */}
-          {booking?.payments && (
-            <PaymentHistoryCard payments={booking.payments} />
+          {booking?.income && (
+            <PaymentHistoryCard payments={booking.income} />
           )}
         </div>
       </DialogContent>

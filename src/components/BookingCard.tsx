@@ -102,16 +102,16 @@ export const BookingCard = ({ booking, onEdit, onCancel, onProcessRefund }: Book
   };
 
   const hasRefundProcessed = () => {
-    return booking.payments?.some(payment => payment.type === 'refund') || false;
+    return booking.income?.some(payment => payment.type === 'refund') || false;
   };
 
   const getRefundAmount = () => {
-    const refundPayments = booking.payments?.filter(payment => payment.type === 'refund') || [];
+    const refundPayments = booking.income?.filter(payment => payment.type === 'refund') || [];
     return Math.abs(refundPayments.reduce((sum, payment) => sum + payment.amount, 0));
   };
 
   // Calculate additional income from payments only (not from categories)
-  const additionalIncome = (booking.payments || [])
+  const additionalIncome = (booking.income || [])
     .filter(payment => payment.type === 'additional' && !payment.description?.includes('categories'))
     .reduce((sum, payment) => sum + payment.amount, 0);
 

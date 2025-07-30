@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export interface Payment {
+export interface Income {
   id: string;
   bookingId: string;
   amount: number;
@@ -13,15 +13,15 @@ export interface Payment {
   payment_mode?: string;
 }
 
-export const usePayments = () => {
-  const [payments, setPayments] = useState<Payment[]>([]);
+export const useIncome = () => {
+  const [income, setIncome] = useState<Income[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const fetchPayments = async () => {
+  const fetchIncome = async () => {
     try {
       setLoading(true);
-      console.log("Fetching payments from Supabase...");
+      console.log("Fetching income from Supabase...");
       
       // Get current user's organization
       const { data: { user } } = await supabase.auth.getUser();
@@ -41,21 +41,21 @@ export const usePayments = () => {
         return;
       }
 
-      const { data: paymentsData, error } = await supabase
-        .from('payments')
+      const { data: incomeData, error } = await supabase
+        .from('income')
         .select('*')
         .eq('organization_id', profile.organization_id)
         .order('payment_date', { ascending: false });
 
       if (error) {
-        console.error('Error fetching payments:', error);
+        console.error('Error fetching income:', error);
         throw error;
       }
 
-      console.log("Raw payments data:", paymentsData);
+      console.log("Raw income data:", incomeData);
 
       // Transform the data and ensure category_id is used correctly
-      const transformedPayments: Payment[] = (paymentsData || []).map(payment => ({
+      const transformedIncome: Income[] = (incomeData || []).map(payment => ({
         id: payment.id,
         bookingId: payment.booking_id,
         amount: Number(payment.amount),
@@ -65,13 +65,13 @@ export const usePayments = () => {
         payment_mode: payment.payment_mode
       }));
 
-      console.log("Transformed payments:", transformedPayments);
-      setPayments(transformedPayments);
+      console.log("Transformed income:", transformedIncome);
+      setIncome(transformedIncome);
     } catch (error) {
-      console.error('Error fetching payments:', error);
+      console.error('Error fetching income:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch payments",
+        description: "Failed to fetch income",
         variant: "destructive",
       });
     } finally {
@@ -80,19 +80,19 @@ export const usePayments = () => {
   };
 
   useEffect(() => {
-    fetchPayments();
+    fetchIncome();
   }, []);
 
-  const addPayment = async (paymentData: Omit<Payment, 'id'>) => {
+  const addIncome = async (incomeData: Omit<Income, 'id'>) => {
     try {
       const { data, error } = await supabase
-        .from('payments')
+        .from('income')
         .insert({
-          booking_id: paymentData.bookingId,
-          amount: paymentData.amount,
-          payment_date: paymentData.date,
-          category_id: paymentData.type,
-          description: paymentData.description
+          booking_id: incomeData.bookingId,
+          amount: incomeData.amount,
+          payment_date: incomeData.date,
+          category_id: incomeData.type,
+          description: incomeData.description
         })
         .select()
         .single();
@@ -100,7 +100,7 @@ export const usePayments = () => {
       if (error) throw error;
 
       // Transform the returned data to match our interface
-      const newPayment: Payment = {
+      const newIncome: Income = {
         id: data.id,
         bookingId: data.booking_id,
         amount: Number(data.amount),
@@ -109,23 +109,23 @@ export const usePayments = () => {
         description: data.description || ''
       };
 
-      setPayments(prev => [newPayment, ...prev]);
+      setIncome(prev => [newIncome, ...prev]);
       
       toast({
         title: "Success",
-        description: "Payment added successfully",
+        description: "Income added successfully",
       });
     } catch (error) {
-      console.error('Error adding payment:', error);
+      console.error('Error adding income:', error);
       toast({
         title: "Error",
-        description: "Failed to add payment",
+        description: "Failed to add income",
         variant: "destructive",
       });
     }
   };
 
-  const getCurrentFYPayments = () => {
+  const getCurrentFYIncome = () => {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
@@ -139,7 +139,7 @@ export const usePayments = () => {
       fyEndYear = year;
     }
 
-    return payments.filter(payment => {
+    return income.filter(payment => {
       const paymentDate = new Date(payment.date);
       const paymentYear = paymentDate.getFullYear();
       const paymentMonth = paymentDate.getMonth();
@@ -172,11 +172,11 @@ export const usePayments = () => {
   };
 
   return {
-    payments,
+    income,
     loading,
-    addPayment,
-    refetch: fetchPayments,
-    getCurrentFYPayments,
+    addIncome,
+    refetch: fetchIncome,
+    getCurrentFYIncome,
     formatDateRange
   };
 };
