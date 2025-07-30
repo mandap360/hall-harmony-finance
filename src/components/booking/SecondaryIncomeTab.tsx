@@ -42,14 +42,18 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
 
   const fetchData = async () => {
     try {
-      // Get Secondary Income categories (parent and children)
+      // Get all income categories to filter Secondary Income and its children
       const { data: categoriesData } = await supabase
         .from('income_categories')
-        .select('id, name, parent_id')
-        .or('name.eq.Secondary Income,parent_id.in.(select id from income_categories where name = "Secondary Income")');
+        .select('id, name, parent_id');
 
       if (categoriesData) {
-        setCategories(categoriesData);
+        // Filter to get Secondary Income parent and all its children
+        const secondaryIncomeParent = categoriesData.find(cat => cat.name === 'Secondary Income' && !cat.parent_id);
+        const secondaryIncomeCategories = categoriesData.filter(cat => 
+          cat.id === secondaryIncomeParent?.id || cat.parent_id === secondaryIncomeParent?.id
+        );
+        setCategories(secondaryIncomeCategories);
       }
 
       // Get existing income records for this booking to calculate advance amount
