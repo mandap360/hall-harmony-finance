@@ -218,7 +218,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
           .select('id')
           .eq('booking_id', booking.id)
           .eq('category_id', advanceCategory.id)
-          .single();
+          .maybeSingle();
 
         if (existingAdvance) {
           const { error: advanceUpdateError } = await supabase
@@ -227,7 +227,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
             .eq('id', existingAdvance.id);
 
           if (advanceUpdateError) throw advanceUpdateError;
-        } else {
+        } else if (remainingAdvance > 0) {
           const { error: advanceInsertError } = await supabase
             .from('secondary_income')
             .insert({

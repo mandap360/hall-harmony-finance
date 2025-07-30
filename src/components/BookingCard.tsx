@@ -110,10 +110,8 @@ export const BookingCard = ({ booking, onEdit, onCancel, onProcessRefund }: Book
     return Math.abs(refundPayments.reduce((sum, payment) => sum + payment.amount, 0));
   };
 
-  // Calculate additional income from payments only (not from categories)
-  const additionalIncome = (booking.income || [])
-    .filter(payment => payment.type === 'additional' && !payment.description?.includes('categories'))
-    .reduce((sum, payment) => sum + payment.amount, 0);
+  // Use the secondary income net value that already excludes refunds
+  const secondaryIncome = booking.secondaryIncomeNet || 0;
 
   const status = getBookingStatus();
 
@@ -225,8 +223,8 @@ export const BookingCard = ({ booking, onEdit, onCancel, onProcessRefund }: Book
           />
           
           <PaymentStatCard 
-            label="Additional Income" 
-            amount={additionalIncome} 
+            label="Secondary Income" 
+            amount={secondaryIncome} 
             variant="purple" 
           />
         </div>
