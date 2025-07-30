@@ -48,7 +48,7 @@ export const SalesExpenseSummary = ({
           total: categoryData[sub.name] || 0
         }))
       };
-    }).filter(cat => cat.total > 0);
+    }).filter(cat => cat.total !== 0);
   };
 
   const toggleIncomeCategory = (categoryId: string) => {

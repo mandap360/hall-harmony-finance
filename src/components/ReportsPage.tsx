@@ -31,20 +31,14 @@ export const ReportsPage = () => {
   // Calculate income and expense data asynchronously
   useEffect(() => {
     const fetchFinancialData = async () => {
-      if (bookings.length > 0) {
-        const incomeResult = await calculateIncomeData(bookings);
-        setIncomeData(incomeResult);
-        
-        const expenseResult = await calculateExpenseData(expenses);
-        setExpenseData(expenseResult);
-      } else {
-        // Set empty data when no bookings exist
-        setIncomeData({ totalIncome: 0, totalReceivables: 0, incomeByCategory: [] });
-        setExpenseData({ totalExpenses: 0, totalPayables: 0, expensesByCategory: [] });
-      }
+      const incomeResult = await calculateIncomeData();
+      setIncomeData(incomeResult);
+      
+      const expenseResult = await calculateExpenseData(expenses);
+      setExpenseData(expenseResult);
     };
     fetchFinancialData();
-  }, [bookings, expenses]);
+  }, [expenses]);
 
   // Calculate banking summary
   const bankingSummary = accounts.reduce((acc, account) => {
@@ -160,7 +154,7 @@ export const ReportsPage = () => {
         <DashboardSummaryCards
           totalIncome={incomeData.totalIncome}
           totalExpenses={expenseData.totalExpenses}
-          totalReceivables={incomeData.totalReceivables}
+          totalReceivables={0}
           totalPayables={expenseData.totalPayables}
           onReceivablesClick={() => setCurrentView("receivables")}
           onPayablesClick={() => setCurrentView("payables")}
