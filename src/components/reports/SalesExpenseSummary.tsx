@@ -114,28 +114,30 @@ export const SalesExpenseSummary = ({
               <div className="mt-4 space-y-2 border-t border-green-200 pt-3">
                 {incomeParentCategories.map((category) => (
                   <div key={category.id} className="space-y-1">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center">
-                        <span className="text-green-800 font-medium">{category.name}</span>
-                        {category.subcategories.length > 0 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleIncomeCategory(category.id)}
-                            className="h-4 w-4 p-0 ml-2 hover:bg-green-200"
-                          >
-                            {expandedIncomeCategories.has(category.id) ? (
-                              <ChevronUp className="h-3 w-3 text-green-700" />
-                            ) : (
-                              <ChevronDown className="h-3 w-3 text-green-700" />
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                      <span className="text-green-900 font-medium">
-                        ₹{category.total.toLocaleString()}
-                      </span>
-                    </div>
+                     <div className="flex justify-between items-center">
+                       <div className="flex items-center">
+                         <span className="text-green-800 font-medium">{category.name}</span>
+                         {category.subcategories.length > 0 && (
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => toggleIncomeCategory(category.id)}
+                             className="h-4 w-4 p-0 ml-2 hover:bg-green-200"
+                           >
+                             {expandedIncomeCategories.has(category.id) ? (
+                               <ChevronUp className="h-3 w-3 text-green-700" />
+                             ) : (
+                               <ChevronDown className="h-3 w-3 text-green-700" />
+                             )}
+                           </Button>
+                         )}
+                       </div>
+                       {category.name !== "Secondary Income" && (
+                         <span className="text-green-900 font-medium">
+                           ₹{category.total.toLocaleString()}
+                         </span>
+                       )}
+                     </div>
                     
                     {expandedIncomeCategories.has(category.id) && category.subcategories.length > 0 && (
                       <div className="ml-4 space-y-1">
