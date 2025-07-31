@@ -74,38 +74,39 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
             <p className="text-sm text-gray-400 mt-2">All expenses are paid!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Vendor List Column */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Vendor List Column - Takes 1/3 width */}
             <div className="space-y-4">
               {Object.entries(vendorPayables).map(([vendorName, data]) => (
                 <Card 
                   key={vendorName} 
-                  className={`p-4 cursor-pointer transition-colors ${
+                  className={`p-3 cursor-pointer transition-colors ${
                     selectedVendor === vendorName 
                       ? 'border-blue-500 bg-blue-50' 
                       : 'border-gray-200 hover:bg-gray-50'
                   }`}
                   onClick={() => setSelectedVendor(vendorName)}
                 >
-                  <div className="flex justify-between items-center">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">
-                        {vendorName}
-                      </h4>
-                    </div>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-gray-900 text-sm">
+                      {vendorName}
+                    </h4>
                     <div className="flex items-center text-red-600">
                       <IndianRupee className="h-4 w-4 mr-1" />
-                      <span className="font-bold">₹{data.totalAmount.toLocaleString()}</span>
+                      <span className="font-bold text-sm">₹{data.totalAmount.toLocaleString()}</span>
                     </div>
                   </div>
                 </Card>
               ))}
             </div>
 
-            {/* Bills Column */}
-            <div className="space-y-4">
-              {selectedVendor && vendorPayables[selectedVendor] && (
+            {/* Bills Column - Takes 2/3 width */}
+            <div className="lg:col-span-2 space-y-4">
+              {selectedVendor && vendorPayables[selectedVendor] ? (
                 <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Bills for {selectedVendor}
+                  </h3>
                   {vendorPayables[selectedVendor].expenses.map((expense) => (
                     <Card key={expense.id} className="p-4">
                       <div className="space-y-2">
@@ -122,6 +123,10 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
                       </div>
                     </Card>
                   ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  Select a vendor to view their unpaid bills
                 </div>
               )}
             </div>
