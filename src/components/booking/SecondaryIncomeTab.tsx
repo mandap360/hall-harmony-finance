@@ -139,9 +139,14 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
       // Just remove from local state if it's a new row
       setFormRows(prev => prev.filter(row => row.id !== id));
     } else {
-      // Delete from database if it's an existing allocation
+      // Delete from database if it's an existing allocation and add amount back to advance
       setLoading(true);
       try {
+        // Get the amount being deleted
+        const rowToDelete = formRows.find(row => row.id === id);
+        const deletedAmount = Number(rowToDelete?.amount || 0);
+
+        // Delete the allocation
         const { error } = await supabase
           .from('secondary_income')
           .delete()
@@ -149,11 +154,36 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
 
         if (error) throw error;
 
+        // Update advance amount by adding back the deleted amount
+        const advanceCategory = categories.find(cat => cat.name === 'Advance');
+        if (advanceCategory && deletedAmount > 0) {
+          const { data: existingAdvance } = await supabase
+            .from('secondary_income')
+            .select('id, amount')
+            .eq('booking_id', booking.id)
+            .eq('category_id', advanceCategory.id)
+            .maybeSingle();
+
+          if (existingAdvance) {
+            const newAdvanceAmount = Number(existingAdvance.amount) + deletedAmount;
+            const { error: advanceUpdateError } = await supabase
+              .from('secondary_income')
+              .update({ amount: newAdvanceAmount })
+              .eq('id', existingAdvance.id);
+
+            if (advanceUpdateError) throw advanceUpdateError;
+            
+            // Update local state
+            setOriginalAdvanceAmount(prev => prev + deletedAmount);
+            setAdvanceAmount(prev => prev + deletedAmount);
+          }
+        }
+
         setFormRows(prev => prev.filter(row => row.id !== id));
         
         toast({
           title: "Success",
-          description: "Allocation removed successfully",
+          description: "Allocation removed and advance updated successfully",
         });
       } catch (error) {
         console.error('Error removing allocation:', error);
