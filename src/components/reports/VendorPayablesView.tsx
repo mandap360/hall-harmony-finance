@@ -45,52 +45,6 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
     });
   };
 
-  if (selectedVendor) {
-    const vendorExpenses = vendorPayables[selectedVendor]?.expenses || [];
-    
-    return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center mb-6">
-            <Button
-              variant="ghost"
-              onClick={() => setSelectedVendor(null)}
-              className="flex items-center text-blue-600 hover:text-blue-800"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Vendors
-            </Button>
-          </div>
-
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Unpaid Bills - {selectedVendor}
-          </h2>
-
-          <div className="space-y-4">
-            {vendorExpenses.map((expense) => (
-              <Card key={expense.id} className="p-6 border-red-200">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center text-gray-600 mb-2">
-                      <Building className="h-4 w-4 mr-2" />
-                      <span className="text-sm">{expense.category}</span>
-                    </div>
-                    <div className="text-sm text-gray-500 mb-3">
-                      Bill #{expense.billNumber} • {formatDate(expense.date)}
-                    </div>
-                    <div className="flex items-center text-red-600">
-                      <IndianRupee className="h-4 w-4 mr-1" />
-                      <span className="font-semibold">₹{expense.totalAmount.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
