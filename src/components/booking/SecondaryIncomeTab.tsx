@@ -344,6 +344,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
                   onChange={(e) => updateFormRow(row.id, 'amount', e.target.value)}
                   min="1"
                   className="h-9"
+                  disabled={!row.isNew}
                 />
               </div>
               
@@ -383,11 +384,17 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
                  </>
                )}
              </div>
+             
+             {remainingAdvance < 0 && (
+               <div className="text-sm text-destructive mb-2">
+                 Insufficient advance available for allocation
+               </div>
+             )}
            </div>
            
            <Button 
              onClick={handleSave} 
-             disabled={loading || formRows.every(row => !row.categoryId || !row.amount)}
+             disabled={loading || formRows.every(row => !row.categoryId || !row.amount) || remainingAdvance < 0}
              className="w-full"
            >
              Save
