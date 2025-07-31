@@ -74,9 +74,9 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
             <p className="text-sm text-gray-400 mt-2">All expenses are paid!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Vendor List Column - Takes 1/3 width */}
-            <div className="space-y-4">
+          <div className="flex gap-6">
+            {/* Vendor List Column - Fixed narrow width */}
+            <div className="w-80 space-y-3">
               {Object.entries(vendorPayables).map(([vendorName, data]) => (
                 <Card 
                   key={vendorName} 
@@ -87,7 +87,7 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
                   }`}
                   onClick={() => setSelectedVendor(vendorName)}
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <h4 className="font-semibold text-gray-900 text-sm">
                       {vendorName}
                     </h4>
@@ -100,8 +100,8 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
               ))}
             </div>
 
-            {/* Bills Column - Takes 2/3 width */}
-            <div className="lg:col-span-2 space-y-4">
+            {/* Bills Column - Takes remaining space */}
+            <div className="flex-1 space-y-4">
               {selectedVendor && vendorPayables[selectedVendor] ? (
                 <div className="space-y-3">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
