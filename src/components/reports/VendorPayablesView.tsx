@@ -123,25 +123,21 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Vendor List Column */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Vendors</h3>
               {Object.entries(vendorPayables).map(([vendorName, data]) => (
                 <Card 
                   key={vendorName} 
                   className={`p-4 cursor-pointer transition-colors ${
                     selectedVendor === vendorName 
                       ? 'border-blue-500 bg-blue-50' 
-                      : 'border-red-200 hover:bg-red-50'
+                      : 'border-gray-200 hover:bg-gray-50'
                   }`}
                   onClick={() => setSelectedVendor(vendorName)}
                 >
                   <div className="flex justify-between items-center">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 mb-1">
+                      <h4 className="font-semibold text-gray-900">
                         {vendorName}
                       </h4>
-                      <div className="text-sm text-gray-500">
-                        {data.expenses.length} unpaid bill{data.expenses.length !== 1 ? 's' : ''}
-                      </div>
                     </div>
                     <div className="flex items-center text-red-600">
                       <IndianRupee className="h-4 w-4 mr-1" />
@@ -152,28 +148,22 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
               ))}
             </div>
 
-            {/* Vendor Expenses Column */}
+            {/* Bills Column */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                {selectedVendor ? `Bills - ${selectedVendor}` : 'Select a Vendor'}
-              </h3>
               {selectedVendor && vendorPayables[selectedVendor] && (
                 <div className="space-y-3">
                   {vendorPayables[selectedVendor].expenses.map((expense) => (
-                    <Card key={expense.id} className="p-4 border-red-200">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center text-gray-600 mb-2">
-                            <Building className="h-4 w-4 mr-2" />
-                            <span className="text-sm">{expense.category}</span>
-                          </div>
-                          <div className="text-sm text-gray-500 mb-2">
-                            Bill #{expense.billNumber} • {formatDate(expense.date)}
-                          </div>
-                          <div className="flex items-center text-red-600">
-                            <IndianRupee className="h-4 w-4 mr-1" />
-                            <span className="font-semibold">₹{expense.totalAmount.toLocaleString()}</span>
-                          </div>
+                    <Card key={expense.id} className="p-4">
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium">
+                          Invoice #{expense.billNumber}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {formatDate(expense.date)}
+                        </div>
+                        <div className="flex items-center text-red-600">
+                          <IndianRupee className="h-4 w-4 mr-1" />
+                          <span className="font-semibold">₹{expense.totalAmount.toLocaleString()}</span>
                         </div>
                       </div>
                     </Card>
