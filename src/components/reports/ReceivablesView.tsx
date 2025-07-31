@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
 import { useBookings } from "@/hooks/useBookings";
 import { Badge } from "@/components/ui/badge";
+import { financialUtils } from "@/lib/utils";
 
 interface ReceivablesViewProps {
   onBack: () => void;
@@ -12,10 +13,14 @@ interface ReceivablesViewProps {
 export const ReceivablesView = ({ onBack }: ReceivablesViewProps) => {
   const { bookings } = useBookings();
 
-  // Filter bookings where rent is pending (rent finalized > rent received)
-  const pendingRentBookings = bookings.filter(booking => 
-    booking.rentFinalized > booking.rentReceived
-  );
+  // Filter bookings for current financial year where rent is pending
+  const pendingRentBookings = bookings.filter(booking => {
+    const bookingDate = new Date(booking.startDate);
+    const isInCurrentFY = financialUtils.isInCurrentFinancialYear(bookingDate);
+    const hasPendingRent = booking.rentFinalized > booking.rentReceived;
+    
+    return isInCurrentFY && hasPendingRent;
+  });
 
   const totalReceivables = pendingRentBookings.reduce(
     (sum, booking) => sum + (booking.rentFinalized - booking.rentReceived), 
@@ -100,7 +105,7 @@ export const ReceivablesView = ({ onBack }: ReceivablesViewProps) => {
                         Client: {booking.clientName}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Event Date: {formatDate(booking.startDate)}
+                        Function Date: {formatDate(booking.startDate)} - {formatDate(booking.endDate)}
                       </p>
                       {booking.phoneNumber && (
                         <p className="text-sm text-muted-foreground">

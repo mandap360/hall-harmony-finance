@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Building, IndianRupee, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -29,6 +28,14 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
   }, {} as Record<string, { totalAmount: number; expenses: any[] }>);
 
   const totalPayables = Object.values(vendorPayables).reduce((sum, vendor) => sum + vendor.totalAmount, 0);
+  const vendorNames = Object.keys(vendorPayables);
+  
+  // Auto-select first vendor when page loads
+  useEffect(() => {
+    if (!selectedVendor && vendorNames.length > 0) {
+      setSelectedVendor(vendorNames[0]);
+    }
+  }, [vendorNames, selectedVendor]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -87,7 +94,7 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center mb-6">
           <Button
             variant="ghost"
@@ -107,40 +114,75 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
           </div>
         </div>
 
-        <div className="space-y-4">
-          {Object.entries(vendorPayables).map(([vendorName, data]) => (
-            <Card 
-              key={vendorName} 
-              className="p-6 border-red-200 cursor-pointer hover:bg-red-50 transition-colors"
-              onClick={() => setSelectedVendor(vendorName)}
-            >
-              <div className="flex justify-between items-center">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg text-gray-900 mb-2">
-                    {vendorName}
-                  </h3>
-                  <div className="text-sm text-gray-500">
-                    {data.expenses.length} unpaid bill{data.expenses.length !== 1 ? 's' : ''}
+        {Object.keys(vendorPayables).length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">No unpaid bills found</p>
+            <p className="text-sm text-gray-400 mt-2">All expenses are paid!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Vendor List Column */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Vendors</h3>
+              {Object.entries(vendorPayables).map(([vendorName, data]) => (
+                <Card 
+                  key={vendorName} 
+                  className={`p-4 cursor-pointer transition-colors ${
+                    selectedVendor === vendorName 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-red-200 hover:bg-red-50'
+                  }`}
+                  onClick={() => setSelectedVendor(vendorName)}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 mb-1">
+                        {vendorName}
+                      </h4>
+                      <div className="text-sm text-gray-500">
+                        {data.expenses.length} unpaid bill{data.expenses.length !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+                    <div className="flex items-center text-red-600">
+                      <IndianRupee className="h-4 w-4 mr-1" />
+                      <span className="font-bold">₹{data.totalAmount.toLocaleString()}</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center text-red-600">
-                    <IndianRupee className="h-5 w-5 mr-1" />
-                    <span className="font-bold text-xl">₹{data.totalAmount.toLocaleString()}</span>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
-                </div>
-              </div>
-            </Card>
-          ))}
-
-          {Object.keys(vendorPayables).length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">No unpaid bills found</p>
-              <p className="text-sm text-gray-400 mt-2">All expenses are paid!</p>
+                </Card>
+              ))}
             </div>
-          )}
-        </div>
+
+            {/* Vendor Expenses Column */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                {selectedVendor ? `Bills - ${selectedVendor}` : 'Select a Vendor'}
+              </h3>
+              {selectedVendor && vendorPayables[selectedVendor] && (
+                <div className="space-y-3">
+                  {vendorPayables[selectedVendor].expenses.map((expense) => (
+                    <Card key={expense.id} className="p-4 border-red-200">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center text-gray-600 mb-2">
+                            <Building className="h-4 w-4 mr-2" />
+                            <span className="text-sm">{expense.category}</span>
+                          </div>
+                          <div className="text-sm text-gray-500 mb-2">
+                            Bill #{expense.billNumber} • {formatDate(expense.date)}
+                          </div>
+                          <div className="flex items-center text-red-600">
+                            <IndianRupee className="h-4 w-4 mr-1" />
+                            <span className="font-semibold">₹{expense.totalAmount.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

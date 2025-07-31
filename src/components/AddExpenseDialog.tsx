@@ -339,7 +339,7 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
 
             <div>
               <Label htmlFor="paidThrough">
-                Paid Through <span className="text-red-500">*</span>
+                Payment Method <span className="text-red-500">*</span>
               </Label>
               <Select value={formData.paidThrough} onValueChange={(value) => setFormData({ ...formData, paidThrough: value })}>
                 <SelectTrigger>
@@ -347,11 +347,13 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSubmit, onIncomeSubmit 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={APP_CONSTANTS.PAYMENT_STATUS.UNPAID}>Unpaid</SelectItem>
-                  {paymentAccounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.name} (₹{account.balance.toLocaleString()})
-                    </SelectItem>
-                  ))}
+                  {accounts
+                    .filter(acc => acc.account_type === APP_CONSTANTS.ACCOUNT_TYPES.OPERATIONAL)
+                    .map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name} (₹{account.balance.toLocaleString()})
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
