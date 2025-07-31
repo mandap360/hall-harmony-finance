@@ -28,6 +28,7 @@ interface FormRow {
 export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
   const [categories, setCategories] = useState<SecondaryIncomeCategory[]>([]);
   const [formRows, setFormRows] = useState<FormRow[]>([]);
+  const [originalAdvanceAmount, setOriginalAdvanceAmount] = useState(0);
   const [advanceAmount, setAdvanceAmount] = useState(0);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -65,6 +66,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
 
       if (advanceData && advanceData.length > 0) {
         const totalAdvance = advanceData.reduce((sum, item) => sum + Number(item.amount), 0);
+        setOriginalAdvanceAmount(totalAdvance);
         setAdvanceAmount(totalAdvance);
       }
 
@@ -171,12 +173,13 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
     try {
       const validRows = formRows.filter(row => row.categoryId && row.amount && Number(row.amount) > 0);
       
-      // Check if total allocation doesn't exceed advance amount
-      const totalAllocated = validRows.reduce((sum, row) => sum + Number(row.amount), 0);
-      if (totalAllocated > advanceAmount) {
+      // Check if new allocations don't exceed remaining advance amount
+      const newValidRows = validRows.filter(row => row.isNew);
+      const totalNewAllocations = newValidRows.reduce((sum, row) => sum + Number(row.amount), 0);
+      if (totalNewAllocations > originalAdvanceAmount) {
         toast({
           title: "Invalid Amount",
-          description: "Total allocation exceeds available advance amount",
+          description: "New allocations exceed available advance amount",
           variant: "destructive",
         });
         return;
@@ -210,34 +213,36 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
         if (updateError) throw updateError;
       }
 
-      // Update Advance amount in secondary_income table
-      const advanceCategory = categories.find(cat => cat.name === 'Advance');
-      if (advanceCategory) {
-        const { data: existingAdvance } = await supabase
-          .from('secondary_income')
-          .select('id')
-          .eq('booking_id', booking.id)
-          .eq('category_id', advanceCategory.id)
-          .maybeSingle();
-
-        if (existingAdvance) {
-          const { error: advanceUpdateError } = await supabase
+      // Update Advance amount in secondary_income table only if there are new allocations
+      if (newRows.length > 0) {
+        const advanceCategory = categories.find(cat => cat.name === 'Advance');
+        if (advanceCategory) {
+          const { data: existingAdvance } = await supabase
             .from('secondary_income')
-            .update({ amount: remainingAdvance })
-            .eq('id', existingAdvance.id);
+            .select('id')
+            .eq('booking_id', booking.id)
+            .eq('category_id', advanceCategory.id)
+            .maybeSingle();
 
-          if (advanceUpdateError) throw advanceUpdateError;
-        } else if (remainingAdvance > 0) {
-          const { error: advanceInsertError } = await supabase
-            .from('secondary_income')
-            .insert({
-              booking_id: booking.id,
-              amount: remainingAdvance,
-              category_id: advanceCategory.id,
-              organization_id: booking.organization_id
-            });
+          if (existingAdvance) {
+            const { error: advanceUpdateError } = await supabase
+              .from('secondary_income')
+              .update({ amount: remainingAdvance })
+              .eq('id', existingAdvance.id);
 
-          if (advanceInsertError) throw advanceInsertError;
+            if (advanceUpdateError) throw advanceUpdateError;
+          } else if (remainingAdvance > 0) {
+            const { error: advanceInsertError } = await supabase
+              .from('secondary_income')
+              .insert({
+                booking_id: booking.id,
+                amount: remainingAdvance,
+                category_id: advanceCategory.id,
+                organization_id: booking.organization_id
+              });
+
+            if (advanceInsertError) throw advanceInsertError;
+          }
         }
       }
 
@@ -260,14 +265,23 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
     }
   };
 
-  // Calculate remaining advance
-  const totalAllocated = formRows.reduce((sum, row) => {
-    if (row.categoryId && row.amount && Number(row.amount) > 0) {
+  // Calculate amounts for new allocations only
+  const totalNewAllocations = formRows.reduce((sum, row) => {
+    if (row.isNew && row.categoryId && row.amount && Number(row.amount) > 0) {
       return sum + Number(row.amount);
     }
     return sum;
   }, 0);
-  const remainingAdvance = advanceAmount - totalAllocated;
+  
+  // Calculate total existing allocations
+  const totalExistingAllocations = formRows.reduce((sum, row) => {
+    if (!row.isNew && row.categoryId && row.amount && Number(row.amount) > 0) {
+      return sum + Number(row.amount);
+    }
+    return sum;
+  }, 0);
+  
+  const remainingAdvance = originalAdvanceAmount - totalNewAllocations;
 
   // Get secondary income subcategories (excluding Advance)
   const secondaryIncomeParent = categories.find(cat => cat.name === 'Secondary Income' && !cat.parent_id);
@@ -285,8 +299,8 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            Advance: <CurrencyDisplay amount={remainingAdvance} className="font-medium" />
+          <CardTitle className="text-lg">
+            Secondary Income Allocations
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -354,15 +368,30 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
                 </Button>
               )}
             </div>
-          ))}
-          
-          <Button 
-            onClick={handleSave} 
-            disabled={loading || formRows.every(row => !row.categoryId || !row.amount)}
-            className="w-full"
-          >
-            Save
-          </Button>
+           ))}
+           
+           {/* Remaining Advance Display */}
+           <div className="border-t pt-3 mt-4">
+             <div className="text-sm text-muted-foreground mb-2">
+               Remaining advance: <CurrencyDisplay amount={originalAdvanceAmount} className="font-medium" displayMode="text-only" /> 
+               {totalNewAllocations > 0 && (
+                 <>
+                   {" - "}
+                   <CurrencyDisplay amount={totalNewAllocations} className="font-medium" displayMode="text-only" />
+                   {" = "}
+                   <CurrencyDisplay amount={remainingAdvance} className="font-medium" displayMode="text-only" />
+                 </>
+               )}
+             </div>
+           </div>
+           
+           <Button 
+             onClick={handleSave} 
+             disabled={loading || formRows.every(row => !row.categoryId || !row.amount)}
+             className="w-full"
+           >
+             Save
+           </Button>
         </CardContent>
       </Card>
     </div>
