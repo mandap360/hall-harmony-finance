@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { BookingDetailsTab } from "@/components/booking/BookingDetailsTab";
 import { PaymentsTab } from "@/components/booking/PaymentsTab";
 import { SecondaryIncomeTab } from "@/components/booking/SecondaryIncomeTab";
@@ -191,13 +192,13 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] h-[70vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-primary">Edit Booking</DialogTitle>
         </DialogHeader>
 
         {/* Tabs */}
-        <div className="flex space-x-1 border-b border-border">
+        <div className="flex space-x-1 border-b border-border flex-shrink-0">
           <button
             onClick={() => handleTabChange("details")}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
@@ -230,26 +231,28 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
           </button>
         </div>
 
-        {activeTab === "details" && (
-          <BookingDetailsTab
-            booking={currentBooking}
-            onSubmit={onSubmit}
-            onCancel={() => onOpenChange(false)}
-          />
-        )}
+        <ScrollArea className="flex-1">
+          {activeTab === "details" && (
+            <BookingDetailsTab
+              booking={currentBooking}
+              onSubmit={onSubmit}
+              onCancel={() => onOpenChange(false)}
+            />
+          )}
 
-        {activeTab === "payments" && (
-          <PaymentsTab
-            booking={currentBooking}
-            onAddPayment={handleAddPayment}
-          />
-        )}
+          {activeTab === "payments" && (
+            <PaymentsTab
+              booking={currentBooking}
+              onAddPayment={handleAddPayment}
+            />
+          )}
 
-        {activeTab === "secondary-income" && (
-          <SecondaryIncomeTab
-            booking={currentBooking}
-          />
-        )}
+          {activeTab === "secondary-income" && (
+            <SecondaryIncomeTab
+              booking={currentBooking}
+            />
+          )}
+        </ScrollArea>
 
       </DialogContent>
     </Dialog>
