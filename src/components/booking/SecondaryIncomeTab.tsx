@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CurrencyDisplay } from "@/components/ui/currency-display";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAccounts } from "@/hooks/useAccounts";
 import { Plus, Trash2 } from "lucide-react";
 
 interface SecondaryIncomeTabProps {
@@ -22,6 +23,7 @@ interface FormRow {
   id: string;
   categoryId: string;
   amount: string;
+  paymentMethodId?: string;
   isNew?: boolean;
 }
 
@@ -32,6 +34,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
   const [advanceAmount, setAdvanceAmount] = useState(0);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { accounts } = useAccounts();
 
   // Fetch secondary income categories and existing allocations
   useEffect(() => {
@@ -87,6 +90,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
           id: allocation.id,
           categoryId: allocation.category_id,
           amount: allocation.amount.toString(),
+          paymentMethodId: '',
           isNew: false
         }));
         
@@ -95,6 +99,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
           id: 'new-' + Date.now(),
           categoryId: '',
           amount: '',
+          paymentMethodId: '',
           isNew: true
         });
         
@@ -105,6 +110,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
           id: 'new-' + Date.now(),
           categoryId: '',
           amount: '',
+          paymentMethodId: '',
           isNew: true
         }]);
       }
@@ -118,7 +124,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
     }
   };
 
-  const updateFormRow = (id: string, field: 'categoryId' | 'amount', value: string) => {
+  const updateFormRow = (id: string, field: 'categoryId' | 'amount' | 'paymentMethodId', value: string) => {
     setFormRows(prev => prev.map(row => 
       row.id === id ? { ...row, [field]: value } : row
     ));
@@ -129,6 +135,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
       id: 'new-' + Date.now(),
       categoryId: '',
       amount: '',
+      paymentMethodId: '',
       isNew: true
     };
     setFormRows(prev => [...prev, newRow]);
@@ -219,7 +226,25 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const validRows = formRows.filter(row => row.categoryId && row.amount && Number(row.amount) > 0);
+      // Validate rows - for refund categories, payment method is required
+      const validRows = formRows.filter(row => {
+        if (!row.categoryId || !row.amount || Number(row.amount) <= 0) return false;
+        
+        const category = categories.find(cat => cat.id === row.categoryId);
+        const isRefundCategory = category?.name.toLowerCase().includes('refund');
+        
+        // For refund categories, payment method is required
+        if (isRefundCategory && row.isNew && !row.paymentMethodId) {
+          toast({
+            title: "Payment Method Required",
+            description: "Payment method is required for refund categories",
+            variant: "destructive",
+          });
+          return false;
+        }
+        
+        return true;
+      });
       
       // Check if new allocations don't exceed remaining advance amount
       const newValidRows = validRows.filter(row => row.isNew);
@@ -266,6 +291,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
               payment_date: new Date().toISOString().split('T')[0],
               organization_id: booking.organization_id,
               category_id: row.categoryId,
+              payment_mode: row.paymentMethodId,
               description: `${category?.name} - ${parentCategory?.name}`
             };
           });
@@ -381,85 +407,117 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Headers */}
-          <div className="grid grid-cols-[1fr_100px_40px_40px] gap-2 text-sm font-medium text-muted-foreground">
+          <div className="grid grid-cols-[1fr_100px_100px_40px_40px] gap-2 text-sm font-medium text-muted-foreground">
             <div>Category</div>
             <div>Amount</div>
+            <div>Payment Method</div>
             <div></div>
             <div></div>
           </div>
           
-          {formRows.map((row, index) => (
-            <div key={row.id} className="grid grid-cols-[1fr_100px_40px_40px] gap-2 items-center">
-              <div>
-                {row.isNew ? (
-                  <Select 
-                    value={row.categoryId} 
-                    onValueChange={(value) => updateFormRow(row.id, 'categoryId', value)}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Select Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableCategories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <span className="text-sm">{getCategoryName(row.categoryId)}</span>
-                )}
-              </div>
-              
-              <div>
-                <Input
-                  type="number"
-                  placeholder="Amount"
-                  value={row.amount}
-                  onChange={(e) => updateFormRow(row.id, 'amount', e.target.value)}
-                  min="1"
-                  className="h-9"
-                  disabled={!row.isNew}
-                />
-              </div>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => addNewRow()}
-                className="h-9 w-9 p-0"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              
-              {formRows.length > 1 && (
+          {formRows.map((row, index) => {
+            const selectedCategory = categories.find(cat => cat.id === row.categoryId);
+            const isRefundCategory = selectedCategory?.name.toLowerCase().includes('refund');
+            const operationalAccounts = accounts.filter(account => account.account_type === 'operational');
+            
+            return (
+              <div key={row.id} className="grid grid-cols-[1fr_100px_100px_40px_40px] gap-2 items-center">
+                <div>
+                  {row.isNew ? (
+                    <Select 
+                      value={row.categoryId} 
+                      onValueChange={(value) => updateFormRow(row.id, 'categoryId', value)}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Select Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCategories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="text-sm">{getCategoryName(row.categoryId)}</span>
+                  )}
+                </div>
+                
+                <div>
+                  <Input
+                    type="number"
+                    placeholder="Amount"
+                    value={row.amount}
+                    onChange={(e) => updateFormRow(row.id, 'amount', e.target.value)}
+                    min="1"
+                    className="h-9"
+                    disabled={!row.isNew}
+                  />
+                </div>
+                
+                <div>
+                  {row.isNew && isRefundCategory ? (
+                    <Select 
+                      value={row.paymentMethodId || ''} 
+                      onValueChange={(value) => updateFormRow(row.id, 'paymentMethodId', value)}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Payment Method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {operationalAccounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="h-9 flex items-center text-sm text-muted-foreground">
+                      {isRefundCategory && !row.isNew ? 'Set' : 'N/A'}
+                    </div>
+                  )}
+                </div>
+                
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => removeRow(row.id, row.isNew)}
-                  disabled={loading}
-                  className="h-9 w-9 p-0 text-destructive hover:text-destructive"
+                  onClick={() => addNewRow()}
+                  className="h-9 w-9 p-0"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Plus className="h-4 w-4" />
                 </Button>
-              )}
-            </div>
-           ))}
+                
+                {formRows.length > 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeRow(row.id, row.isNew)}
+                    disabled={loading}
+                    className="h-9 w-9 p-0 text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            );
+          })}
            
-           {/* Remaining Advance Display */}
-           <div className="border-t pt-3 mt-4">
-             <div className="text-sm text-muted-foreground mb-2">
-               Remaining advance: <CurrencyDisplay amount={originalAdvanceAmount} className="font-medium" displayMode="text-only" /> 
-               {totalNewAllocations > 0 && (
-                 <>
-                   {" - "}
-                   <CurrencyDisplay amount={totalNewAllocations} className="font-medium" displayMode="text-only" />
-                   {" = "}
-                   <CurrencyDisplay amount={remainingAdvance} className="font-medium" displayMode="text-only" />
-                 </>
-               )}
-             </div>
+            {/* Remaining Advance Display */}
+            <div className="border-t pt-3 mt-4">
+              <div className="text-sm text-muted-foreground mb-2">
+                Remaining advance: 
+                <CurrencyDisplay amount={originalAdvanceAmount} className="font-medium" displayMode="text-only" />
+                {totalNewAllocations > 0 && (
+                  <>
+                    {" - "}
+                    <CurrencyDisplay amount={totalNewAllocations} className="font-medium" displayMode="text-only" />
+                    {" = "}
+                    <CurrencyDisplay amount={remainingAdvance} className="font-medium" displayMode="text-only" />
+                  </>
+                )}
+              </div>
              
              {remainingAdvance < 0 && (
                <div className="text-sm text-destructive mb-2">

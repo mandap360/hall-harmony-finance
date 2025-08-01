@@ -192,7 +192,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] h-[70vh] flex flex-col">
+      <DialogContent className="sm:max-w-[500px] h-[80.5vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-primary">Edit Booking</DialogTitle>
         </DialogHeader>
