@@ -304,8 +304,6 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
 
   const handleRefund = async (paymentMethodId: string) => {
     setRefundLoading(true);
-    console.log('Starting refund process with payment method:', paymentMethodId);
-    console.log('Refund amount:', remainingAdvance);
     
     try {
       // Validation: Check if remaining advance is greater than 0
@@ -318,27 +316,18 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
         return;
       }
 
-      // Find refund category - be more specific in the search
+      // Find refund category
       const { data: categoriesData, error: categoriesError } = await supabase
         .from('income_categories')
         .select('id, name, parent_id');
 
-      if (categoriesError) {
-        console.error('Error fetching categories:', categoriesError);
-        throw categoriesError;
-      }
-
-      console.log('All categories:', categoriesData);
+      if (categoriesError) throw categoriesError;
 
       const secondaryIncomeParent = categoriesData?.find(cat => cat.name === 'Secondary Income' && !cat.parent_id);
-      console.log('Secondary Income parent:', secondaryIncomeParent);
-
       const refundCategory = categoriesData?.find(cat => 
         cat.parent_id === secondaryIncomeParent?.id && 
         cat.name.toLowerCase().includes('refund')
       );
-
-      console.log('Found refund category:', refundCategory);
 
       if (!refundCategory) {
         toast({
@@ -350,10 +339,40 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
       }
 
       const refundAmount = remainingAdvance;
-      console.log('Processing refund amount:', refundAmount);
+      const refundDescription = `${refundCategory.name} - ${secondaryIncomeParent?.name}`;
 
-      // Add entry to income table (negative amount)
-      console.log('Adding entry to income table...');
+      // 1) Add/Update entry in secondary_income table
+      const { data: existingRefund } = await supabase
+        .from('secondary_income')
+        .select('id, amount')
+        .eq('booking_id', booking.id)
+        .eq('category_id', refundCategory.id)
+        .maybeSingle();
+
+      if (existingRefund) {
+        // Update existing refund entry
+        const newAmount = Number(existingRefund.amount) + refundAmount;
+        const { error: updateRefundError } = await supabase
+          .from('secondary_income')
+          .update({ amount: newAmount })
+          .eq('id', existingRefund.id);
+
+        if (updateRefundError) throw updateRefundError;
+      } else {
+        // Create new refund entry
+        const { error: insertRefundError } = await supabase
+          .from('secondary_income')
+          .insert({
+            booking_id: booking.id,
+            amount: refundAmount,
+            category_id: refundCategory.id,
+            organization_id: booking.organization_id
+          });
+
+        if (insertRefundError) throw insertRefundError;
+      }
+
+      // 2) Add entry to income table (negative amount)
       const { error: incomeError } = await supabase
         .from('income')
         .insert({
@@ -363,77 +382,40 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
           organization_id: booking.organization_id,
           category_id: refundCategory.id,
           payment_mode: paymentMethodId,
-          description: `Refund - ${refundCategory.name}`
+          description: refundDescription
         });
 
-      if (incomeError) {
-        console.error('Error inserting income:', incomeError);
-        throw incomeError;
-      }
-      console.log('Income entry added successfully');
+      if (incomeError) throw incomeError;
 
-      // Add entry to transactions table (debit)
-      console.log('Adding entry to transactions table...');
-      try {
-        await addTransaction({
-          account_id: paymentMethodId,
-          transaction_type: 'debit' as 'debit',
-          amount: refundAmount,
-          description: `Refund for booking ${booking.event_name}`,
-          reference_type: 'booking',
-          reference_id: booking.id,
-          transaction_date: new Date().toISOString().split('T')[0]
-        });
-        console.log('Transaction entry added successfully');
-      } catch (transactionError) {
-        console.error('Error adding transaction:', transactionError);
-        throw transactionError;
-      }
+      // 3) Add entry to transactions table (debit)
+      await addTransaction({
+        account_id: paymentMethodId,
+        transaction_type: 'debit' as 'debit',
+        amount: refundAmount,
+        description: refundDescription,
+        reference_type: 'booking',
+        reference_id: booking.id,
+        transaction_date: new Date().toISOString().split('T')[0]
+      });
 
-      // Add entry to secondary_income table
-      console.log('Adding entry to secondary_income table...');
-      const { error: secondaryIncomeError } = await supabase
-        .from('secondary_income')
-        .insert({
-          booking_id: booking.id,
-          amount: refundAmount,
-          category_id: refundCategory.id,
-          organization_id: booking.organization_id
-        });
-
-      if (secondaryIncomeError) {
-        console.error('Error inserting secondary income:', secondaryIncomeError);
-        throw secondaryIncomeError;
-      }
-      console.log('Secondary income entry added successfully');
-
-      // Update advance amount to 0
-      console.log('Updating advance amount to 0...');
+      // Update advance amount by reducing the refund amount
       const advanceCategory = categories.find(cat => cat.name === 'Advance');
       if (advanceCategory) {
-        const { data: existingAdvance, error: fetchAdvanceError } = await supabase
+        const { data: existingAdvance } = await supabase
           .from('secondary_income')
-          .select('id')
+          .select('id, amount')
           .eq('booking_id', booking.id)
           .eq('category_id', advanceCategory.id)
           .maybeSingle();
 
-        if (fetchAdvanceError) {
-          console.error('Error fetching existing advance:', fetchAdvanceError);
-          throw fetchAdvanceError;
-        }
-
         if (existingAdvance) {
+          const newAdvanceAmount = Number(existingAdvance.amount) - refundAmount;
           const { error: advanceUpdateError } = await supabase
             .from('secondary_income')
-            .update({ amount: 0 })
+            .update({ amount: newAdvanceAmount })
             .eq('id', existingAdvance.id);
 
-          if (advanceUpdateError) {
-            console.error('Error updating advance:', advanceUpdateError);
-            throw advanceUpdateError;
-          }
-          console.log('Advance amount updated to 0 successfully');
+          if (advanceUpdateError) throw advanceUpdateError;
         }
       }
 
@@ -444,7 +426,6 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
 
       setRefundDialogOpen(false);
       await fetchData();
-      console.log('Refund process completed successfully');
     } catch (error) {
       console.error('Error processing refund:', error);
       toast({
