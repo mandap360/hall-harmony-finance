@@ -252,38 +252,34 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
         if (updateError) throw updateError;
       }
 
-      // Update Advance amount in secondary_income table only if there are new allocations
-      if (newRows.length > 0) {
-        const advanceCategory = categories.find(cat => cat.name === 'Advance');
-        if (advanceCategory) {
-          const { data: existingAdvance } = await supabase
+      // Update Advance amount to the remaining advance displayed in UI
+      const advanceCategory = categories.find(cat => cat.name === 'Advance');
+      if (advanceCategory) {
+        const { data: existingAdvance } = await supabase
+          .from('secondary_income')
+          .select('id')
+          .eq('booking_id', booking.id)
+          .eq('category_id', advanceCategory.id)
+          .maybeSingle();
+
+        if (existingAdvance) {
+          const { error: advanceUpdateError } = await supabase
             .from('secondary_income')
-            .select('id')
-            .eq('booking_id', booking.id)
-            .eq('category_id', advanceCategory.id)
-            .maybeSingle();
+            .update({ amount: remainingAdvance })
+            .eq('id', existingAdvance.id);
 
-          const newAdvanceAmount = remainingAdvance - totalNewAllocations;
+          if (advanceUpdateError) throw advanceUpdateError;
+        } else if (remainingAdvance > 0) {
+          const { error: advanceInsertError } = await supabase
+            .from('secondary_income')
+            .insert({
+              booking_id: booking.id,
+              amount: remainingAdvance,
+              category_id: advanceCategory.id,
+              organization_id: booking.organization_id
+            });
 
-          if (existingAdvance) {
-            const { error: advanceUpdateError } = await supabase
-              .from('secondary_income')
-              .update({ amount: newAdvanceAmount })
-              .eq('id', existingAdvance.id);
-
-            if (advanceUpdateError) throw advanceUpdateError;
-          } else if (newAdvanceAmount > 0) {
-            const { error: advanceInsertError } = await supabase
-              .from('secondary_income')
-              .insert({
-                booking_id: booking.id,
-                amount: newAdvanceAmount,
-                category_id: advanceCategory.id,
-                organization_id: booking.organization_id
-              });
-
-            if (advanceInsertError) throw advanceInsertError;
-          }
+          if (advanceInsertError) throw advanceInsertError;
         }
       }
 
@@ -306,16 +302,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
     }
   };
 
-  const handleRefund = async () => {
-    if (!selectedPaymentMethod) {
-      toast({
-        title: "Payment Method Required",
-        description: "Please select a payment method for the refund",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleRefund = async (paymentMethodId: string) => {
     setRefundLoading(true);
     try {
       // Find refund category
@@ -349,7 +336,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
           payment_date: new Date().toISOString().split('T')[0],
           organization_id: booking.organization_id,
           category_id: refundCategory.id,
-          payment_mode: selectedPaymentMethod,
+          payment_mode: paymentMethodId,
           description: `Refund - ${refundCategory.name}`
         });
 
@@ -357,7 +344,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
 
       // Add entry to transactions table (debit)
       await addTransaction({
-        account_id: selectedPaymentMethod,
+        account_id: paymentMethodId,
         transaction_type: 'debit',
         amount: refundAmount,
         description: `Refund for booking ${booking.event_name}`,
@@ -404,7 +391,6 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
       });
 
       setRefundDialogOpen(false);
-      setSelectedPaymentMethod('');
       await fetchData();
     } catch (error) {
       console.error('Error processing refund:', error);
@@ -427,6 +413,11 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
   }, 0);
   
   const remainingAdvance = originalAdvanceAmount - totalNewAllocations;
+
+  // Check if there are only existing rows (no new valid rows)
+  const hasNewValidRows = formRows.some(row => 
+    row.isNew && row.categoryId && row.amount && Number(row.amount) > 0
+  );
 
   // Get secondary income subcategories (excluding Advance and Refund)
   const secondaryIncomeParent = categories.find(cat => cat.name === 'Secondary Income' && !cat.parent_id);
@@ -521,19 +512,20 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-between gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
           <DialogTrigger asChild>
             <Button 
-              variant="secondary" 
-              disabled={remainingAdvance <= 0}
+              variant="destructive"
+              disabled={remainingAdvance <= 0 || refundLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Refund
+              {refundLoading ? "Processing..." : "Refund"}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Process Refund</DialogTitle>
+              <DialogTitle>Select Payment Method</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -543,34 +535,25 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium">Payment Method</label>
-                <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select payment method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {operationalAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setRefundDialogOpen(false)}
-                  disabled={refundLoading}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleRefund}
-                  disabled={refundLoading || !selectedPaymentMethod}
-                >
-                  {refundLoading ? "Processing..." : "Process Refund"}
-                </Button>
+                <label className="text-sm font-medium mb-3 block">Select Account</label>
+                <div className="space-y-2">
+                  {operationalAccounts.map((account) => (
+                    <div
+                      key={account.id}
+                      className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-muted"
+                      onClick={() => handleRefund(account.id)}
+                    >
+                      <input
+                        type="radio"
+                        name="payment-method"
+                        value={account.id}
+                        className="cursor-pointer"
+                        readOnly
+                      />
+                      <label className="cursor-pointer flex-1">{account.name}</label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </DialogContent>
@@ -578,7 +561,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
 
         <Button 
           onClick={handleSave} 
-          disabled={loading || formRows.every(row => !row.categoryId || !row.amount) || remainingAdvance < 0}
+          disabled={loading || !hasNewValidRows || remainingAdvance < 0}
         >
           {loading ? "Saving..." : "Save"}
         </Button>
