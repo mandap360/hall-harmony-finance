@@ -230,6 +230,34 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
           .insert(insertData);
 
         if (insertError) throw insertError;
+
+        // For refund allocations, also add negative income entry
+        const refundRows = newRows.filter(row => {
+          const category = categories.find(cat => cat.id === row.categoryId);
+          return category?.name.toLowerCase().includes('refund');
+        });
+
+        if (refundRows.length > 0) {
+          const incomeEntries = refundRows.map(row => {
+            const category = categories.find(cat => cat.id === row.categoryId);
+            const parentCategory = categories.find(cat => cat.id === category?.parent_id);
+            
+            return {
+              booking_id: booking.id,
+              amount: -Number(row.amount), // Negative amount for refund
+              payment_date: new Date().toISOString().split('T')[0],
+              organization_id: booking.organization_id,
+              category_id: row.categoryId,
+              description: `${category?.name} - ${parentCategory?.name}`
+            };
+          });
+
+          const { error: incomeError } = await supabase
+            .from('income')
+            .insert(incomeEntries);
+
+          if (incomeError) throw incomeError;
+        }
       }
 
       // Process existing rows (update)

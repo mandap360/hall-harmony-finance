@@ -104,9 +104,6 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
             <div className="flex-1 space-y-4">
               {selectedVendor && vendorPayables[selectedVendor] ? (
                 <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Bills for {selectedVendor}
-                  </h3>
                   {vendorPayables[selectedVendor].expenses.map((expense) => (
                     <Card key={expense.id} className="p-4">
                       <div className="space-y-2">
