@@ -36,11 +36,14 @@ export const PaymentHistoryCard = ({ payments }: PaymentHistoryCardProps) => {
   }
 
 
+  // Sort payments by date (latest first)
+  const sortedPayments = [...payments].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
   return (
     <Card className="p-4 border-amber-200">
       <h3 className="font-semibold mb-3 text-amber-800">Payment History</h3>
       <div className="space-y-2">
-        {payments.map((payment) => (
+        {sortedPayments.map((payment) => (
           <div key={payment.id} className="flex justify-between items-center p-2 bg-amber-50 rounded border border-amber-100">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">

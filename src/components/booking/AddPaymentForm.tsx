@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
+import { Loader2 } from "lucide-react";
 
 interface AddPaymentFormProps {
   onAddPayment: (payment: { 
@@ -16,7 +17,7 @@ interface AddPaymentFormProps {
     categoryId: string; 
     description: string; 
     accountId: string; 
-  }) => void;
+  }) => Promise<void>;
 }
 
 export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
@@ -25,6 +26,7 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
   const [categoryId, setCategoryId] = useState("");
   const [accountId, setAccountId] = useState("");
   const [description, setDescription] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   
   const { accounts } = useAccounts();
   const { getIncomeCategories } = useCategories();
@@ -38,23 +40,30 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
     cat.parent_id === secondaryIncomeCategory?.id && cat.name === "Advance"
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !date || !accountId || !categoryId) return;
 
-    // Keep Secondary Income selection as is - the EditBookingDialog will handle the logic
-    let finalCategoryId = categoryId;
+    setIsLoading(true);
+    try {
+      // Keep Secondary Income selection as is - the EditBookingDialog will handle the logic
+      let finalCategoryId = categoryId;
 
-    onAddPayment({
-      amount,
-      date,
-      categoryId: finalCategoryId,
-      description,
-      accountId
-    });
+      await onAddPayment({
+        amount,
+        date,
+        categoryId: finalCategoryId,
+        description,
+        accountId
+      });
 
-    setAmount("");
-    setDescription("");
+      setAmount("");
+      setDescription("");
+    } catch (error) {
+      console.error('Error adding payment:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -132,8 +141,15 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
             />
           </div>
 
-          <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700">
-            Add Payment
+          <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Adding Payment...
+              </>
+            ) : (
+              "Add Payment"
+            )}
           </Button>
         </form>
       </CardContent>

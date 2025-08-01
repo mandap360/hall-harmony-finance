@@ -142,9 +142,13 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
       // Delete from database if it's an existing allocation and add amount back to advance
       setLoading(true);
       try {
-        // Get the amount being deleted
+        // Get the amount being deleted and check if it's a refund category
         const rowToDelete = formRows.find(row => row.id === id);
         const deletedAmount = Number(rowToDelete?.amount || 0);
+        const deletedCategory = categories.find(cat => cat.id === rowToDelete?.categoryId);
+        
+        // Check if this is a refund category
+        const isRefundCategory = deletedCategory?.name.toLowerCase().includes('refund');
 
         // Delete the allocation
         const { error } = await supabase
@@ -153,6 +157,20 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
           .eq('id', id);
 
         if (error) throw error;
+
+        // If it's a refund category, also delete the corresponding negative income entry
+        if (isRefundCategory) {
+          const { error: incomeDeleteError } = await supabase
+            .from('income')
+            .delete()
+            .eq('booking_id', booking.id)
+            .eq('category_id', rowToDelete?.categoryId)
+            .eq('amount', -deletedAmount);
+
+          if (incomeDeleteError) {
+            console.error('Error deleting income entry:', incomeDeleteError);
+          }
+        }
 
         // Update advance amount by adding back the deleted amount
         const advanceCategory = categories.find(cat => cat.name === 'Advance');

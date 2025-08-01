@@ -54,6 +54,12 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
   const { refreshAccounts } = useAccounts();
   const { refetch: refreshBookings, bookings } = useBookings();
 
+  // Refresh data when tab changes
+  const handleTabChange = async (tab: string) => {
+    setActiveTab(tab);
+    await refreshBookings();
+  };
+
   // Update current booking when initial booking changes or when bookings are refreshed
   useEffect(() => {
     if (initialBooking) {
@@ -185,7 +191,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-primary">Edit Booking</DialogTitle>
         </DialogHeader>
@@ -193,7 +199,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
         {/* Tabs */}
         <div className="flex space-x-1 border-b border-border">
           <button
-            onClick={() => setActiveTab("details")}
+            onClick={() => handleTabChange("details")}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               activeTab === "details"
                 ? "text-primary border-b-2 border-primary bg-primary/5"
@@ -203,7 +209,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
             Details
           </button>
           <button
-            onClick={() => setActiveTab("payments")}
+            onClick={() => handleTabChange("payments")}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               activeTab === "payments"
                 ? "text-primary border-b-2 border-primary bg-primary/5"
@@ -213,7 +219,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
             Payments
           </button>
           <button
-            onClick={() => setActiveTab("secondary-income")}
+            onClick={() => handleTabChange("secondary-income")}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               activeTab === "secondary-income"
                 ? "text-primary border-b-2 border-primary bg-primary/5"

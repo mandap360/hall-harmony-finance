@@ -10,7 +10,7 @@ interface PaymentsTabProps {
     categoryId: string; 
     description: string; 
     accountId: string; 
-  }) => void;
+  }) => Promise<void>;
 }
 
 export const PaymentsTab = ({ booking, onAddPayment }: PaymentsTabProps) => {
