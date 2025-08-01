@@ -407,13 +407,13 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
       }
       console.log('Secondary income entry added successfully');
 
-      // Update advance amount to 0
-      console.log('Updating advance amount to 0...');
+      // Update advance amount by deducting refund amount
+      console.log('Updating advance amount by deducting refund amount...');
       const advanceCategory = categories.find(cat => cat.name === 'Advance');
       if (advanceCategory) {
         const { data: existingAdvance, error: fetchAdvanceError } = await supabase
           .from('secondary_income')
-          .select('id')
+          .select('id, amount')
           .eq('booking_id', booking.id)
           .eq('category_id', advanceCategory.id)
           .maybeSingle();
@@ -424,16 +424,20 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
         }
 
         if (existingAdvance) {
+          const newAdvanceAmount = Number(existingAdvance.amount) - refundAmount;
           const { error: advanceUpdateError } = await supabase
             .from('secondary_income')
-            .update({ amount: 0 })
+            .update({ amount: newAdvanceAmount })
             .eq('id', existingAdvance.id);
 
           if (advanceUpdateError) {
             console.error('Error updating advance:', advanceUpdateError);
             throw advanceUpdateError;
           }
-          console.log('Advance amount updated to 0 successfully');
+          console.log('Advance amount updated successfully, new amount:', newAdvanceAmount);
+          
+          // Update local state to reflect the change
+          setOriginalAdvanceAmount(newAdvanceAmount);
         }
       }
 
