@@ -350,8 +350,8 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
         .maybeSingle();
 
       if (existingRefund) {
-        // Update existing refund entry
-        const newAmount = Number(existingRefund.amount) + refundAmount;
+        // Update existing refund entry with negative amount
+        const newAmount = Number(existingRefund.amount) - refundAmount;
         const { error: updateRefundError } = await supabase
           .from('secondary_income')
           .update({ amount: newAmount })
@@ -359,12 +359,12 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
 
         if (updateRefundError) throw updateRefundError;
       } else {
-        // Create new refund entry
+        // Create new refund entry with negative amount
         const { error: insertRefundError } = await supabase
           .from('secondary_income')
           .insert({
             booking_id: booking.id,
-            amount: refundAmount,
+            amount: -refundAmount,
             category_id: refundCategory.id,
             organization_id: booking.organization_id
           });
