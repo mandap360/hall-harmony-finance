@@ -84,15 +84,13 @@ export const useBookings = () => {
         }
       }
 
-      // Get income categories to identify "Advance" and "Refund" categories
+      // Get all income categories to identify secondary income categories and subcategories
       const { data: incomeCategories } = await supabase
         .from('income_categories')
-        .select('id, name, parent_id')
-        .in('name', ['Secondary Income', 'Advance', 'Refund']);
+        .select('id, name, parent_id');
 
       const secondaryIncomeCategory = incomeCategories?.find(cat => cat.name === 'Secondary Income');
-      const advanceCategory = incomeCategories?.find(cat => cat.name === 'Advance');
-      const refundCategory = incomeCategories?.find(cat => cat.name === 'Refund');
+      const secondaryIncomeSubcategories = incomeCategories?.filter(cat => cat.parent_id === secondaryIncomeCategory?.id) || [];
 
       // Transform the data to match the expected format
       const transformedBookings: Booking[] = (bookingsData || []).map(booking => {
@@ -103,16 +101,12 @@ export const useBookings = () => {
         const refundPayments = bookingPayments.filter(payment => payment.amount < 0);
         const totalRefunded = Math.abs(refundPayments.reduce((total, payment) => total + payment.amount, 0));
         
-        // Calculate net secondary income: Secondary Income payments - Refund payments (only from income table)
-        const secondaryIncomeAmount = bookingPayments
-          .filter(payment => payment.category_id === secondaryIncomeCategory?.id)
-          .reduce((total, payment) => total + payment.amount, 0);
-          
-        const refundAmount = bookingPayments
-          .filter(payment => payment.category_id === refundCategory?.id)
-          .reduce((total, payment) => total + Math.abs(payment.amount), 0);
+        // Calculate net secondary income: Sum all payments from income table with Secondary Income category or its subcategories
+        const secondaryIncomeCategoryIds = [secondaryIncomeCategory?.id, ...secondaryIncomeSubcategories.map(cat => cat.id)].filter(Boolean);
         
-        const secondaryIncomeNet = secondaryIncomeAmount - refundAmount;
+        const secondaryIncomeNet = bookingPayments
+          .filter(payment => secondaryIncomeCategoryIds.includes(payment.category_id))
+          .reduce((total, payment) => total + payment.amount, 0);
         
         return {
           id: booking.id,

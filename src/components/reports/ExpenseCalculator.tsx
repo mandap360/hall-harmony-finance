@@ -10,19 +10,24 @@ export const calculateExpenseData = async (expenses: any[]) => {
     isInCurrentFY(expense.date, currentFY) && !expense.isDeleted
   );
 
-  // Calculate total expenses (only from expenses table, no refunds)
+  // Calculate total expenses (only paid expenses from expenses table)
   const totalExpenses = currentFYExpenses.reduce((sum, expense) => {
-    return sum + Number(expense.totalAmount || expense.amount);
+    if (expense.isPaid) {
+      return sum + Number(expense.totalAmount || expense.amount);
+    }
+    return sum;
   }, 0);
 
   // Group expenses by category for breakdown
   const expensesByCategory: Record<string, number> = {};
   
   currentFYExpenses.forEach((expense) => {
-    // Properly access category name from the expense object structure
-    const categoryName = expense.category || 'Uncategorized';
-    const amount = Number(expense.totalAmount || expense.amount);
-    expensesByCategory[categoryName] = (expensesByCategory[categoryName] || 0) + amount;
+    // Only include paid expenses in category breakdown
+    if (expense.isPaid) {
+      const categoryName = expense.category || 'Uncategorized';
+      const amount = Number(expense.totalAmount || expense.amount);
+      expensesByCategory[categoryName] = (expensesByCategory[categoryName] || 0) + amount;
+    }
   });
 
   // Calculate total payables (unpaid bills)
