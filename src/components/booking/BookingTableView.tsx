@@ -129,7 +129,15 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                 <div className="flex items-center space-x-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <span className="text-foreground">
-                    {format(startDate, "h:mm a")} - {format(endDate, "h:mm a")}
+                    {new Date(booking.startDate).toLocaleTimeString('en-US', { 
+                      hour: 'numeric', 
+                      minute: '2-digit', 
+                      hour12: true 
+                    })} - {new Date(booking.endDate).toLocaleTimeString('en-US', { 
+                      hour: 'numeric', 
+                      minute: '2-digit', 
+                      hour12: true 
+                    })}
                   </span>
                 </div>
               </div>

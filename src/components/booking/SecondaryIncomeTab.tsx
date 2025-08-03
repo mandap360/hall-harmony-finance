@@ -34,6 +34,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
   const [originalAdvanceAmount, setOriginalAdvanceAmount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [isRefundSelected, setIsRefundSelected] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { accounts } = useAccounts();
@@ -273,10 +274,8 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
 
       // Process refund if checkbox is selected and there's remaining advance
       if (isRefundSelected && remainingAdvance > 0) {
-        // Use the first operational account as default for refund
-        const defaultAccount = operationalAccounts[0];
-        if (defaultAccount) {
-          await handleRefund(defaultAccount.id);
+        if (selectedPaymentMethod) {
+          await handleRefund(selectedPaymentMethod);
         }
       }
 
@@ -538,13 +537,9 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
 
       {/* Remaining Advance and Refund Checkbox */}
       <div className="mb-4 p-4 bg-muted/50 rounded-lg">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-2">
           <span className="text-sm font-medium">
-            Remaining Advance: 
-            <span className={`ml-2 text-lg font-bold ${remainingAdvance < 0 ? 'text-red-600' : 'text-green-600'}`}>
-              <CurrencyDisplay amount={remainingAdvance} />
-              {remainingAdvance < 0 && ' (Excess)'}
-            </span>
+            Remaining Advance:
           </span>
           <div className="flex items-center gap-2">
             <input
@@ -559,6 +554,31 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
               Refund
             </label>
           </div>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className={`text-lg font-bold ${remainingAdvance < 0 ? 'text-red-600' : 'text-green-600'}`}>
+            <CurrencyDisplay amount={remainingAdvance} />
+            {remainingAdvance < 0 && ' (Excess)'}
+          </span>
+          {isRefundSelected && (
+            <div className="w-48">
+              <Select 
+                value={selectedPaymentMethod} 
+                onValueChange={setSelectedPaymentMethod}
+              >
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="Payment Method" />
+                </SelectTrigger>
+                <SelectContent className="max-h-48 overflow-y-auto">
+                  {operationalAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       </div>
 
