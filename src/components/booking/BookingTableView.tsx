@@ -120,13 +120,16 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                   <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <span className="text-foreground">
                     {format(startDate, "dd MMM yyyy")}
+                    {format(startDate, "dd MMM yyyy") !== format(endDate, "dd MMM yyyy") && 
+                      ` - ${format(endDate, "dd MMM yyyy")}`
+                    }
                   </span>
                 </div>
                 
                 <div className="flex items-center space-x-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <span className="text-foreground">
-                    {booking.startDate.split('T')[1]?.substring(0, 5) || '00:00'} - {booking.endDate.split('T')[1]?.substring(0, 5) || '00:00'}
+                    {format(startDate, "h:mm a")} - {format(endDate, "h:mm a")}
                   </span>
                 </div>
               </div>

@@ -33,9 +33,8 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
   const [formRows, setFormRows] = useState<FormRow[]>([]);
   const [originalAdvanceAmount, setOriginalAdvanceAmount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
-  const [refundLoading, setRefundLoading] = useState(false);
+  const [isRefundSelected, setIsRefundSelected] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { accounts } = useAccounts();
   const { addTransaction } = useTransactions();
@@ -205,24 +204,13 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
   };
 
   const handleSave = async () => {
-    setLoading(true);
+    setIsSaving(true);
     try {
       // Validate rows
       const validRows = formRows.filter(row => {
         return row.categoryId && row.amount && Number(row.amount) > 0;
       });
       
-      // Check if new allocations don't exceed remaining advance amount
-      const newValidRows = validRows.filter(row => row.isNew);
-      const totalNewAllocations = newValidRows.reduce((sum, row) => sum + Number(row.amount), 0);
-      if (totalNewAllocations > remainingAdvance) {
-        toast({
-          title: "Invalid Amount",
-          description: "New allocations exceed available advance amount",
-          variant: "destructive",
-        });
-        return;
-      }
 
       // Process new rows (insert)
       const newRows = validRows.filter(row => row.isNew);
@@ -283,11 +271,29 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
         }
       }
 
+      // Process refund if checkbox is selected and there's remaining advance
+      if (isRefundSelected && remainingAdvance > 0) {
+        // Use the first operational account as default for refund
+        const defaultAccount = operationalAccounts[0];
+        if (defaultAccount) {
+          await handleRefund(defaultAccount.id);
+        }
+      }
+
       toast({
         title: "Success",
         description: "Allocations saved successfully",
       });
 
+      // Reset form
+      setFormRows([{
+        id: 'new-' + Date.now(),
+        categoryId: '',
+        amount: '',
+        isNew: true
+      }]);
+      setIsRefundSelected(false);
+      
       // Refresh data
       await fetchData();
     } catch (error) {
@@ -298,12 +304,11 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
   const handleRefund = async (paymentMethodId: string) => {
-    setRefundLoading(true);
     
     try {
       // Validation: Check if remaining advance is greater than 0
@@ -424,7 +429,6 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
         description: "Refund processed successfully",
       });
 
-      setRefundDialogOpen(false);
       await fetchData();
     } catch (error) {
       console.error('Error processing refund:', error);
@@ -433,8 +437,6 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
         description: `Failed to process refund: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
-    } finally {
-      setRefundLoading(false);
     }
   };
 
@@ -470,17 +472,6 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
 
   return (
     <div className="space-y-4">
-      {/* Remaining Advance Card */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="text-sm font-medium text-muted-foreground mb-1">
-            Remaining Advance
-          </div>
-          <div className="text-2xl font-bold">
-            <CurrencyDisplay amount={remainingAdvance} />
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Allocation Form */}
       <div className="space-y-3">
@@ -545,59 +536,40 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
         ))}
       </div>
 
-      {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-2">
-        <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
-          <DialogTrigger asChild>
-            <Button 
-              variant="destructive"
-              disabled={remainingAdvance <= 0 || refundLoading}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {refundLoading ? "Processing..." : "Refund"}
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Select Payment Method</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Refund Amount</label>
-                <div className="text-lg font-semibold">
-                  <CurrencyDisplay amount={remainingAdvance} />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-3 block">Select Account</label>
-                <div className="space-y-2">
-                  {operationalAccounts.map((account) => (
-                    <div
-                      key={account.id}
-                      className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-muted"
-                      onClick={() => handleRefund(account.id)}
-                    >
-                      <input
-                        type="radio"
-                        name="payment-method"
-                        value={account.id}
-                        className="cursor-pointer"
-                        readOnly
-                      />
-                      <label className="cursor-pointer flex-1">{account.name}</label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+      {/* Remaining Advance and Refund Checkbox */}
+      <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium">
+            Remaining Advance: 
+            <span className={`ml-2 text-lg font-bold ${remainingAdvance < 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <CurrencyDisplay amount={remainingAdvance} />
+              {remainingAdvance < 0 && ' (Excess)'}
+            </span>
+          </span>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="refund-checkbox"
+              checked={isRefundSelected}
+              onChange={(e) => setIsRefundSelected(e.target.checked)}
+              className="w-4 h-4 accent-red-600"
+              disabled={remainingAdvance <= 0}
+            />
+            <label htmlFor="refund-checkbox" className="text-sm font-medium text-red-600">
+              Refund
+            </label>
+          </div>
+        </div>
+      </div>
 
+      {/* Save Button */}
+      <div className="flex justify-end">
         <Button 
           onClick={handleSave} 
-          disabled={loading || !hasNewValidRows || remainingAdvance < 0}
+          disabled={isSaving}
+          className="min-w-24"
         >
-          {loading ? "Saving..." : "Save"}
+          {isSaving ? "Saving..." : "Save"}
         </Button>
       </div>
     </div>
