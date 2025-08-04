@@ -13,13 +13,14 @@ interface ReceivablesViewProps {
 export const ReceivablesView = ({ onBack }: ReceivablesViewProps) => {
   const { bookings } = useBookings();
 
-  // Filter bookings for current financial year where rent is pending
+  // Filter bookings for current financial year where rent is pending (excluding cancelled bookings)
   const pendingRentBookings = bookings.filter(booking => {
     const bookingDate = new Date(booking.startDate);
     const isInCurrentFY = financialUtils.isInCurrentFinancialYear(bookingDate);
     const hasPendingRent = booking.rentFinalized > booking.rentReceived;
+    const isNotCancelled = booking.status !== 'cancelled';
     
-    return isInCurrentFY && hasPendingRent;
+    return isInCurrentFY && hasPendingRent && isNotCancelled;
   });
 
   const totalReceivables = pendingRentBookings.reduce(

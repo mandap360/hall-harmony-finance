@@ -129,15 +129,22 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                 <div className="flex items-center space-x-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <span className="text-foreground">
-                    {new Date(booking.startDate).toLocaleTimeString('en-US', { 
-                      hour: 'numeric', 
-                      minute: '2-digit', 
-                      hour12: true 
-                    })} - {new Date(booking.endDate).toLocaleTimeString('en-US', { 
-                      hour: 'numeric', 
-                      minute: '2-digit', 
-                      hour12: true 
-                    })}
+                    {(() => {
+                      // Extract time directly from the datetime string to avoid timezone conversion
+                      const startTime = booking.startDate.split('T')[1]?.substring(0, 5) || '00:00';
+                      const endTime = booking.endDate.split('T')[1]?.substring(0, 5) || '00:00';
+                      
+                      // Convert to 12-hour format
+                      const formatTo12Hour = (time: string) => {
+                        const [hours, minutes] = time.split(':');
+                        const hour = parseInt(hours);
+                        const period = hour >= 12 ? 'PM' : 'AM';
+                        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                        return `${displayHour}:${minutes} ${period}`;
+                      };
+                      
+                      return `${formatTo12Hour(startTime)} - ${formatTo12Hour(endTime)}`;
+                    })()}
                   </span>
                 </div>
               </div>

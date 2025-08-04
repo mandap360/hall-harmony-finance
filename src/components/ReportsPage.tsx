@@ -154,7 +154,13 @@ export const ReportsPage = () => {
         <DashboardSummaryCards
           totalIncome={incomeData.totalIncome}
           totalExpenses={expenseData.totalExpenses}
-          totalReceivables={0}
+          totalReceivables={bookings
+            .filter(booking => booking.status !== 'cancelled')
+            .reduce((sum, booking) => {
+              const pendingRent = booking.rentFinalized - booking.rentReceived;
+              return pendingRent > 0 ? sum + pendingRent : sum;
+            }, 0)
+          }
           totalPayables={expenseData.totalPayables}
           onReceivablesClick={() => setCurrentView("receivables")}
           onPayablesClick={() => setCurrentView("payables")}

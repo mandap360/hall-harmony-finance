@@ -343,7 +343,21 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
       }
 
       const refundAmount = remainingAdvance;
-      const refundDescription = `${refundCategory.name} - ${secondaryIncomeParent?.name}`;
+      
+      // Format booking dates for description
+      const startDate = new Date(booking.start_datetime).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+      const endDate = new Date(booking.end_datetime).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+      
+      const dateRange = startDate === endDate ? `for ${startDate}` : `for ${startDate} - ${endDate}`;
+      const refundDescription = `${refundCategory.name} - ${secondaryIncomeParent?.name} ${dateRange}`;
 
       // 1) Add/Update entry in secondary_income table
       const { data: existingRefund } = await supabase
