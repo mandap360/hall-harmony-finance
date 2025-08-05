@@ -19,6 +19,7 @@ import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 
 import { useAccounts } from "@/hooks/useAccounts";
+import { useIncome } from "@/hooks/useIncome";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, startOfYear, endOfYear, addYears, subYears, addMonths, subMonths } from "date-fns";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
@@ -36,9 +37,9 @@ const COLORS = {
   other: '#78909c'
 };
 
-const MAIN_TABS = [
-  { id: 'income', label: 'Income' },
-  { id: 'expense', label: 'Expense' }
+const MAIN_TABS = [  
+  { id: 'expense', label: 'Expense' },
+  { id: 'income', label: 'Income' }
 ];
 
 const PERIOD_OPTIONS = [
@@ -49,7 +50,7 @@ const PERIOD_OPTIONS = [
 ];
 
 export const TransactionsPage = () => {
-  const [activeTab, setActiveTab] = useState('income');
+  const [activeTab, setActiveTab] = useState('expense');
   const [periodType, setPeriodType] = useState('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showFilters, setShowFilters] = useState(false);
