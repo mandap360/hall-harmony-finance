@@ -34,22 +34,29 @@ export const BookingsPage = () => {
   const filteredBookings = useMemo(() => {
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
-    
+
     return bookings.filter(booking => {
       // Search filter
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = !searchTerm || 
-        booking.eventName.toLowerCase().includes(searchLower) ||
-        booking.clientName.toLowerCase().includes(searchLower) ||
-        (booking.phoneNumber && booking.phoneNumber.toLowerCase().includes(searchLower));
+          booking.eventName.toLowerCase().includes(searchLower) ||
+          booking.clientName.toLowerCase().includes(searchLower) ||
+          (booking.phoneNumber && booking.phoneNumber.toLowerCase().includes(searchLower));
 
-      // Month filter
-      const bookingDate = new Date(booking.startDate);
-      const matchesMonth = bookingDate.getMonth() === currentMonth && 
-                          bookingDate.getFullYear() === currentYear;
+        // Extract date part only for proper month filtering
+        const bookingDateParts = booking.startDate.split("T")[0].split("-");
+        const bookingMonth = parseInt(bookingDateParts[1], 10) - 1;
+        const bookingYear = parseInt(bookingDateParts[0], 10);
 
-      return matchesSearch && matchesMonth;
-    }).sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+        const matchesMonth =
+          bookingMonth === currentMonth && bookingYear === currentYear;
+
+        return matchesSearch && matchesMonth;
+      })
+      .sort(
+        (a, b) =>
+          a.startDate.localeCompare(b.startDate)
+      );
   }, [bookings, searchTerm, currentDate]);
 
   const handleEditBooking = (booking) => {

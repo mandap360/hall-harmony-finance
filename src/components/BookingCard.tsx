@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { format, parseISO } from "date-fns";
 
 interface BookingCardProps {
   booking: any;
@@ -14,38 +15,18 @@ interface BookingCardProps {
 }
 
 export const BookingCard = ({ booking, onEdit, onCancel, onProcessRefund }: BookingCardProps) => {
-  const formatDate = (dateString: string) => {
-    // Create date object from the ISO string but treat it as local time
-    const dateParts = dateString.replace('T', ' ').replace('Z', '').split(/[-\s:]/);
-    const date = new Date(
-      parseInt(dateParts[0]), 
-      parseInt(dateParts[1]) - 1, 
-      parseInt(dateParts[2]), 
-      parseInt(dateParts[3] || '0'), 
-      parseInt(dateParts[4] || '0')
-    );
-    return date.toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+    const formatDate = (dateString: string) => {
+    const datePart = dateString.split("T")[0];
+    return format(parseISO(datePart), "dd MMM yyyy");
   };
 
   const formatTime = (dateString: string) => {
-    // Create date object from the ISO string but treat it as local time
-    const dateParts = dateString.replace('T', ' ').replace('Z', '').split(/[-\s:]/);
-    const date = new Date(
-      parseInt(dateParts[0]), 
-      parseInt(dateParts[1]) - 1, 
-      parseInt(dateParts[2]), 
-      parseInt(dateParts[3] || '0'), 
-      parseInt(dateParts[4] || '0')
-    );
-    return date.toLocaleTimeString('en-IN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
+  const timePart = dateString.split("T")[1]?.substring(0, 5) || "00:00";
+  const [hours, minutes] = timePart.split(":");
+  const hour = parseInt(hours, 10);
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${displayHour}:${minutes} ${period}`;
   };
 
   const formatTimeRange = (startDate: string, endDate: string) => {

@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Eye, Edit, Calendar, User, Clock, Phone, X, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,13 +12,22 @@ interface BookingTableViewProps {
   onProcessRefund?: (booking: any) => void;
 }
 
-export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onProcessRefund }: BookingTableViewProps) => {
+export const BookingTableView = ({
+  bookings,
+  onEditBooking,
+  onCancelBooking,
+  onProcessRefund,
+}: BookingTableViewProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'confirmed': return 'bg-blue-500 text-white';
-      case 'pending': return 'bg-yellow-500 text-white';
-      case 'cancelled': return 'bg-red-500 text-white';
-      default: return 'bg-blue-500 text-white';
+      case "confirmed":
+        return "bg-blue-500 text-white";
+      case "pending":
+        return "bg-yellow-500 text-white";
+      case "cancelled":
+        return "bg-red-500 text-white";
+      default:
+        return "bg-blue-500 text-white";
     }
   };
 
@@ -33,7 +42,8 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
 
   const canCancelBooking = (booking: any) => {
     const now = new Date();
-    const startDate = new Date(booking.start_datetime || booking.startDate);
+    // Always parse only the date part so no timezone shift occurs!
+    const startDate = parseISO(booking.startDate.split("T")[0]);
     return startDate >= now && booking.status !== 'cancelled';
   };
 
@@ -52,9 +62,10 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {bookings.map((booking) => {
-        const startDate = new Date(booking.startDate);
-        const endDate = new Date(booking.endDate);
-        
+        // Always parse ONLY the date part for display!
+        const startDate = parseISO(booking.startDate.split("T")[0]);
+        const endDate = parseISO(booking.endDate.split("T")[0]);
+
         return (
           <Card key={booking.id} className="transition-shadow hover:shadow-lg">
             <CardContent className="p-4">
@@ -70,13 +81,13 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                   </Badge>
                   {booking.status === 'cancelled' && canProcessRefund(booking) && onProcessRefund && (
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onProcessRefund(booking)}
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-green-600"
-                      title="Process Refund"
-                    >
-                      <img src="/lovable-uploads/98d88b70-fb2e-49e2-a3a6-d0031e683c47.png" alt="Refund" className="h-5 w-5" />
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onProcessRefund(booking)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-green-600"
+                        title="Process Refund"
+                      >
+                        <img src="/lovable-uploads/98d88b70-fb2e-49e2-a3a6-d0031e683c47.png" alt="Refund" className="h-5 w-5" />
                     </Button>
                   )}
                   {canEditBooking(booking) && (
@@ -108,14 +119,14 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                   <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <span className="text-foreground truncate">{booking.clientName}</span>
                 </div>
-                
+
                 {booking.phoneNumber && (
                   <div className="flex items-center space-x-2 text-sm">
                     <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <span className="text-foreground">{booking.phoneNumber}</span>
                   </div>
                 )}
-                
+
                 <div className="flex items-center space-x-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <span className="text-foreground">
@@ -125,12 +136,12 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                     }
                   </span>
                 </div>
-                
+
                 <div className="flex items-center space-x-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <span className="text-foreground">
                     {(() => {
-                      // Extract time directly from the datetime string to avoid timezone conversion
+                     // Extract time directly from the datetime string to avoid timezone conversion
                       const startTime = booking.startDate.split('T')[1]?.substring(0, 5) || '00:00';
                       const endTime = booking.endDate.split('T')[1]?.substring(0, 5) || '00:00';
                       
@@ -142,30 +153,30 @@ export const BookingTableView = ({ bookings, onEditBooking, onCancelBooking, onP
                         const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
                         return `${displayHour}:${minutes} ${period}`;
                       };
-                      
+
                       return `${formatTo12Hour(startTime)} - ${formatTo12Hour(endTime)}`;
                     })()}
                   </span>
                 </div>
               </div>
 
-                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border">
-                <PaymentStatCard 
-                  label="Rent Finalized" 
-                  amount={booking.rentFinalized || 0} 
-                  variant="blue" 
+              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border">
+                <PaymentStatCard
+                  label="Rent Finalized"
+                  amount={booking.rentFinalized || 0}
+                  variant="blue"
                 />
-                
-                <PaymentStatCard 
-                  label="Rent Received" 
-                  amount={booking.rentReceived || 0} 
-                  variant="green" 
+
+                <PaymentStatCard
+                  label="Rent Received"
+                  amount={booking.rentReceived || 0}
+                  variant="green"
                 />
-                
-                <PaymentStatCard 
-                  label="Secondary Income" 
-                  amount={booking.secondaryIncomeNet || 0} 
-                  variant="purple" 
+
+                <PaymentStatCard
+                  label="Secondary Income"
+                  amount={booking.secondaryIncomeNet || 0}
+                  variant="purple"
                 />
               </div>
             </CardContent>

@@ -19,7 +19,6 @@ import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 
 import { useAccounts } from "@/hooks/useAccounts";
-import { useIncome } from "@/hooks/useIncome";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, startOfYear, endOfYear, addYears, subYears, addMonths, subMonths } from "date-fns";
 import { CurrencyDisplay } from "@/components/ui/currency-display";

@@ -9,6 +9,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useBookings } from "@/hooks/useBookings";
 import { supabase } from "@/integrations/supabase/client";
+import { format, parseISO } from "date-fns";
 
 interface EditBookingDialogProps {
   open: boolean;
@@ -30,17 +31,9 @@ const formatTransactionDescription = (
   const startDateOnly = startDate.split('T')[0];
   const endDateOnly = endDate.split('T')[0];
   
-  const startDateFormatted = new Date(startDateOnly + 'T00:00:00').toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
-  
-  const endDateFormatted = new Date(endDateOnly + 'T00:00:00').toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
+  // Use date-fns for safe local formatting
+  const startDateFormatted = format(parseISO(startDateOnly), "dd MMM yyyy");
+  const endDateFormatted = format(parseISO(endDateOnly), "dd MMM yyyy");
 
   const isSameDate = startDateOnly === endDateOnly;
   const dateRange = isSameDate ? startDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek } from "date-fns";
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,25 +12,27 @@ interface BookingCalendarViewProps {
   onProcessRefund?: (booking: any) => void;
 }
 
-export const BookingCalendarView = ({ 
-  bookings, 
-  currentDate, 
+export const BookingCalendarView = ({
+  bookings,
+  currentDate,
   onEditBooking,
   onCancelBooking,
   onProcessRefund
 }: BookingCalendarViewProps) => {
-  
+
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calendarStart = startOfWeek(monthStart);
   const calendarEnd = endOfWeek(monthEnd);
-  
+
   const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
-  
+
+  // Fix: Always compare using date-only (no timezone shift)
   const getBookingsForDay = (day: Date) => {
-    return bookings.filter(booking => {
-      const bookingDate = new Date(booking.startDate);
-      return isSameDay(bookingDate, day);
+    const dayStr = format(day, "yyyy-MM-dd");
+    return bookings.filter((booking) => {
+      const bookingDateStr = booking.startDate.split("T")[0];
+      return bookingDateStr === dayStr;
     });
   };
 
@@ -47,7 +49,7 @@ export const BookingCalendarView = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-border">
-
+      
       {/* Calendar Grid */}
       <div className="grid grid-cols-7 gap-px bg-border">
         {/* Day headers */}
@@ -56,12 +58,12 @@ export const BookingCalendarView = ({
             {day}
           </div>
         ))}
-        
+
         {/* Calendar days */}
         {days.map((day) => {
           const dayBookings = getBookingsForDay(day);
           const isCurrentMonth = isSameMonth(day, currentDate);
-          
+
           return (
             <div
               key={day.toISOString()}
