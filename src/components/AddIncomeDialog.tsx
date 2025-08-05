@@ -193,8 +193,8 @@ export const AddIncomeDialog = ({ open, onOpenChange, onIncomeAdded }: AddIncome
             <Label htmlFor="amount">Amount *</Label>
             <Input
               id="amount"
-              type="number"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
               placeholder="Enter amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}

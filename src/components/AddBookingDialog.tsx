@@ -203,7 +203,8 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
             <Label htmlFor="rentFinalized">Rent Finalized <span className="text-red-500">*</span></Label>
             <Input
               id="rentFinalized"
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={formData.rent}
               onChange={(e) => handleChange("rent", e.target.value)}
               required

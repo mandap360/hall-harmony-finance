@@ -60,8 +60,8 @@ export const SetOpeningBalanceDialog = ({
             <Label htmlFor="openingBalance">Opening Balance (₹)</Label>
             <Input
               id="openingBalance"
-              type="number"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
               value={openingBalance}
               onChange={(e) => setOpeningBalance(e.target.value)}
               placeholder="Enter opening balance"

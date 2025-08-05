@@ -516,7 +516,6 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
             
             <div className="w-24">
               <Input
-                type="number"
                 placeholder="0.00"
                 value={row.amount}
                 onChange={(e) => updateFormRow(row.id, 'amount', e.target.value)}

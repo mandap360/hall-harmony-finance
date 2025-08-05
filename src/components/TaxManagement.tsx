@@ -52,8 +52,8 @@ export const TaxManagement = () => {
               <Label htmlFor="taxPercentage">Percentage</Label>
               <Input
                 id="taxPercentage"
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={newTax.percentage}
                 onChange={(e) => setNewTax({ ...newTax, percentage: e.target.value })}
                 placeholder="e.g., 28"

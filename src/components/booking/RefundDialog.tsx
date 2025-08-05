@@ -115,8 +115,8 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
               </Label>
               <Input
                 id="refundAmount"
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 max={maxRefundAmount}
                 value={refundAmount}
                 onChange={(e) => setRefundAmount(e.target.value)}

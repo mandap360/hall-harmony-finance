@@ -110,7 +110,8 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
               <Label htmlFor="amount">Amount</Label>
               <Input
                 id="amount"
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="Enter amount"

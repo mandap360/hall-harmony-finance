@@ -87,8 +87,8 @@ export const IncomeDetailsForm = ({ onSubmit, onCancel }: IncomeDetailsFormProps
         </Label>
         <Input
           id="amount"
-          type="number"
-          step="0.01"
+          type="text"
+          inputMode="decimal"
           value={formData.amount}
           onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
           placeholder="0.00"

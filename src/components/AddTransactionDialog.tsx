@@ -68,9 +68,8 @@ export const AddTransactionDialog = ({ open, onOpenChange, onSubmit }: AddTransa
             <Label htmlFor="amount">Amount *</Label>
             <Input
               id="amount"
-              type="number"
-              step="0.01"
-              min="0"
+              type="text"
+              inputMode="decimal"
               value={formData.amount}
               onChange={(e) => handleChange("amount", e.target.value)}
               placeholder="0.00"
