@@ -345,12 +345,12 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
       const refundAmount = remainingAdvance;
       
       // Format booking dates for description
-      const startDate = new Date(booking.start_datetime).toLocaleDateString('en-IN', {
+      const startDate = new Date(booking.startDate).toLocaleDateString('en-IN', {
         day: '2-digit',
         month: 'short',
         year: 'numeric'
       });
-      const endDate = new Date(booking.end_datetime).toLocaleDateString('en-IN', {
+      const endDate = new Date(booking.endDate).toLocaleDateString('en-IN', {
         day: '2-digit',
         month: 'short',
         year: 'numeric'
