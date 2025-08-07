@@ -1,5 +1,9 @@
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, differenceInCalendarDays, parseISO } from "date-fns";
-import { splitBookingAcrossDays } from "@/utils/CalendarUtils"; // unchanged
+import {
+  format, startOfMonth, endOfMonth, eachDayOfInterval,
+  isSameMonth, isSameDay, startOfWeek, endOfWeek,
+  differenceInCalendarDays, parseISO, isBefore, isAfter
+} from "date-fns";
+import { splitBookingAcrossDays } from "@/utils/CalendarUtils";
 
 interface BookingCalendarViewProps {
   bookings: any[];
@@ -9,20 +13,53 @@ interface BookingCalendarViewProps {
   onProcessRefund?: (booking: any) => void;
 }
 
-// Utility: Returns the index of the day in the visible grid (0-41)
-function getDayGridIndex(day: Date, gridDays: Date[]) {
-  return gridDays.findIndex(d => isSameDay(d, day));
+function computeWeeklySlots(days: Date[], bookings: any[]) {
+  const weeks = [];
+  for (let weekStart = 0; weekStart < days.length; weekStart += 7) {
+    const weekDays = days.slice(weekStart, weekStart + 7);
+    const weekBookings = bookings.filter(booking => {
+      const bookingStart = parseISO(booking.startDate.split('T')[0]);
+      const bookingEnd = parseISO(booking.endDate.split('T')[0]);
+      return (
+        (isBefore(bookingStart, weekDays[6]) || isSameDay(bookingStart, weekDays[6])) &&
+        (isAfter(bookingEnd, weekDays[0]) || isSameDay(bookingEnd, weekDays[0]))
+      );
+    });
+
+    const slots: (Array<any | null>)[] = [];
+    for (const booking of weekBookings) {
+      const bookingStart = parseISO(booking.startDate.split('T')[0]);
+      const bookingEnd = parseISO(booking.endDate.split('T')[0]);
+
+      let slotIndex = 0;
+      while (true) {
+        let conflict = false;
+        for (let d = 0; d < 7; ++d) {
+          const date = weekDays[d];
+          if ((isAfter(date, bookingEnd) || isBefore(date, bookingStart))) continue;
+          if (slots[slotIndex] && slots[slotIndex][d]) {
+            conflict = true;
+            break;
+          }
+        }
+        if (!conflict) break;
+        slotIndex++;
+      }
+
+      if (!slots[slotIndex]) slots[slotIndex] = Array(7).fill(null);
+      for (let d = 0; d < 7; ++d) {
+        const date = weekDays[d];
+        if ((isAfter(date, bookingEnd) || isBefore(date, bookingStart))) continue;
+        slots[slotIndex][d] = booking;
+      }
+    }
+    weeks.push(slots);
+  }
+  return weeks;
 }
 
-// Utility: Returns the number of grid columns (days) until the booking ends or week ends
-function getBookingSpanInWeek(startIndex: number, bookingEnd: Date, gridDays: Date[]) {
-  let maxSpan = 1;
-  for (let i = startIndex + 1; i < gridDays.length && maxSpan < 7; i++, maxSpan++) {
-    if (gridDays[i].getDay() === 0) break; // Sunday, new week
-    if (gridDays[i] > bookingEnd) break;
-  }
-  return maxSpan;
-}
+const BAR_HEIGHT = 22; // px
+const BAR_GAP = 4; // px
 
 export const BookingCalendarView = ({
   bookings,
@@ -31,7 +68,6 @@ export const BookingCalendarView = ({
   onCancelBooking,
   onProcessRefund
 }: BookingCalendarViewProps) => {
-
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calendarStart = startOfWeek(monthStart);
@@ -39,70 +75,83 @@ export const BookingCalendarView = ({
 
   const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-  // Map of day string to booking(s) that start on that day
-  const dayStrToBookings = new Map<string, any[]>();
-  bookings.forEach(booking => {
-    const startStr = booking.startDate.split('T')[0];
-    if (!dayStrToBookings.has(startStr)) dayStrToBookings.set(startStr, []);
-    dayStrToBookings.get(startStr)!.push(booking);
-  });
-
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const weeklySlots = computeWeeklySlots(days, bookings);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-border overflow-hidden">
       <div className="grid grid-cols-7 gap-px bg-border">
-        {/* Day headers */}
         {weekDays.map((day) => (
-          <div key={day} className="bg-muted p-3 text-center text-sm font-medium text-muted-foreground">
+          <div
+            key={day}
+            className="bg-muted p-3 text-center text-sm font-medium text-muted-foreground"
+          >
             {day}
           </div>
         ))}
 
-        {/* Calendar cells */}
-        {days.map((day, gridIdx) => {
-          const isCurrentMonth = isSameMonth(day, currentDate);
-          const dayStr = format(day, 'yyyy-MM-dd');
-          const bookingsStartingToday = dayStrToBookings.get(dayStr) || [];
+        {weeklySlots.map((slots, weekIdx) =>
+          weekDays.map((_, dayIdx) => {
+            const day = days[weekIdx * 7 + dayIdx];
+            const isCurrentMonth = isSameMonth(day, currentDate);
+            const slotCount = slots.length;
 
-          return (
-            <div
-              key={day.toISOString()}
-              className={`relative bg-background min-h-[60px] px-0 pb-0 pt-2 border border-border ${!isCurrentMonth ? 'text-muted-foreground/70' : ''}`}
-              style={{overflow: "visible"}}
-            >
-              <div className="text-sm font-medium mb-1 pl-2">{format(day, "d")}</div>
-              <div className="flex flex-col gap-1 relative z-10">
-                {/* Only render bars for bookings starting today */}
-                {bookingsStartingToday.map((booking, idx) => {
+            return (
+              <div
+                key={`${day.toISOString()}-${weekIdx}`}
+                className={`relative bg-background min-h-[60px] px-0 pb-0 pt-2 border border-border ${!isCurrentMonth ? 'text-muted-foreground/70' : ''}`}
+                style={{ overflow: "visible", height: Math.max(60, slotCount * (BAR_HEIGHT + BAR_GAP) + 26) }}
+              >
+                <div className="text-sm font-medium mb-1 pl-2">{format(day, "d")}</div>
+                {slots.map((slotRow, slotIdx) => {
+                  const booking = slotRow[dayIdx];
+                  if (!booking) return null;
+
                   const bookingStart = parseISO(booking.startDate.split('T')[0]);
                   const bookingEnd = parseISO(booking.endDate.split('T')[0]);
-                  // Compute how many days to span in this row (not to cross week boundary)
-                  const col = day.getDay();
-                  const daysLeftInWeek = 7 - col;
-                  const daysLeftInBooking = differenceInCalendarDays(bookingEnd, bookingStart) + 1;
-                  const span = Math.min(daysLeftInWeek, daysLeftInBooking);
+                  const weekStartDate = days[weekIdx * 7];
+                  const weekEndDate = days[weekIdx * 7 + 6];
 
-                  // Absolute position pill to overlay borders (prevent border line between cells)
+                  // Determine the visible start and end date for the bar this week
+                  const renderedStartDate = isBefore(bookingStart, weekStartDate) ? weekStartDate : bookingStart;
+                  const renderedEndDate = isAfter(bookingEnd, weekEndDate) ? weekEndDate : bookingEnd;
+
+                  const startIdx = differenceInCalendarDays(renderedStartDate, weekStartDate);
+                  if (dayIdx !== startIdx) return null;
+
+                  const span = differenceInCalendarDays(renderedEndDate, weekStartDate) - startIdx + 1;
+
+                  // Only round the left edge if this is the real booking start
+                  // Only round the right edge if this is the real booking end
+                  const roundLeft = isSameDay(renderedStartDate, bookingStart);
+                  const roundRight = isSameDay(renderedEndDate, bookingEnd);
+
+                  let borderRadius = "0";
+                  if (roundLeft && roundRight) {
+                    borderRadius = "9999px";
+                  } else if (roundLeft && !roundRight) {
+                    borderRadius = "9999px 0 0 9999px";
+                  } else if (!roundLeft && roundRight) {
+                    borderRadius = "0 9999px 9999px 0";
+                  } else {
+                    borderRadius = "0";
+                  }
+
                   return (
                     <div
-                      key={booking.id}
-                      className="absolute left-0 top-2 text-xs px-2 py-[2px] bg-blue-500 text-white font-semibold flex items-center rounded-full shadow"
+                      key={booking.id + "-bar-" + weekIdx + "-" + slotIdx + "-" + dayIdx}
+                      className="absolute left-0 text-xs px-2 py-[2px] bg-blue-500 text-white font-semibold flex items-center shadow"
                       style={{
-                        // Span the correct number of columns (cells)
-                        width: `calc(${span * 100}% + ${(span - 1)}px)`, // compensate for grid borders
+                        top: `${26 + slotIdx * (BAR_HEIGHT + BAR_GAP)}px`,
+                        width: `calc(${span * 100}% + ${(span - 1)}px)`,
                         minWidth: 0,
                         zIndex: 20,
-                        height: "22px",
-                        lineHeight: "22px",
+                        height: `${BAR_HEIGHT}px`,
+                        lineHeight: `${BAR_HEIGHT}px`,
                         pointerEvents: "auto",
                         overflow: "hidden",
-                        borderRadius:
-                        span === 1
-                          ? "9999px"
-                          : span === daysLeftInBooking
-                          ? "9999px 9999px 9999px 9999px" // event starts and ends in this row
-                          : "9999px 0 0 9999px", // always round left
+                        borderRadius,
                         left: 0,
                         right: 0,
                       }}
@@ -117,9 +166,9 @@ export const BookingCalendarView = ({
                   );
                 })}
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );
