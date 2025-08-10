@@ -8,34 +8,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useBookings } from "@/hooks/useBookings";
-
 import { useVendors } from "@/hooks/useVendors";
 import { useCategories } from "@/hooks/useCategories";
 import { ExpenseFilters } from "@/components/expense/ExpenseFilters";
 import { MonthNavigation } from "@/components/MonthNavigation";
-import { ExpenseCard } from "@/components/ExpenseCard";
 import { ExpenseList } from "@/components/expense/ExpenseList";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
 import { AddIncomeDialog } from "@/components/AddIncomeDialog";
-
 import { useAccounts } from "@/hooks/useAccounts";
 import { useIncome } from "@/hooks/useIncome";
 import { cn } from "@/lib/utils";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, startOfYear, endOfYear, addYears, subYears, addMonths, subMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths } from "date-fns";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
-
-const COLORS = {
-  household: '#ff6b6b',
-  social: '#ffa726', 
-  food: '#ffeb3b',
-  transport: '#66bb6a',
-  utility: '#42a5f5',
-  entertainment: '#ab47bc',
-  healthcare: '#ef5350',
-  education: '#26c6da',
-  shopping: '#8d6e63',
-  other: '#78909c'
-};
 
 const MAIN_TABS = [  
   { id: 'expense', label: 'Expense' },
@@ -44,8 +28,6 @@ const MAIN_TABS = [
 
 const PERIOD_OPTIONS = [
   { value: 'monthly', label: 'Monthly', short: 'M' },
-  { value: 'yearly', label: 'Yearly', short: 'Y' },
-  { value: 'weekly', label: 'Weekly', short: 'W' },
   { value: 'period', label: 'Period', short: 'P' }
 ];
 
@@ -53,7 +35,6 @@ export const TransactionsPage = () => {
   const [activeTab, setActiveTab] = useState('expense');
   const [periodType, setPeriodType] = useState('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedVendor, setSelectedVendor] = useState('all');
   const [paymentStatus, setPaymentStatus] = useState('all');
@@ -76,10 +57,6 @@ export const TransactionsPage = () => {
     switch (periodType) {
       case 'monthly':
         return { start: startOfMonth(currentDate), end: endOfMonth(currentDate) };
-      case 'yearly':
-        return { start: startOfYear(currentDate), end: endOfYear(currentDate) };
-      case 'weekly':
-        return { start: startOfWeek(currentDate), end: endOfWeek(currentDate) };
       case 'period':
         return { start: startDate, end: endDate };
       default:
@@ -99,37 +76,15 @@ export const TransactionsPage = () => {
     return bookingDate >= dateStart && bookingDate <= dateEnd;
   });
 
-  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const rentIncome = filteredBookings.reduce((sum, booking) => sum + booking.paidAmount, 0);
-
-  const pendingExpenses = expenses.filter(expense => !expense.isPaid);
-  const pendingBookings = bookings.filter(booking => booking.paidAmount < booking.rentFinalized);
-
   const handlePreviousPeriod = () => {
-    switch (periodType) {
-      case 'monthly':
-        setCurrentDate(prev => subMonths(prev, 1));
-        break;
-      case 'yearly':
-        setCurrentDate(prev => subYears(prev, 1));
-        break;
-      case 'weekly':
-        setCurrentDate(prev => addDays(prev, -7));
-        break;
+    if (periodType === 'monthly') {
+      setCurrentDate(prev => subMonths(prev, 1));
     }
   };
 
   const handleNextPeriod = () => {
-    switch (periodType) {
-      case 'monthly':
-        setCurrentDate(prev => addMonths(prev, 1));
-        break;
-      case 'yearly':
-        setCurrentDate(prev => addYears(prev, 1));
-        break;
-      case 'weekly':
-        setCurrentDate(prev => addDays(prev, 7));
-        break;
+    if (periodType === 'monthly') {
+      setCurrentDate(prev => addMonths(prev, 1));
     }
   };
 
@@ -144,9 +99,8 @@ export const TransactionsPage = () => {
   };
 
   const handleIncomeAdded = () => {
-    // Trigger a refresh of the data
     refetch();
-    window.location.reload(); // Simple refresh to ensure all data is updated
+    window.location.reload();
   };
 
   const renderPeriodNavigation = () => {
@@ -188,64 +142,6 @@ export const TransactionsPage = () => {
               />
             </PopoverContent>
           </Popover>
-        </div>
-      );
-    }
-
-    if (periodType === 'weekly') {
-      const weekStart = startOfWeek(currentDate);
-      const weekEnd = endOfWeek(currentDate);
-      return (
-        <div className="flex items-center justify-center bg-card border-b border-border px-4 py-3 gap-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handlePreviousPeriod}
-            className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 p-0"
-          >
-            <Calendar className="h-5 w-5" />
-          </Button>
-          
-          <h2 className="text-xl font-semibold text-foreground min-w-[200px] text-center">
-            {format(weekStart, "dd/MM")} ~ {format(weekEnd, "dd/MM/yyyy")}
-          </h2>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleNextPeriod}
-            className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 p-0"
-          >
-            <Calendar className="h-5 w-5" />
-          </Button>
-        </div>
-      );
-    }
-
-    if (periodType === 'yearly') {
-      return (
-        <div className="flex items-center justify-center bg-card border-b border-border px-4 py-3 gap-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handlePreviousPeriod}
-            className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 p-0"
-          >
-            <Calendar className="h-5 w-5" />
-          </Button>
-          
-          <h2 className="text-xl font-semibold text-foreground min-w-[200px] text-center">
-            FY {format(startOfYear(currentDate), "yyyy")}-{format(endOfYear(currentDate), "yy")}
-          </h2>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleNextPeriod}
-            className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 p-0"
-          >
-            <Calendar className="h-5 w-5" />
-          </Button>
         </div>
       );
     }
@@ -315,7 +211,7 @@ export const TransactionsPage = () => {
           expenseCategories={expenseCategories}
           vendors={vendors}
           showFilters={true}
-          onToggleFilters={() => setShowFilters(!showFilters)}
+          onToggleFilters={() => {}}
         />
       )}
 
@@ -388,38 +284,8 @@ export const TransactionsPage = () => {
                 );
               }
 
-              const formatDateRange = (startDate: string, endDate: string) => {
-                const startDateOnly = startDate.split('T')[0];
-                const endDateOnly = endDate.split('T')[0];
-                
-                const startDateFormatted = new Date(startDateOnly + 'T00:00:00').toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric'
-                });
-                
-                const endDateFormatted = new Date(endDateOnly + 'T00:00:00').toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric'
-                });
-
-                const isSameDate = startDateOnly === endDateOnly;
-                return isSameDate ? startDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
-              };
-
-              const rentPayments = filteredIncome.filter(p => p.type === 'rent');
-              const secondaryPayments = filteredIncome.filter(p => p.type === 'Secondary Income');
-              const refundPayments = filteredIncome.filter(p => p.amount < 0);
-              
-              const totalRent = rentPayments.reduce((sum, p) => sum + p.amount, 0);
-              const totalSecondary = secondaryPayments.reduce((sum, p) => sum + p.amount, 0);
-              const totalRefunds = refundPayments.reduce((sum, p) => sum + Math.abs(p.amount), 0);
-              const netIncome = totalRent + totalSecondary - totalRefunds;
-
               return (
                 <>
-
                   {filteredIncome.map((payment) => {
                     return (
                       <Card key={payment.id} className="p-4">
