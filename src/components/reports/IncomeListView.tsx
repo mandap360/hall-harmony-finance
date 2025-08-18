@@ -4,12 +4,14 @@ import { ArrowLeft, Calendar, IndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBookings } from "@/hooks/useBookings";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FinancialYear, getCurrentFinancialYear, isInFinancialYear } from "@/utils/financialYear";
 
 interface IncomeListViewProps {
   onBack: () => void;
+  financialYear?: FinancialYear;
 }
 
-export const IncomeListView = ({ onBack }: IncomeListViewProps) => {
+export const IncomeListView = ({ onBack, financialYear }: IncomeListViewProps) => {
   const { bookings } = useBookings();
 
   const formatDate = (dateString: string) => {
@@ -20,32 +22,12 @@ export const IncomeListView = ({ onBack }: IncomeListViewProps) => {
     });
   };
 
-  // Get current FY entries and flatten payments
-  const getCurrentFY = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    
-    if (month >= 3) {
-      return { startYear: year, endYear: year + 1 };
-    } else {
-      return { startYear: year - 1, endYear: year };
-    }
-  };
-
-  const currentFY = getCurrentFY();
+  // Use the provided financial year or default to current
+  const targetFY = financialYear || getCurrentFinancialYear();
   
-  const currentFYBookings = bookings.filter((booking) => {
-    const bookingDate = new Date(booking.startDate);
-    const bookingYear = bookingDate.getFullYear();
-    const bookingMonth = bookingDate.getMonth();
-    
-    if (bookingMonth >= 3) {
-      return bookingYear === currentFY.startYear;
-    } else {
-      return bookingYear === currentFY.endYear;
-    }
-  });
+  const currentFYBookings = bookings.filter((booking) => 
+    isInFinancialYear(booking.startDate, targetFY)
+  );
 
   // Function to format date range
   const formatDateRange = (startDate: string, endDate: string) => {

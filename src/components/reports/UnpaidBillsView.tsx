@@ -6,17 +6,26 @@ import { Badge } from "@/components/ui/badge";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useVendors } from "@/hooks/useVendors";
 import { useState } from "react";
+import { FinancialYear, getCurrentFinancialYear, isInFinancialYear } from "@/utils/financialYear";
 
 interface UnpaidBillsViewProps {
   onBack: () => void;
+  financialYear?: FinancialYear;
 }
 
-export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
+export const UnpaidBillsView = ({ onBack, financialYear }: UnpaidBillsViewProps) => {
   const { expenses } = useExpenses();
   const { vendors } = useVendors();
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
 
-  const unpaidExpenses = expenses.filter(expense => !expense.isPaid);
+  // Use the provided financial year or default to current
+  const targetFY = financialYear || getCurrentFinancialYear();
+
+  const unpaidExpenses = expenses.filter(expense => 
+    !expense.isPaid && 
+    isInFinancialYear(expense.date, targetFY) && 
+    !expense.isDeleted
+  );
   
   // Group expenses by vendor
   const expensesByVendor = unpaidExpenses.reduce((acc, expense) => {

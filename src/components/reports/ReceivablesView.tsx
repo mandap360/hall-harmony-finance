@@ -4,23 +4,26 @@ import { Card } from "@/components/ui/card";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
 import { useBookings } from "@/hooks/useBookings";
 import { Badge } from "@/components/ui/badge";
-import { financialUtils } from "@/lib/utils";
+import { FinancialYear, isInFinancialYear } from "@/utils/financialYear";
 
 interface ReceivablesViewProps {
   onBack: () => void;
+  financialYear?: FinancialYear;
 }
 
-export const ReceivablesView = ({ onBack }: ReceivablesViewProps) => {
+export const ReceivablesView = ({ onBack, financialYear }: ReceivablesViewProps) => {
   const { bookings } = useBookings();
 
-  // Filter bookings for current financial year where rent is pending (excluding cancelled bookings)
+  // Filter bookings for the specified financial year (or current if none provided) where rent is pending (excluding cancelled bookings)
   const pendingRentBookings = bookings.filter(booking => {
     const bookingDate = new Date(booking.startDate);
-    const isInCurrentFY = financialUtils.isInCurrentFinancialYear(bookingDate);
+    const isInTargetFY = financialYear ? 
+      isInFinancialYear(bookingDate, financialYear) : 
+      true; // If no financialYear provided, include all (backward compatibility)
     const hasPendingRent = booking.rentFinalized > booking.rentReceived;
     const isNotCancelled = booking.status !== 'cancelled';
     
-    return isInCurrentFY && hasPendingRent && isNotCancelled;
+    return isInTargetFY && hasPendingRent && isNotCancelled;
   });
 
   const totalReceivables = pendingRentBookings.reduce(

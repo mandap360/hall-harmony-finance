@@ -1,8 +1,11 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { FinancialYear, getCurrentFinancialYear, isInFinancialYear } from "@/utils/financialYear";
 
-export const calculateIncomeData = async () => {
+export const calculateIncomeData = async (financialYear?: FinancialYear) => {
+  // Use current financial year if none provided
+  const targetFY = financialYear || getCurrentFinancialYear();
   // Get current user's organization
   const { data: profile } = await supabase
     .from('profiles')
@@ -30,6 +33,7 @@ export const calculateIncomeData = async () => {
       .select(`
         amount,
         category_id,
+        payment_date,
         income_categories!category_id (
           name,
           parent_id
@@ -38,41 +42,45 @@ export const calculateIncomeData = async () => {
       .eq('organization_id', profile.organization_id);
 
     if (!incomeError && allIncome) {
-      // Group income by category and calculate totals (excluding Secondary Income categories)
-      allIncome.forEach(income => {
-        const amount = Number(income.amount);
-        const categoryName = income.income_categories?.name || 'Uncategorized';
-        const isSecondaryIncome = income.category_id === secondaryCategory?.id || 
-                                income.income_categories?.parent_id === secondaryCategory?.id;
-        
-        // Only include non-secondary income categories from income table
-        if (!isSecondaryIncome) {
-          incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + amount;
-          totalIncome += amount;
-        }
-      });
+      // Filter by financial year and group income by category
+      allIncome
+        .filter(income => income.payment_date && isInFinancialYear(income.payment_date, targetFY))
+        .forEach(income => {
+          const amount = Number(income.amount);
+          const categoryName = income.income_categories?.name || 'Uncategorized';
+          const isSecondaryIncome = income.category_id === secondaryCategory?.id || 
+                                  income.income_categories?.parent_id === secondaryCategory?.id;
+          
+          // Only include non-secondary income categories from income table
+          if (!isSecondaryIncome) {
+            incomeByCategory[categoryName] = (incomeByCategory[categoryName] || 0) + amount;
+            totalIncome += amount;
+          }
+        });
     }
 
     // Fetch secondary income from secondary_income table only for Secondary Income category
     const { data: secondaryIncomeData, error } = await supabase
       .from('secondary_income')
-      .select('amount, income_categories!inner(name, parent_id)')
+      .select('amount, date, income_categories!inner(name, parent_id)')
       .eq('organization_id', profile.organization_id);
 
     if (!error && secondaryIncomeData) {
       let secondaryIncomeTotal = 0;
       const secondaryIncomeSubcategories: Record<string, number> = {};
       
-      secondaryIncomeData.forEach(item => {
-        const amount = Number(item.amount);
-        const categoryName = item.income_categories.name;
-        
-        // Include all secondary income subcategories
-        if (item.income_categories.parent_id) {
-          secondaryIncomeSubcategories[categoryName] = (secondaryIncomeSubcategories[categoryName] || 0) + amount;
-          secondaryIncomeTotal += amount;
-        }
-      });
+      secondaryIncomeData
+        .filter(item => item.date && isInFinancialYear(item.date, targetFY))
+        .forEach(item => {
+          const amount = Number(item.amount);
+          const categoryName = item.income_categories.name;
+          
+          // Include all secondary income subcategories
+          if (item.income_categories.parent_id) {
+            secondaryIncomeSubcategories[categoryName] = (secondaryIncomeSubcategories[categoryName] || 0) + amount;
+            secondaryIncomeTotal += amount;
+          }
+        });
       
       // Add subcategories to the main income breakdown
       Object.entries(secondaryIncomeSubcategories).forEach(([categoryName, amount]) => {
