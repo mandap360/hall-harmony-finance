@@ -30,8 +30,8 @@ import {
 export const ReportsPage = () => {
   const [currentView, setCurrentView] = useState("dashboard");
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [incomeData, setIncomeData] = useState<any>(null);
-  const [expenseData, setExpenseData] = useState<any>(null);
+  const [incomeData, setIncomeData] = useState<{totalIncome: number; incomeByCategory: Record<string, number>} | null>(null);
+  const [expenseData, setExpenseData] = useState<{totalExpenses: number; expensesByCategory: Record<string, number>; totalPayables: number} | null>(null);
   const [selectedFinancialYear, setSelectedFinancialYear] = useState<FinancialYear>(getCurrentFinancialYear());
   const { bookings } = useBookings();
   const { expenses } = useExpenses();
