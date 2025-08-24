@@ -3,16 +3,25 @@ import { ArrowLeft, Building, IndianRupee, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useExpenses } from "@/hooks/useExpenses";
+import { FinancialYear, getCurrentFinancialYear, isInFinancialYear } from "@/utils/financialYear";
 
 interface VendorPayablesViewProps {
   onBack: () => void;
+  financialYear?: FinancialYear;
 }
 
-export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
+export const VendorPayablesView = ({ onBack, financialYear }: VendorPayablesViewProps) => {
   const { expenses } = useExpenses();
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
 
-  const unpaidExpenses = expenses.filter(expense => !expense.isPaid);
+  // Use the provided financial year or default to current
+  const targetFY = financialYear || getCurrentFinancialYear();
+
+  const unpaidExpenses = expenses.filter(expense => 
+    !expense.isPaid && 
+    isInFinancialYear(expense.date, targetFY) && 
+    !expense.isDeleted
+  );
 
   // Group unpaid expenses by vendor
   const vendorPayables = unpaidExpenses.reduce((acc, expense) => {

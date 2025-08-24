@@ -4,12 +4,14 @@ import { ArrowLeft, Calendar, IndianRupee, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useExpenses } from "@/hooks/useExpenses";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FinancialYear, getCurrentFinancialYear, isInFinancialYear } from "@/utils/financialYear";
 
 interface ExpenseListViewProps {
   onBack: () => void;
+  financialYear?: FinancialYear;
 }
 
-export const ExpenseListView = ({ onBack }: ExpenseListViewProps) => {
+export const ExpenseListView = ({ onBack, financialYear }: ExpenseListViewProps) => {
   const { expenses } = useExpenses();
 
   const formatDate = (dateString: string) => {
@@ -20,37 +22,12 @@ export const ExpenseListView = ({ onBack }: ExpenseListViewProps) => {
     });
   };
 
-  // Get current FY expenses
-  const getCurrentFY = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    
-    if (month >= 3) {
-      return { startYear: year, endYear: year + 1 };
-    } else {
-      return { startYear: year - 1, endYear: year };
-    }
-  };
-
-  const currentFY = getCurrentFY();
+  // Use the provided financial year or default to current
+  const targetFY = financialYear || getCurrentFinancialYear();
   
-  // Only show paid expenses
-  const currentFYPaidExpenses = expenses
-    .filter((expense) => {
-      const expenseDate = new Date(expense.date);
-      const expenseYear = expenseDate.getFullYear();
-      const expenseMonth = expenseDate.getMonth();
-      
-      let isCurrentFY = false;
-      if (expenseMonth >= 3) {
-        isCurrentFY = expenseYear === currentFY.startYear;
-      } else {
-        isCurrentFY = expenseYear === currentFY.endYear;
-      }
-      
-      return isCurrentFY && expense.isPaid;
-    })
+  // Only show paid expenses for the target financial year
+  const currentFYPaidExpenses = currentFYExpenses
+    .filter((expense) => expense.isPaid)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const totalExpense = currentFYPaidExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0);

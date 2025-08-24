@@ -14,16 +14,25 @@ import { AccountTransactions } from "@/components/AccountTransactions";
 import { Account } from "@/hooks/useAccounts";
 import { calculateIncomeData } from "@/components/reports/IncomeCalculator";
 import { calculateExpenseData } from "@/components/reports/ExpenseCalculator";
+import { FinancialYearNavigation } from "@/components/FinancialYearNavigation";
 import { TrendingUp, FileText, PlusCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { 
+  FinancialYear, 
+  getCurrentFinancialYear, 
+  getPreviousFinancialYear, 
+  getNextFinancialYear,
+  isInFinancialYear 
+} from "@/utils/financialYear";
 
 // Reports page component with dashboard summary cards
 export const ReportsPage = () => {
   const [currentView, setCurrentView] = useState("dashboard");
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [incomeData, setIncomeData] = useState<any>(null);
-  const [expenseData, setExpenseData] = useState<any>(null);
+  const [incomeData, setIncomeData] = useState<{totalIncome: number; incomeByCategory: Record<string, number>} | null>(null);
+  const [expenseData, setExpenseData] = useState<{totalExpenses: number; expensesByCategory: Record<string, number>; totalPayables: number} | null>(null);
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState<FinancialYear>(getCurrentFinancialYear());
   const { bookings } = useBookings();
   const { expenses } = useExpenses();
   const { accounts } = useAccounts();
@@ -31,14 +40,28 @@ export const ReportsPage = () => {
   // Calculate income and expense data asynchronously
   useEffect(() => {
     const fetchFinancialData = async () => {
-      const incomeResult = await calculateIncomeData();
+      const incomeResult = await calculateIncomeData(selectedFinancialYear);
       setIncomeData(incomeResult);
       
-      const expenseResult = await calculateExpenseData(expenses);
+      const expenseResult = await calculateExpenseData(expenses, selectedFinancialYear);
       setExpenseData(expenseResult);
     };
     fetchFinancialData();
-  }, [expenses]);
+  }, [expenses, selectedFinancialYear]);
+
+  // Financial year navigation handlers
+  const handlePreviousYear = () => {
+    setSelectedFinancialYear(getPreviousFinancialYear(selectedFinancialYear));
+  };
+
+  const handleNextYear = () => {
+    setSelectedFinancialYear(getNextFinancialYear(selectedFinancialYear));
+  };
+
+  // Filter bookings for selected financial year
+  const filteredBookings = bookings.filter(booking => 
+    isInFinancialYear(booking.startDate, selectedFinancialYear)
+  );
 
   // Calculate banking summary
   const bankingSummary = accounts.reduce((acc, account) => {
@@ -66,23 +89,23 @@ export const ReportsPage = () => {
   }
 
   if (currentView === "income") {
-    return <IncomeListView onBack={() => setCurrentView("dashboard")} />;
+    return <IncomeListView onBack={() => setCurrentView("dashboard")} financialYear={selectedFinancialYear} />;
   }
 
   if (currentView === "expenses") {
-    return <ExpenseListView onBack={() => setCurrentView("dashboard")} />;
+    return <ExpenseListView onBack={() => setCurrentView("dashboard")} financialYear={selectedFinancialYear} />;
   }
 
   if (currentView === "payables") {
-    return <VendorPayablesView onBack={() => setCurrentView("dashboard")} />;
+    return <VendorPayablesView onBack={() => setCurrentView("dashboard")} financialYear={selectedFinancialYear} />;
   }
 
   if (currentView === "unpaid-bills") {
-    return <UnpaidBillsView onBack={() => setCurrentView("dashboard")} />;
+    return <UnpaidBillsView onBack={() => setCurrentView("dashboard")} financialYear={selectedFinancialYear} />;
   }
 
   if (currentView === "receivables") {
-    return <ReceivablesView onBack={() => setCurrentView("dashboard")} />;
+    return <ReceivablesView onBack={() => setCurrentView("dashboard")} financialYear={selectedFinancialYear} />;
   }
 
   // Show loading state while data is being calculated
@@ -90,6 +113,13 @@ export const ReportsPage = () => {
     return (
       <div className="bg-background p-4">
         <div className="max-w-6xl mx-auto space-y-6">
+          {/* Financial Year Navigation */}
+          <FinancialYearNavigation
+            currentFinancialYear={selectedFinancialYear}
+            onPreviousYear={handlePreviousYear}
+            onNextYear={handleNextYear}
+          />
+          
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">Financial Reports</h1>
             <p className="text-muted-foreground">Loading...</p>
@@ -100,61 +130,80 @@ export const ReportsPage = () => {
   }
 
   // Check if there's no data to display
-  const hasNoData = bookings.length === 0 && expenses.length === 0;
+  const hasNoData = filteredBookings.length === 0 && expenses.filter(expense => 
+    isInFinancialYear(expense.date, selectedFinancialYear) && !expense.isDeleted
+  ).length === 0;
 
   if (hasNoData) {
     return (
-      <div className="bg-background flex items-center justify-center p-4">
-        <div className="max-w-md mx-auto text-center">
-          <Card className="p-8 shadow-lg">
-            <div className="mb-6">
-              <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <TrendingUp className="h-8 w-8 text-primary" />
+      <div className="bg-background flex flex-col p-4">
+        {/* Financial Year Navigation */}
+        <FinancialYearNavigation
+          currentFinancialYear={selectedFinancialYear}
+          onPreviousYear={handlePreviousYear}
+          onNextYear={handleNextYear}
+        />
+        
+        <div className="flex items-center justify-center flex-1 p-4">
+          <div className="max-w-md mx-auto text-center">
+            <Card className="p-8 shadow-lg">
+              <div className="mb-6">
+                <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                  <TrendingUp className="h-8 w-8 text-primary" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  No Data for Selected Financial Year
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  No bookings or expenses found for the selected financial year. Try a different financial year or add some data.
+                </p>
               </div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Welcome to Financial Reports
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                Start by adding your first booking or expense to see comprehensive financial insights and analytics.
-              </p>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex items-center text-sm text-muted-foreground bg-muted p-3 rounded">
-                <Calendar className="h-4 w-4 mr-2" />
-                <span>Add bookings to track income</span>
+              
+              <div className="space-y-3">
+                <div className="flex items-center text-sm text-muted-foreground bg-muted p-3 rounded">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <span>Add bookings to track income</span>
+                </div>
+                <div className="flex items-center text-sm text-muted-foreground bg-muted p-3 rounded">
+                  <FileText className="h-4 w-4 mr-2" />
+                  <span>Record expenses to monitor spending</span>
+                </div>
               </div>
-              <div className="flex items-center text-sm text-muted-foreground bg-muted p-3 rounded">
-                <FileText className="h-4 w-4 mr-2" />
-                <span>Record expenses to monitor spending</span>
-              </div>
-            </div>
 
-            <div className="mt-6 pt-4 border-t border-border">
-              <p className="text-xs text-muted-foreground">
-                Once you have data, you'll see detailed reports including profit/loss analysis, 
-                category breakdowns, and account summaries.
-              </p>
-            </div>
-          </Card>
+              <div className="mt-6 pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground">
+                  Once you have data, you'll see detailed reports including profit/loss analysis, 
+                  category breakdowns, and account summaries.
+                </p>
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Calculate overdue invoices and bills for display
-  const overdueInvoices = bookings.filter(booking => booking.rentFinalized > booking.paidAmount).length;
-  const overdueBills = expenses.filter(expense => !expense.isPaid).length;
+  // Calculate overdue invoices and bills for display in the selected financial year
+  const overdueInvoices = filteredBookings.filter(booking => booking.rentFinalized > booking.paidAmount).length;
+  const overdueBills = expenses.filter(expense => 
+    !expense.isPaid && isInFinancialYear(expense.date, selectedFinancialYear) && !expense.isDeleted
+  ).length;
 
   return (
     <div className="bg-background p-4">
       <div className="max-w-6xl mx-auto space-y-6">
+        {/* Financial Year Navigation */}
+        <FinancialYearNavigation
+          currentFinancialYear={selectedFinancialYear}
+          onPreviousYear={handlePreviousYear}
+          onNextYear={handleNextYear}
+        />
 
         {/* Dashboard Summary Cards */}
         <DashboardSummaryCards
           totalIncome={incomeData.totalIncome}
           totalExpenses={expenseData.totalExpenses}
-          totalReceivables={bookings
+          totalReceivables={filteredBookings
             .filter(booking => booking.status !== 'cancelled')
             .reduce((sum, booking) => {
               const pendingRent = booking.rentFinalized - booking.rentReceived;

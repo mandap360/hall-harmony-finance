@@ -1,13 +1,13 @@
 
-import { getCurrentFY, isInCurrentFY } from "./FinancialYearCalculator";
+import { FinancialYear, getCurrentFinancialYear, isInFinancialYear } from "@/utils/financialYear";
 import { supabase } from "@/integrations/supabase/client";
 
-export const calculateExpenseData = async (expenses: any[]) => {
-  const currentFY = getCurrentFY();
+export const calculateExpenseData = async (expenses: any[], financialYear?: FinancialYear) => {
+  const targetFY = financialYear || getCurrentFinancialYear();
 
-  // Filter expenses for current financial year and not deleted
+  // Filter expenses for target financial year and not deleted
   const currentFYExpenses = expenses.filter((expense) => 
-    isInCurrentFY(expense.date, currentFY) && !expense.isDeleted
+    isInFinancialYear(expense.date, targetFY) && !expense.isDeleted
   );
 
   // Calculate total expenses (only paid expenses from expenses table)
