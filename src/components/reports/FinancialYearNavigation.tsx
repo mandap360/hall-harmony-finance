@@ -28,7 +28,7 @@ export const FinancialYearNavigation = ({ currentFY, onFYChange }: FinancialYear
   };
 
   return (
-    <div className="flex items-center justify-center bg-card border-b border-border px-4 py-3 gap-6">
+    <div className="flex items-center justify-center bg-card border-b border-border px-4 py-3 gap-4">
       <Button
         variant="ghost"
         size="sm"
@@ -38,7 +38,7 @@ export const FinancialYearNavigation = ({ currentFY, onFYChange }: FinancialYear
         <ChevronLeft className="h-5 w-5" />
       </Button>
       
-      <h2 className="text-xl font-semibold text-foreground min-w-[140px] text-center">
+      <h2 className="text-xl font-bold text-foreground min-w-[140px] text-center">
         {formatFYDisplay(currentFY)}
       </h2>
       
