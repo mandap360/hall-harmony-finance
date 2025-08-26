@@ -1,6 +1,5 @@
-import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 interface FinancialYearNavigationProps {
   currentFY: { startYear: number; endYear: number };
@@ -29,35 +28,28 @@ export const FinancialYearNavigation = ({ currentFY, onFYChange }: FinancialYear
   };
 
   return (
-    <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-      <div className="p-4">
-        <div className="flex items-center justify-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={goToPreviousFY}
-            className="h-8 w-8 p-0 hover:bg-blue-200 text-blue-700"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-blue-600" />
-            <span className="text-lg font-bold text-blue-900">
-              {formatFYDisplay(currentFY)}
-            </span>
-          </div>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={goToNextFY}
-            className="h-8 w-8 p-0 hover:bg-blue-200 text-blue-700"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </Card>
+    <div className="flex items-center justify-center bg-card border-b border-border px-4 py-3 gap-6">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={goToPreviousFY}
+        className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 p-0"
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </Button>
+      
+      <h2 className="text-xl font-semibold text-foreground min-w-[140px] text-center">
+        {formatFYDisplay(currentFY)}
+      </h2>
+      
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={goToNextFY}
+        className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 p-0"
+      >
+        <ChevronRight className="h-5 w-5" />
+      </Button>
+    </div>
   );
 };
