@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-export const calculateIncomeData = async () => {
+export const calculateIncomeData = async (selectedFY?: { startYear: number; endYear: number }) => {
   // Get current user's organization
   const { data: profile } = await supabase
     .from('profiles')
@@ -30,6 +30,7 @@ export const calculateIncomeData = async () => {
       .select(`
         amount,
         category_id,
+        payment_date,
         income_categories!category_id (
           name,
           parent_id
@@ -38,8 +39,24 @@ export const calculateIncomeData = async () => {
       .eq('organization_id', profile.organization_id);
 
     if (!incomeError && allIncome) {
-      // Group income by category and calculate totals (excluding Secondary Income categories)
+      // Filter income by financial year and group by category (excluding Secondary Income categories)
       allIncome.forEach(income => {
+        // Check if income is in selected financial year
+        if (selectedFY && income.payment_date) {
+          const incomeDate = new Date(income.payment_date);
+          const incomeYear = incomeDate.getFullYear();
+          const incomeMonth = incomeDate.getMonth();
+          
+          let isInSelectedFY = false;
+          if (incomeMonth >= 3) { // April onwards
+            isInSelectedFY = incomeYear === selectedFY.startYear;
+          } else { // January to March  
+            isInSelectedFY = incomeYear === selectedFY.endYear;
+          }
+          
+          if (!isInSelectedFY) return;
+        }
+        
         const amount = Number(income.amount);
         const categoryName = income.income_categories?.name || 'Uncategorized';
         const isSecondaryIncome = income.category_id === secondaryCategory?.id || 
@@ -56,7 +73,7 @@ export const calculateIncomeData = async () => {
     // Fetch secondary income from secondary_income table only for Secondary Income category
     const { data: secondaryIncomeData, error } = await supabase
       .from('secondary_income')
-      .select('amount, income_categories!inner(name, parent_id)')
+      .select('amount, created_at, income_categories!inner(name, parent_id)')
       .eq('organization_id', profile.organization_id);
 
     if (!error && secondaryIncomeData) {
@@ -64,6 +81,22 @@ export const calculateIncomeData = async () => {
       const secondaryIncomeSubcategories: Record<string, number> = {};
       
       secondaryIncomeData.forEach(item => {
+        // Check if secondary income is in selected financial year
+        if (selectedFY && item.created_at) {
+          const incomeDate = new Date(item.created_at);
+          const incomeYear = incomeDate.getFullYear();
+          const incomeMonth = incomeDate.getMonth();
+          
+          let isInSelectedFY = false;
+          if (incomeMonth >= 3) { // April onwards
+            isInSelectedFY = incomeYear === selectedFY.startYear;
+          } else { // January to March  
+            isInSelectedFY = incomeYear === selectedFY.endYear;
+          }
+          
+          if (!isInSelectedFY) return;
+        }
+        
         const amount = Number(item.amount);
         const categoryName = item.income_categories.name;
         

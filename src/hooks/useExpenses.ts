@@ -100,7 +100,7 @@ export const useExpenses = () => {
         throw new Error(`Category "${expenseData.category}" not found`);
       }
 
-      const { error } = await supabase
+      const { data: newExpense, error } = await supabase
         .from('expenses')
         .insert({
           vendor_name: expenseData.vendorName,
@@ -116,9 +116,33 @@ export const useExpenses = () => {
           is_paid: expenseData.isPaid,
           account_id: expenseData.accountId,
           organization_id: profile.organization_id
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // If the expense is marked as paid, create a transaction entry
+      if (expenseData.isPaid && expenseData.accountId && newExpense) {
+        const transactionDescription = expenseData.vendorName;
+        
+        const { error: transactionError } = await supabase
+          .from('transactions')
+          .insert({
+            account_id: expenseData.accountId,
+            transaction_type: APP_CONSTANTS.TRANSACTION_TYPES.DEBIT,
+            amount: expenseData.totalAmount,
+            description: transactionDescription,
+            reference_type: APP_CONSTANTS.REFERENCE_TYPES.EXPENSE_PAYMENT,
+            reference_id: newExpense.id,
+            transaction_date: expenseData.date
+          });
+
+        if (transactionError) {
+          console.error('Error creating transaction:', transactionError);
+          // Don't throw here, let the expense creation succeed even if transaction fails
+        }
+      }
 
       await fetchExpenses();
       toast({

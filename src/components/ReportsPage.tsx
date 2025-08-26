@@ -14,6 +14,8 @@ import { AccountTransactions } from "@/components/AccountTransactions";
 import { Account } from "@/hooks/useAccounts";
 import { calculateIncomeData } from "@/components/reports/IncomeCalculator";
 import { calculateExpenseData } from "@/components/reports/ExpenseCalculator";
+import { FinancialYearNavigation } from "@/components/reports/FinancialYearNavigation";
+import { getCurrentFY } from "@/components/reports/FinancialYearCalculator";
 import { TrendingUp, FileText, PlusCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,23 +24,24 @@ import { Card } from "@/components/ui/card";
 export const ReportsPage = () => {
   const [currentView, setCurrentView] = useState("dashboard");
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [selectedFY, setSelectedFY] = useState(getCurrentFY());
   const [incomeData, setIncomeData] = useState<any>(null);
   const [expenseData, setExpenseData] = useState<any>(null);
   const { bookings } = useBookings();
   const { expenses } = useExpenses();
   const { accounts } = useAccounts();
 
-  // Calculate income and expense data asynchronously
+  // Calculate income and expense data asynchronously based on selected FY
   useEffect(() => {
     const fetchFinancialData = async () => {
-      const incomeResult = await calculateIncomeData();
+      const incomeResult = await calculateIncomeData(selectedFY);
       setIncomeData(incomeResult);
       
-      const expenseResult = await calculateExpenseData(expenses);
+      const expenseResult = await calculateExpenseData(expenses, selectedFY);
       setExpenseData(expenseResult);
     };
     fetchFinancialData();
-  }, [expenses]);
+  }, [expenses, selectedFY]);
 
   // Calculate banking summary
   const bankingSummary = accounts.reduce((acc, account) => {
@@ -150,6 +153,29 @@ export const ReportsPage = () => {
     <div className="bg-background p-4">
       <div className="max-w-6xl mx-auto space-y-6">
 
+        {/* Financial Year Navigation */}
+        <FinancialYearNavigation 
+          currentFY={selectedFY}
+          onFYChange={setSelectedFY}
+        />
+
+        {/* Income & Expense Summary */}
+        <SalesExpenseSummary 
+          totalIncome={incomeData.totalIncome}
+          totalExpenses={expenseData.totalExpenses}
+          profit={incomeData.totalIncome - expenseData.totalExpenses}
+          incomeByCategory={incomeData.incomeByCategory}
+          expensesByCategory={expenseData.expensesByCategory}
+        />
+
+        {/* Accounts Summary Title */}
+        <div className="flex items-center">
+          <h2 className="text-xl font-bold text-gray-900 flex items-center">
+            <TrendingUp className="h-5 w-5 mr-2 text-blue-600" />
+            Accounts Summary
+          </h2>
+        </div>
+
         {/* Dashboard Summary Cards */}
         <DashboardSummaryCards
           totalIncome={incomeData.totalIncome}
@@ -164,15 +190,6 @@ export const ReportsPage = () => {
           totalPayables={expenseData.totalPayables}
           onReceivablesClick={() => setCurrentView("receivables")}
           onPayablesClick={() => setCurrentView("payables")}
-        />
-
-        {/* Sales & Expense Summary with dropdown functionality */}
-        <SalesExpenseSummary 
-          totalIncome={incomeData.totalIncome}
-          totalExpenses={expenseData.totalExpenses}
-          profit={incomeData.totalIncome - expenseData.totalExpenses}
-          incomeByCategory={incomeData.incomeByCategory}
-          expensesByCategory={expenseData.expensesByCategory}
         />
       </div>
     </div>

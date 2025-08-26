@@ -2,36 +2,30 @@
 import { getCurrentFY, isInCurrentFY } from "./FinancialYearCalculator";
 import { supabase } from "@/integrations/supabase/client";
 
-export const calculateExpenseData = async (expenses: any[]) => {
-  const currentFY = getCurrentFY();
+export const calculateExpenseData = async (expenses: any[], selectedFY?: { startYear: number; endYear: number }) => {
+  const targetFY = selectedFY || getCurrentFY();
 
-  // Filter expenses for current financial year and not deleted
-  const currentFYExpenses = expenses.filter((expense) => 
-    isInCurrentFY(expense.date, currentFY) && !expense.isDeleted
+  // Filter expenses for target financial year and not deleted
+  const targetFYExpenses = expenses.filter((expense) => 
+    isInCurrentFY(expense.date, targetFY) && !expense.isDeleted
   );
 
-  // Calculate total expenses (only paid expenses from expenses table)
-  const totalExpenses = currentFYExpenses.reduce((sum, expense) => {
-    if (expense.isPaid) {
-      return sum + Number(expense.totalAmount || expense.amount);
-    }
-    return sum;
+  // Calculate total expenses (ALL expenses - paid and unpaid)
+  const totalExpenses = targetFYExpenses.reduce((sum, expense) => {
+    return sum + Number(expense.totalAmount || expense.amount);
   }, 0);
 
-  // Group expenses by category for breakdown
+  // Group expenses by category for breakdown (ALL expenses - paid and unpaid)
   const expensesByCategory: Record<string, number> = {};
   
-  currentFYExpenses.forEach((expense) => {
-    // Only include paid expenses in category breakdown
-    if (expense.isPaid) {
-      const categoryName = expense.category || 'Uncategorized';
-      const amount = Number(expense.totalAmount || expense.amount);
-      expensesByCategory[categoryName] = (expensesByCategory[categoryName] || 0) + amount;
-    }
+  targetFYExpenses.forEach((expense) => {
+    const categoryName = expense.category || 'Uncategorized';
+    const amount = Number(expense.totalAmount || expense.amount);
+    expensesByCategory[categoryName] = (expensesByCategory[categoryName] || 0) + amount;
   });
 
   // Calculate total payables (unpaid bills)
-  const totalPayables = currentFYExpenses.reduce((sum, expense) => {
+  const totalPayables = targetFYExpenses.reduce((sum, expense) => {
     if (!expense.isPaid) {
       return sum + Number(expense.totalAmount || expense.amount);
     }
