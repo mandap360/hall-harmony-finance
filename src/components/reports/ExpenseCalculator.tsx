@@ -24,12 +24,27 @@ export const calculateExpenseData = async (expenses: any[], selectedFY?: { start
     expensesByCategory[categoryName] = (expensesByCategory[categoryName] || 0) + amount;
   });
 
-  // Calculate total payables (unpaid bills)
-  const totalPayables = targetFYExpenses.reduce((sum, expense) => {
-    if (!expense.isPaid) {
-      return sum + Number(expense.totalAmount || expense.amount);
+  // Calculate total payables (unpaid bills from selected FY and previous years, exclude future FY)
+  const totalPayables = expenses.filter((expense) => {
+    if (expense.isDeleted || expense.isPaid) return false;
+    
+    // Check if expense is from selected FY or previous years (exclude future FY)
+    const expenseDate = new Date(expense.date);
+    const expenseYear = expenseDate.getFullYear();
+    const expenseMonth = expenseDate.getMonth();
+    
+    // Get the expense's FY
+    let expenseFY;
+    if (expenseMonth >= 3) { // April onwards
+      expenseFY = { startYear: expenseYear, endYear: expenseYear + 1 };
+    } else { // January to March
+      expenseFY = { startYear: expenseYear - 1, endYear: expenseYear };
     }
-    return sum;
+    
+    // Include if expense FY is same or before the selected FY
+    return expenseFY.endYear <= targetFY.endYear;
+  }).reduce((sum, expense) => {
+    return sum + Number(expense.totalAmount || expense.amount);
   }, 0);
 
   return {

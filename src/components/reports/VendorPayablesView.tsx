@@ -1,18 +1,50 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Building, IndianRupee, ChevronRight } from "lucide-react";
+import { ArrowLeft, Building, Edit, IndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useExpenses } from "@/hooks/useExpenses";
+import { useTransactions } from "@/hooks/useTransactions";
+import { useCategories } from "@/hooks/useCategories";
+import { EditExpenseDialog } from "@/components/expense/EditExpenseDialog";
+import { getCurrentFY } from "./FinancialYearCalculator";
 
 interface VendorPayablesViewProps {
   onBack: () => void;
+  selectedFY?: { startYear: number; endYear: number };
 }
 
-export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
-  const { expenses } = useExpenses();
+export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewProps) => {
+  const { expenses, updateExpense } = useExpenses();
+  const { addTransaction } = useTransactions();
+  const { getExpenseCategories } = useCategories();
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState(null);
+  
+  const targetFY = selectedFY || getCurrentFY();
+  const expenseCategories = getExpenseCategories();
 
-  const unpaidExpenses = expenses.filter(expense => !expense.isPaid);
+  // Filter unpaid expenses from selected FY and previous years (exclude future FY)
+  const unpaidExpenses = expenses.filter(expense => {
+    if (expense.isDeleted || expense.isPaid) return false;
+    
+    // Check if expense is from selected FY or previous years (exclude future FY)
+    const expenseDate = new Date(expense.date);
+    const expenseYear = expenseDate.getFullYear();
+    const expenseMonth = expenseDate.getMonth();
+    
+    // Get the expense's FY
+    let expenseFY;
+    if (expenseMonth >= 3) { // April onwards
+      expenseFY = { startYear: expenseYear, endYear: expenseYear + 1 };
+    } else { // January to March
+      expenseFY = { startYear: expenseYear - 1, endYear: expenseYear };
+    }
+    
+    // Include if expense FY is same or before the selected FY
+    return expenseFY.endYear <= targetFY.endYear;
+  });
 
   // Group unpaid expenses by vendor
   const vendorPayables = unpaidExpenses.reduce((acc, expense) => {
@@ -45,6 +77,35 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
     });
   };
 
+  const handleEditExpense = (expense: any) => {
+    setSelectedExpense(expense);
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateExpense = async (expenseData: any) => {
+    if (selectedExpense) {
+      await updateExpense(selectedExpense.id, expenseData);
+    }
+  };
+
+  const handleRecordPayment = async (expenseId: string, accountId: string, paymentDate: string) => {
+    // Create a payment transaction
+    await addTransaction({
+      account_id: accountId,
+      amount: selectedExpense?.totalAmount || 0,
+      transaction_type: 'expense_payment',
+      reference_type: 'expense',
+      reference_id: expenseId,
+      transaction_date: paymentDate,
+      description: `Payment for ${selectedExpense?.vendorName || 'expense'}`
+    });
+  };
+
+  const getCategoryName = (categoryId: string) => {
+    const category = expenseCategories.find(cat => cat.id === categoryId);
+    return category?.name || 'Uncategorized';
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -63,7 +124,6 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Payables</h2>
           <div className="flex items-center text-red-600">
-            <IndianRupee className="h-5 w-5 mr-1" />
             <span className="font-bold text-xl">₹{totalPayables.toLocaleString()}</span>
           </div>
         </div>
@@ -75,8 +135,8 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
           </div>
         ) : (
           <div className="flex gap-6">
-            {/* Vendor List Column - Fixed narrow width */}
-            <div className="w-80 space-y-3">
+            {/* Vendor List Column - Reduced width */}
+            <div className="w-64 space-y-3">
               {Object.entries(vendorPayables).map(([vendorName, data]) => (
                 <Card 
                   key={vendorName} 
@@ -92,7 +152,6 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
                       {vendorName}
                     </h4>
                     <div className="flex items-center text-red-600">
-                      <IndianRupee className="h-4 w-4 mr-1" />
                       <span className="font-bold text-sm">₹{data.totalAmount.toLocaleString()}</span>
                     </div>
                   </div>
@@ -106,17 +165,29 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
                 <div className="space-y-3">
                   {vendorPayables[selectedVendor].expenses.map((expense) => (
                     <Card key={expense.id} className="p-4">
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium">
-                          Invoice #{expense.billNumber}
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">Invoice #{expense.billNumber}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {getCategoryName(expense.categoryId)}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {formatDate(expense.date)}
+                          </div>
+                          <div className="flex items-center text-red-600">
+                            <span className="font-semibold">₹{expense.totalAmount.toLocaleString()}</span>
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {formatDate(expense.date)}
-                        </div>
-                        <div className="flex items-center text-red-600">
-                          <IndianRupee className="h-4 w-4 mr-1" />
-                          <span className="font-semibold">₹{expense.totalAmount.toLocaleString()}</span>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditExpense(expense)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                       </div>
                     </Card>
                   ))}
@@ -129,6 +200,14 @@ export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
             </div>
           </div>
         )}
+
+        <EditExpenseDialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          expense={selectedExpense}
+          onUpdateExpense={handleUpdateExpense}
+          onRecordPayment={handleRecordPayment}
+        />
       </div>
     </div>
   );
