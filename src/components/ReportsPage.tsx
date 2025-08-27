@@ -77,7 +77,7 @@ export const ReportsPage = () => {
   }
 
   if (currentView === "payables") {
-    return <VendorPayablesView onBack={() => setCurrentView("dashboard")} />;
+    return <VendorPayablesView onBack={() => setCurrentView("dashboard")} selectedFY={selectedFY} />;
   }
 
   if (currentView === "unpaid-bills") {
