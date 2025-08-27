@@ -34,16 +34,17 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
     const expenseYear = expenseDate.getFullYear();
     const expenseMonth = expenseDate.getMonth();
     
-    // Get the expense's FY
+    // Calculate expense FY
     let expenseFY;
-    if (expenseMonth >= 3) { // April onwards
+    if (expenseMonth >= 3) { // April onwards (month is 0-indexed, so March = 2, April = 3)
       expenseFY = { startYear: expenseYear, endYear: expenseYear + 1 };
     } else { // January to March
       expenseFY = { startYear: expenseYear - 1, endYear: expenseYear };
     }
     
-    // Include if expense FY is same or before the selected FY
-    return expenseFY.endYear <= targetFY.endYear;
+    // Only include current FY and previous years, exclude future FY
+    return expenseFY.endYear < targetFY.endYear || 
+           (expenseFY.startYear === targetFY.startYear && expenseFY.endYear === targetFY.endYear);
   });
 
   // Group unpaid expenses by vendor
@@ -161,12 +162,12 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
                     <Card key={expense.id} className="p-4">
                       <div className="flex justify-between items-start">
                         <div className="space-y-2 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">Invoice #{expense.billNumber}</span>
-                             <Badge variant="secondary" className="text-xs">
-                               {expense.category}
-                             </Badge>
-                          </div>
+                           <div className="flex items-center gap-2">
+                             <span className="text-sm font-medium">Invoice: {expense.billNumber || 'N/A'}</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {expense.category}
+                              </Badge>
+                           </div>
                           <div className="text-sm text-gray-500">
                             {formatDate(expense.date)}
                           </div>

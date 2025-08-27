@@ -29,6 +29,10 @@ export const ExpenseCard = ({ expense }: ExpenseCardProps) => {
             {expense.vendorName}
           </h3>
           
+          <div className="text-sm text-gray-600 mb-2">
+            Invoice: {expense.billNumber || 'N/A'}
+          </div>
+          
           <div className="flex items-center text-gray-500 mb-3">
             <Calendar className="h-4 w-4 mr-2" />
             <span className="text-sm">{formatDate(expense.date)}</span>
