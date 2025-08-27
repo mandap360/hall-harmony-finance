@@ -27,7 +27,7 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
 
   // Filter unpaid expenses from selected FY and previous years (exclude future FY)
   const unpaidExpenses = expenses.filter(expense => {
-    if (expense.isDeleted || expense.isPaid) return false;
+    if (expense.isPaid) return false;
     
     // Check if expense is from selected FY or previous years (exclude future FY)
     const expenseDate = new Date(expense.date);
@@ -84,7 +84,7 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
 
   const handleUpdateExpense = async (expenseData: any) => {
     if (selectedExpense) {
-      await updateExpense(selectedExpense.id, expenseData);
+      await updateExpense(expenseData);
     }
   };
 
@@ -93,19 +93,13 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
     await addTransaction({
       account_id: accountId,
       amount: selectedExpense?.totalAmount || 0,
-      transaction_type: 'expense_payment',
-      reference_type: 'expense',
+      transaction_type: 'debit',
+      reference_type: 'expense_payment',
       reference_id: expenseId,
       transaction_date: paymentDate,
       description: `Payment for ${selectedExpense?.vendorName || 'expense'}`
     });
   };
-
-  const getCategoryName = (categoryId: string) => {
-    const category = expenseCategories.find(cat => cat.id === categoryId);
-    return category?.name || 'Uncategorized';
-  };
-
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -169,9 +163,9 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
                         <div className="space-y-2 flex-1">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium">Invoice #{expense.billNumber}</span>
-                            <Badge variant="secondary" className="text-xs">
-                              {getCategoryName(expense.categoryId)}
-                            </Badge>
+                             <Badge variant="secondary" className="text-xs">
+                               {expense.category}
+                             </Badge>
                           </div>
                           <div className="text-sm text-gray-500">
                             {formatDate(expense.date)}

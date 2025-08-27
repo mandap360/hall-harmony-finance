@@ -7,7 +7,7 @@ export const calculateExpenseData = async (expenses: any[], selectedFY?: { start
 
   // Filter expenses for target financial year and not deleted
   const targetFYExpenses = expenses.filter((expense) => 
-    isInCurrentFY(expense.date, targetFY) && !expense.isDeleted
+    isInCurrentFY(expense.date, targetFY)
   );
 
   // Calculate total expenses (ALL expenses - paid and unpaid)
@@ -26,7 +26,7 @@ export const calculateExpenseData = async (expenses: any[], selectedFY?: { start
 
   // Calculate total payables (unpaid bills from selected FY and previous years, exclude future FY)
   const totalPayables = expenses.filter((expense) => {
-    if (expense.isDeleted || expense.isPaid) return false;
+    if (expense.isPaid) return false;
     
     // Check if expense is from selected FY or previous years (exclude future FY)
     const expenseDate = new Date(expense.date);
