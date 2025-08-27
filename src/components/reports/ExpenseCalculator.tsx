@@ -41,8 +41,9 @@ export const calculateExpenseData = async (expenses: any[], selectedFY?: { start
       expenseFY = { startYear: expenseYear - 1, endYear: expenseYear };
     }
     
-    // Include if expense FY is same or before the selected FY
-    return expenseFY.endYear <= targetFY.endYear;
+    // Only include current FY and previous years, exclude future FY
+    return expenseFY.endYear < targetFY.endYear || 
+           (expenseFY.startYear === targetFY.startYear && expenseFY.endYear === targetFY.endYear);
   }).reduce((sum, expense) => {
     return sum + Number(expense.totalAmount || expense.amount);
   }, 0);
