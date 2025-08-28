@@ -1,10 +1,11 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Settings, User, HelpCircle, Info, Calculator, Tag, Users } from "lucide-react";
+import { Settings, User, HelpCircle, Info, Calculator, Tag, Users, Shield } from "lucide-react";
 import { TaxManagement } from "@/components/TaxManagement";
 import { CategorySettings } from "@/components/CategorySettings";
 import { VendorManagement } from "@/components/VendorManagement";
+import { PasswordSecuritySettings } from "@/components/PasswordSecuritySettings";
 
 export const MorePage = () => {
   const [currentView, setCurrentView] = useState("menu");
@@ -27,6 +28,12 @@ export const MorePage = () => {
       label: "Manage Parties", 
       description: "Manage party information",
       action: () => setCurrentView("vendors")
+    },
+    { 
+      icon: Shield, 
+      label: "Password & Security", 
+      description: "Change your password and security settings",
+      action: () => setCurrentView("password")
     },
     { icon: HelpCircle, label: "Help & Support", description: "Get assistance" },
   ];
@@ -75,6 +82,22 @@ export const MorePage = () => {
           </button>
         </div>
         <VendorManagement />
+      </div>
+    );
+  }
+
+  if (currentView === "password") {
+    return (
+      <div>
+        <div className="p-4 border-b">
+          <button 
+            onClick={() => setCurrentView("menu")}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            ← Back
+          </button>
+        </div>
+        <PasswordSecuritySettings />
       </div>
     );
   }
