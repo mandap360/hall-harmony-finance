@@ -24,13 +24,14 @@ export const calculateIncomeData = async (selectedFY?: { startYear: number; endY
       .eq('name', 'Secondary Income')
       .single();
 
-    // Fetch all income with category details for user's organization
-    const { data: allIncome, error: incomeError } = await supabase
+    // Fetch all income with their corresponding booking end dates for user's organization
+    const { data: allIncomeWithBookings, error: incomeError } = await supabase
       .from('income')
       .select(`
         amount,
         category_id,
         payment_date,
+        booking_id,
         income_categories!category_id (
           name,
           parent_id
@@ -38,20 +39,34 @@ export const calculateIncomeData = async (selectedFY?: { startYear: number; endY
       `)
       .eq('organization_id', profile.organization_id);
 
-    if (!incomeError && allIncome) {
-      // Filter income by financial year and group by category (excluding Secondary Income categories)
-      allIncome.forEach(income => {
-        // Check if income is in selected financial year
-        if (selectedFY && income.payment_date) {
-          const incomeDate = new Date(income.payment_date);
-          const incomeYear = incomeDate.getFullYear();
-          const incomeMonth = incomeDate.getMonth();
+    // Fetch booking end dates separately
+    const { data: bookingsData, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('id, end_datetime')
+      .eq('organization_id', profile.organization_id);
+
+    // Create a map of booking_id to end_datetime for quick lookup
+    const bookingEndDateMap = bookingsData?.reduce((acc, booking) => {
+      acc[booking.id] = booking.end_datetime;
+      return acc;
+    }, {} as Record<string, string>) || {};
+
+    if (!incomeError && !bookingsError && allIncomeWithBookings && bookingsData) {
+      // Filter income by booking end date within financial year and group by category (excluding Secondary Income categories)
+      allIncomeWithBookings.forEach(income => {
+        const bookingEndDate = income.booking_id ? bookingEndDateMap[income.booking_id] : null;
+        
+        // Check if booking end date is in selected financial year
+        if (selectedFY && bookingEndDate) {
+          const endDate = new Date(bookingEndDate);
+          const endYear = endDate.getFullYear();
+          const endMonth = endDate.getMonth();
           
           let isInSelectedFY = false;
-          if (incomeMonth >= 3) { // April onwards
-            isInSelectedFY = incomeYear === selectedFY.startYear;
+          if (endMonth >= 3) { // April onwards
+            isInSelectedFY = endYear === selectedFY.startYear;
           } else { // January to March  
-            isInSelectedFY = incomeYear === selectedFY.endYear;
+            isInSelectedFY = endYear === selectedFY.endYear;
           }
           
           if (!isInSelectedFY) return;
@@ -70,28 +85,35 @@ export const calculateIncomeData = async (selectedFY?: { startYear: number; endY
       });
     }
 
-    // Fetch secondary income from secondary_income table only for Secondary Income category
+    // Fetch secondary income from secondary_income table with booking end dates only for Secondary Income category
     const { data: secondaryIncomeData, error } = await supabase
       .from('secondary_income')
-      .select('amount, created_at, income_categories!inner(name, parent_id)')
+      .select(`
+        amount, 
+        created_at, 
+        booking_id,
+        income_categories!inner(name, parent_id)
+      `)
       .eq('organization_id', profile.organization_id);
 
-    if (!error && secondaryIncomeData) {
+    if (!error && secondaryIncomeData && bookingsData) {
       let secondaryIncomeTotal = 0;
       const secondaryIncomeSubcategories: Record<string, number> = {};
       
       secondaryIncomeData.forEach(item => {
-        // Check if secondary income is in selected financial year
-        if (selectedFY && item.created_at) {
-          const incomeDate = new Date(item.created_at);
-          const incomeYear = incomeDate.getFullYear();
-          const incomeMonth = incomeDate.getMonth();
+        const bookingEndDate = item.booking_id ? bookingEndDateMap[item.booking_id] : null;
+        
+        // Check if booking end date is in selected financial year
+        if (selectedFY && bookingEndDate) {
+          const endDate = new Date(bookingEndDate);
+          const endYear = endDate.getFullYear();
+          const endMonth = endDate.getMonth();
           
           let isInSelectedFY = false;
-          if (incomeMonth >= 3) { // April onwards
-            isInSelectedFY = incomeYear === selectedFY.startYear;
+          if (endMonth >= 3) { // April onwards
+            isInSelectedFY = endYear === selectedFY.startYear;
           } else { // January to March  
-            isInSelectedFY = incomeYear === selectedFY.endYear;
+            isInSelectedFY = endYear === selectedFY.endYear;
           }
           
           if (!isInSelectedFY) return;
