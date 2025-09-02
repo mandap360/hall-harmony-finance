@@ -9,15 +9,19 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 
 export default function Auth() {
-  const { signIn, user } = useAuth();
+  const { signIn, resetPassword, user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // Sign in form state
   const [signInData, setSignInData] = useState({
     identifier: '',
     password: ''
   });
+
+  // Forgot password form state
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -30,6 +34,17 @@ export default function Auth() {
     setLoading(true);
     try {
       await signIn(signInData.identifier, signInData.password);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await resetPassword(forgotPasswordEmail);
+      setForgotPasswordEmail('');
     } finally {
       setLoading(false);
     }
@@ -49,39 +64,79 @@ export default function Auth() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Sign In</CardTitle>
+            <CardTitle>{showForgotPassword ? 'Reset Password' : 'Sign In'}</CardTitle>
             <CardDescription>
-              Enter your email or phone number and password to sign in
+              {showForgotPassword 
+                ? 'Enter your email address to receive a reset link'
+                : 'Enter your email or phone number and password to sign in'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSignIn} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="identifier">Email or Phone Number</Label>
-                <Input
-                  id="identifier"
-                  type="text"
-                  value={signInData.identifier}
-                  onChange={(e) => setSignInData(prev => ({ ...prev, identifier: e.target.value }))}
-                  placeholder="Enter your email or phone number"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={signInData.password}
-                  onChange={(e) => setSignInData(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Enter your password"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Signing In...' : 'Sign In'}
-              </Button>
-            </form>
+            {!showForgotPassword ? (
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="identifier">Email or Phone Number</Label>
+                  <Input
+                    id="identifier"
+                    type="text"
+                    value={signInData.identifier}
+                    onChange={(e) => setSignInData(prev => ({ ...prev, identifier: e.target.value }))}
+                    placeholder="Enter your email or phone number"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={signInData.password}
+                    onChange={(e) => setSignInData(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="Enter your password"
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Signing In...' : 'Sign In'}
+                </Button>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email Address</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    value={forgotPasswordEmail}
+                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                    placeholder="Enter your email address"
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Sending Reset Link...' : 'Send Reset Link'}
+                </Button>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(false)}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Back to Sign In
+                  </button>
+                </div>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>
