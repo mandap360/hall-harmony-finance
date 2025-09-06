@@ -38,17 +38,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          organizations!inner(name)
+        `)
         .eq('id', userId)
         .single();
 
       if (error) throw error;
       
-      // For now, we'll use organization_id as organization_name since we don't have a separate organizations table
-      // In a real app, you'd join with an organizations table to get the actual name
+      // Get the actual organization name from the joined organizations table
       const profileWithOrgName = {
         ...data,
-        organization_name: data.organization_id // This should be replaced with actual org name lookup
+        organization_name: data.organizations?.name || data.organization_id
       };
       
       setProfile(profileWithOrgName);

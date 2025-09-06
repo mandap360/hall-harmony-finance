@@ -47,10 +47,10 @@ const AuthenticatedLayoutContent = ({ children }: AuthenticatedLayoutProps) => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <div className="px-2 py-1.5 text-sm">
-                <p className="font-medium">{profile?.business_name}</p>
+                <p className="font-medium">{profile?.full_name || profile?.business_name || "User"}</p>
                 <p className="text-muted-foreground">{user?.email}</p>
-                {profile?.organization_id && (
-                  <p className="text-xs text-muted-foreground mt-1">Organization: {profile.organization_id}</p>
+                {profile?.organization_name && (
+                  <p className="text-xs text-muted-foreground mt-1">Organization: {profile.organization_name}</p>
                 )}
               </div>
               <DropdownMenuSeparator />
