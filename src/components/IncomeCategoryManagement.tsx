@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Edit3, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
+import { toast } from "@/hooks/use-toast";
 
 export const IncomeCategoryManagement = () => {
   const { categories, addCategory, deleteCategory, updateCategory } = useIncomeCategories();
@@ -64,6 +65,17 @@ export const IncomeCategoryManagement = () => {
   };
 
   const openEditDialog = (category: any) => {
+    // Check if category is a default system category
+    if (!category.organization_id) {
+      // Show toast error for default categories
+      toast({
+        title: "Cannot Edit Category",
+        description: "Default system categories cannot be edited.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setEditingCategory(category);
     setEditCategoryName(category.name);
     setShowEditDialog(true);

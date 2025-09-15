@@ -8,12 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Edit3, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
+import { toast } from "@/hooks/use-toast";
 
 export const ExpenseCategoryManagement = () => {
   const { getExpenseCategories, addCategory, deleteCategory } = useCategories();
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [editCategoryName, setEditCategoryName] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   const categories = getExpenseCategories();
@@ -55,6 +59,34 @@ export const ExpenseCategoryManagement = () => {
     setShowAddDialog(false);
   };
 
+  const handleEditCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editCategoryName.trim() || !editingCategory) return;
+
+    // Note: Add update functionality when available in useCategories hook
+    // For now, just close the dialog
+    setEditCategoryName("");
+    setEditingCategory(null);
+    setShowEditDialog(false);
+  };
+
+  const openEditDialog = (category: any) => {
+    // Check if category is a default system category
+    if (!category.organization_id) {
+      // Show toast error for default categories
+      toast({
+        title: "Cannot Edit Category",
+        description: "Default system categories cannot be edited.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setEditingCategory(category);
+    setEditCategoryName(category.name);
+    setShowEditDialog(true);
+  };
+
   return (
     <div className="min-h-screen bg-background relative">
       {/* Categories List */}
@@ -81,7 +113,12 @@ export const ExpenseCategoryManagement = () => {
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0 text-muted-foreground"
+                    onClick={() => openEditDialog(category)}
+                  >
                     <Edit3 className="h-4 w-4" />
                   </Button>
                   {hasSubCategories && (
@@ -113,7 +150,12 @@ export const ExpenseCategoryManagement = () => {
                     <span className="text-sm font-medium">{subCategory.name}</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-muted-foreground"
+                      onClick={() => openEditDialog(subCategory)}
+                    >
                       <Edit3 className="h-4 w-4" />
                     </Button>
                     <Button
@@ -131,6 +173,40 @@ export const ExpenseCategoryManagement = () => {
           );
         })}
       </div>
+
+      {/* Edit Category Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Category</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditCategory} className="space-y-4">
+            <div>
+              <Label htmlFor="editCategoryName">Category Name</Label>
+              <Input
+                id="editCategoryName"
+                value={editCategoryName}
+                onChange={(e) => setEditCategoryName(e.target.value)}
+                placeholder="Enter category name"
+                required
+              />
+            </div>
+            <div className="flex space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowEditDialog(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button type="submit" className="flex-1">
+                Save
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Floating Add Button */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
