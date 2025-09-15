@@ -85,7 +85,7 @@ export const ReportsPage = () => {
   }
 
   if (currentView === "receivables") {
-    return <ReceivablesView onBack={() => setCurrentView("dashboard")} />;
+    return <ReceivablesView onBack={() => setCurrentView("dashboard")} selectedFY={selectedFY} />;
   }
 
   // Show loading state while data is being calculated
@@ -181,7 +181,18 @@ export const ReportsPage = () => {
           totalIncome={incomeData.totalIncome}
           totalExpenses={expenseData.totalExpenses}
           totalReceivables={bookings
-            .filter(booking => booking.status !== 'cancelled')
+            .filter(booking => {
+              if (booking.status === 'cancelled') return false;
+              
+              // Filter by selected FY and earlier (not future FY)
+              const bookingEndDate = new Date(booking.endDate);
+              const bookingFY = bookingEndDate.getMonth() >= 3 
+                ? { startYear: bookingEndDate.getFullYear(), endYear: bookingEndDate.getFullYear() + 1 }
+                : { startYear: bookingEndDate.getFullYear() - 1, endYear: bookingEndDate.getFullYear() };
+              
+              // Show receivables for selected FY and earlier (not future)
+              return bookingFY.endYear <= selectedFY.endYear;
+            })
             .reduce((sum, booking) => {
               const pendingRent = booking.rentFinalized - booking.rentReceived;
               return pendingRent > 0 ? sum + pendingRent : sum;

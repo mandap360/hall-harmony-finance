@@ -8,19 +8,32 @@ import { financialUtils } from "@/lib/utils";
 
 interface ReceivablesViewProps {
   onBack: () => void;
+  selectedFY?: { startYear: number; endYear: number };
 }
 
-export const ReceivablesView = ({ onBack }: ReceivablesViewProps) => {
+export const ReceivablesView = ({ onBack, selectedFY }: ReceivablesViewProps) => {
   const { bookings } = useBookings();
 
-  // Filter bookings for current financial year where rent is pending (excluding cancelled bookings)
+  // Filter bookings for selected financial year and earlier where rent is pending (excluding cancelled bookings)
   const pendingRentBookings = bookings.filter(booking => {
-    const bookingDate = new Date(booking.startDate);
-    const isInCurrentFY = financialUtils.isInCurrentFinancialYear(bookingDate);
+    const bookingEndDate = new Date(booking.endDate);
     const hasPendingRent = booking.rentFinalized > booking.rentReceived;
     const isNotCancelled = booking.status !== 'cancelled';
     
-    return isInCurrentFY && hasPendingRent && isNotCancelled;
+    if (!hasPendingRent || !isNotCancelled) return false;
+    
+    // If no selectedFY provided, use current FY logic
+    if (!selectedFY) {
+      return financialUtils.isInCurrentFinancialYear(bookingEndDate);
+    }
+    
+    // Calculate booking's FY based on end date
+    const bookingFY = bookingEndDate.getMonth() >= 3 
+      ? { startYear: bookingEndDate.getFullYear(), endYear: bookingEndDate.getFullYear() + 1 }
+      : { startYear: bookingEndDate.getFullYear() - 1, endYear: bookingEndDate.getFullYear() };
+    
+    // Show receivables for selected FY and earlier (not future)
+    return bookingFY.endYear <= selectedFY.endYear;
   });
 
   const totalReceivables = pendingRentBookings.reduce(
