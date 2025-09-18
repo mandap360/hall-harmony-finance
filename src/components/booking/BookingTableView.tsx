@@ -104,7 +104,11 @@ export const BookingTableView = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => onCancelBooking(booking.id)}
+                      onClick={() => {
+                        if (window.confirm(`Are you sure you want to cancel the booking for "${booking.eventName}"?`)) {
+                          onCancelBooking(booking.id);
+                        }
+                      }}
                       className="h-6 w-6 p-0 text-muted-foreground hover:text-red-600"
                       title="Cancel booking"
                     >

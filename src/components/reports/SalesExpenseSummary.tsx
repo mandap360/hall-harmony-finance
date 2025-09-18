@@ -107,7 +107,7 @@ export const SalesExpenseSummary = ({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-900">
-              ₹{totalIncome.toLocaleString()}
+              ₹{totalIncome.toLocaleString('en-IN')}
             </div>
             
             {showIncomeBreakdown && (
@@ -132,20 +132,20 @@ export const SalesExpenseSummary = ({
                            </Button>
                          )}
                        </div>
-                       {category.name !== "Secondary Income" && (
-                         <span className="text-green-900 font-medium">
-                           ₹{category.total.toLocaleString()}
-                         </span>
-                       )}
+                        {category.name !== "Secondary Income" && (
+                          <span className="text-green-900 font-medium">
+                            ₹{category.total.toLocaleString('en-IN')}
+                          </span>
+                        )}
                      </div>
                     
                     {expandedIncomeCategories.has(category.id) && category.subcategories.length > 0 && (
                       <div className="ml-4 space-y-1">
                         {category.subcategories.map((subcategory) => (
-                          <div key={subcategory.id} className="flex justify-between items-center text-sm">
-                            <span className="text-green-700">{subcategory.name}</span>
-                            <span className="text-green-800">₹{subcategory.total.toLocaleString()}</span>
-                          </div>
+                           <div key={subcategory.id} className="flex justify-between items-center text-sm">
+                             <span className="text-green-700">{subcategory.name}</span>
+                             <span className="text-green-800">₹{subcategory.total.toLocaleString('en-IN')}</span>
+                           </div>
                         ))}
                       </div>
                     )}
@@ -179,7 +179,7 @@ export const SalesExpenseSummary = ({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-900">
-              ₹{totalExpenses.toLocaleString()}
+              ₹{totalExpenses.toLocaleString('en-IN')}
             </div>
             
             {showExpenseBreakdown && (
@@ -204,18 +204,18 @@ export const SalesExpenseSummary = ({
                           </Button>
                         )}
                       </div>
-                      <span className="text-red-900 font-medium">
-                        ₹{category.total.toLocaleString()}
-                      </span>
+                       <span className="text-red-900 font-medium">
+                         ₹{category.total.toLocaleString('en-IN')}
+                       </span>
                     </div>
                     
                     {expandedExpenseCategories.has(category.id) && category.subcategories.length > 0 && (
                       <div className="ml-4 space-y-1">
                         {category.subcategories.map((subcategory) => (
-                          <div key={subcategory.id} className="flex justify-between items-center text-sm">
-                            <span className="text-red-700">{subcategory.name}</span>
-                            <span className="text-red-800">₹{subcategory.total.toLocaleString()}</span>
-                          </div>
+                           <div key={subcategory.id} className="flex justify-between items-center text-sm">
+                             <span className="text-red-700">{subcategory.name}</span>
+                             <span className="text-red-800">₹{subcategory.total.toLocaleString('en-IN')}</span>
+                           </div>
                         ))}
                       </div>
                     )}
