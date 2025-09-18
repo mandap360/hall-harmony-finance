@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PaymentStatCard } from "@/components/ui/payment-stat-card";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 interface BookingTableViewProps {
   bookings: any[];
@@ -18,6 +20,21 @@ export const BookingTableView = ({
   onCancelBooking,
   onProcessRefund,
 }: BookingTableViewProps) => {
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<any>(null);
+
+  const handleCancelClick = (booking: any) => {
+    setBookingToCancel(booking);
+    setCancelDialogOpen(true);
+  };
+
+  const handleConfirmCancel = () => {
+    if (bookingToCancel && onCancelBooking) {
+      onCancelBooking(bookingToCancel.id);
+    }
+    setCancelDialogOpen(false);
+    setBookingToCancel(null);
+  };
   const getStatusColor = (status: string) => {
     switch (status) {
       case "confirmed":
@@ -104,11 +121,7 @@ export const BookingTableView = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        if (window.confirm(`Are you sure you want to cancel the booking for "${booking.eventName}"?`)) {
-                          onCancelBooking(booking.id);
-                        }
-                      }}
+                      onClick={() => handleCancelClick(booking)}
                       className="h-6 w-6 p-0 text-muted-foreground hover:text-red-600"
                       title="Cancel booking"
                     >
@@ -187,6 +200,23 @@ export const BookingTableView = ({
           </Card>
         );
       })}
+
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to cancel this booking?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You cannot undo this action.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmCancel}>
+              Yes, cancel booking
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
