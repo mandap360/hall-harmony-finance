@@ -218,7 +218,7 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
               </SelectContent>
             </Select>
             {taxAmount > 0 && (
-              <span className="text-sm text-gray-600 whitespace-nowrap">₹{taxAmount.toFixed(2)}</span>
+              <span className="text-sm text-gray-600 whitespace-nowrap">₹{taxAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             )}
           </div>
         </div>
@@ -227,7 +227,7 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
       <div className="bg-gray-50 p-3 rounded-lg">
         <div className="flex justify-between items-center">
           <span className="font-semibold">Total Amount:</span>
-          <span className="font-bold text-lg">₹{totalAmount.toFixed(2)}</span>
+          <span className="font-bold text-lg">₹{totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
         </div>
       </div>
 

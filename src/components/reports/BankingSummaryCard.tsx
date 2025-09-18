@@ -77,7 +77,7 @@ export const BankingSummaryCard = ({
               </CardHeader>
               <CardContent>
                 <div className={`text-2xl font-bold ${colors.amount}`}>
-                  ₹{account.balance.toLocaleString()}
+                  ₹{account.balance.toLocaleString('en-IN')}
                 </div>
                 {account.sub_type && (
                   <p className="text-xs text-gray-500 mt-1 capitalize">

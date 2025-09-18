@@ -224,19 +224,19 @@ export const AccountTransactions = ({
               <div className="text-center">
                 <div className="text-gray-500 text-xs">Current Balance</div>
                 <div className="font-bold text-xl text-blue-600">
-                  ₹{currentBalance.toLocaleString()}
+                  ₹{currentBalance.toLocaleString('en-IN')}
                 </div>
               </div>
               <div className="text-center">
                 <div className="text-gray-500 text-xs">Money In</div>
                 <div className="font-semibold text-green-600">
-                  ₹{moneyIn.toLocaleString()}
+                  ₹{moneyIn.toLocaleString('en-IN')}
                 </div>
               </div>
               <div className="text-center">
                 <div className="text-gray-500 text-xs">Money Out</div>
                 <div className="font-semibold text-red-600">
-                  ₹{moneyOut.toLocaleString()}
+                  ₹{moneyOut.toLocaleString('en-IN')}
                 </div>
               </div>
             </div>

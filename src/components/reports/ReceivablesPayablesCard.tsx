@@ -25,7 +25,7 @@ export const ReceivablesPayablesCard = ({
             <span className="text-sm font-medium text-green-800">Receivables</span>
           </div>
           <div className="text-2xl font-bold text-green-900">
-            ₹{totalReceivables.toLocaleString()}
+            ₹{totalReceivables.toLocaleString('en-IN')}
           </div>
         </div>
         
@@ -38,7 +38,7 @@ export const ReceivablesPayablesCard = ({
             <span className="text-sm font-medium text-red-800">Payables</span>
           </div>
           <div className="text-2xl font-bold text-red-900">
-            ₹{totalPayables.toLocaleString()}
+            ₹{totalPayables.toLocaleString('en-IN')}
           </div>
         </div>
       </div>

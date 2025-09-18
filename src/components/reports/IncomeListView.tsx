@@ -91,7 +91,7 @@ export const IncomeListView = ({ onBack }: IncomeListViewProps) => {
           <h2 className="text-2xl font-bold text-gray-900">Income</h2>
           <div className="flex items-center text-green-600">
             <IndianRupee className="h-5 w-5 mr-1" />
-            <span className="font-bold text-xl">₹{totalIncome.toLocaleString()}</span>
+            <span className="font-bold text-xl">₹{totalIncome.toLocaleString('en-IN')}</span>
           </div>
         </div>
 
@@ -120,7 +120,7 @@ export const IncomeListView = ({ onBack }: IncomeListViewProps) => {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end text-green-600 font-semibold">
                         <IndianRupee className="h-4 w-4 mr-1" />
-                        ₹{entry.amount.toLocaleString()}
+                        ₹{entry.amount.toLocaleString('en-IN')}
                       </div>
                     </TableCell>
                   </TableRow>

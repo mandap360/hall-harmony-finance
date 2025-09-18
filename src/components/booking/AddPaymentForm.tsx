@@ -82,7 +82,7 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
               <SelectContent>
                 {operationalAccounts.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
-                    {account.name} (₹{account.balance.toLocaleString()})
+                    {account.name} (₹{account.balance.toLocaleString('en-IN')})
                   </SelectItem>
                 ))}
               </SelectContent>

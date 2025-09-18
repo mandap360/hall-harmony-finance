@@ -49,7 +49,7 @@ export const CategoryBreakdownView = ({
               {Object.entries(incomeByCategory).map(([category, amount]) => (
                 <div key={category} className="flex justify-between items-center border-b border-green-200 pb-2">
                   <span className="text-green-800 font-medium">{category}</span>
-                  <span className="text-green-900 font-bold">₹{amount.toLocaleString()}</span>
+                  <span className="text-green-900 font-bold">₹{amount.toLocaleString('en-IN')}</span>
                 </div>
               ))}
               
@@ -60,7 +60,7 @@ export const CategoryBreakdownView = ({
               {Object.keys(incomeByCategory).length > 0 && (
                 <div className="flex justify-between items-center pt-3 border-t-2 border-green-300 font-bold">
                   <span className="text-green-900">Total Income:</span>
-                  <span className="text-green-900 text-lg">₹{totalIncome.toLocaleString()}</span>
+                  <span className="text-green-900 text-lg">₹{totalIncome.toLocaleString('en-IN')}</span>
                 </div>
               )}
             </CardContent>
@@ -78,7 +78,7 @@ export const CategoryBreakdownView = ({
               {Object.entries(expensesByCategory).map(([category, amount]) => (
                 <div key={category} className="flex justify-between items-center border-b border-red-200 pb-2">
                   <span className="text-red-800 font-medium">{category}</span>
-                  <span className="text-red-900 font-bold">₹{amount.toLocaleString()}</span>
+                  <span className="text-red-900 font-bold">₹{amount.toLocaleString('en-IN')}</span>
                 </div>
               ))}
               
@@ -89,7 +89,7 @@ export const CategoryBreakdownView = ({
               {Object.keys(expensesByCategory).length > 0 && (
                 <div className="flex justify-between items-center pt-3 border-t-2 border-red-300 font-bold">
                   <span className="text-red-900">Total Expenses:</span>
-                  <span className="text-red-900 text-lg">₹{totalExpenses.toLocaleString()}</span>
+                  <span className="text-red-900 text-lg">₹{totalExpenses.toLocaleString('en-IN')}</span>
                 </div>
               )}
             </CardContent>

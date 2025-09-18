@@ -29,21 +29,21 @@ export const DetailedReports = ({
         <CardContent className="space-y-3">
           <div className="flex justify-between items-center border-b pb-2">
             <span className="text-gray-600">Rent Payments:</span>
-            <span className="font-semibold text-green-600">₹{incomeBreakdown.rent.toLocaleString()}</span>
+            <span className="font-semibold text-green-600">₹{incomeBreakdown.rent.toLocaleString('en-IN')}</span>
           </div>
           
           {/* Show individual income categories */}
           {additionalIncomeCategories.map((category) => (
             <div key={category.category} className="flex justify-between items-center border-b pb-2">
               <span className="text-gray-600">{category.category}:</span>
-              <span className="font-semibold text-green-600">₹{category.amount.toLocaleString()}</span>
+              <span className="font-semibold text-green-600">₹{category.amount.toLocaleString('en-IN')}</span>
             </div>
           ))}
           
 
           <div className="flex justify-between items-center pt-2 border-t font-bold">
             <span className="text-gray-900">Total:</span>
-            <span className="text-green-600">₹{totalIncome.toLocaleString()}</span>
+            <span className="text-green-600">₹{totalIncome.toLocaleString('en-IN')}</span>
           </div>
         </CardContent>
       </Card>
@@ -57,7 +57,7 @@ export const DetailedReports = ({
           {Object.entries(expensesByCategory).map(([category, amount]) => (
             <div key={category} className="flex justify-between items-center border-b pb-2">
               <span className="text-gray-600">{category}:</span>
-              <span className="font-semibold text-red-600">₹{amount.toLocaleString()}</span>
+              <span className="font-semibold text-red-600">₹{amount.toLocaleString('en-IN')}</span>
             </div>
           ))}
           
@@ -68,7 +68,7 @@ export const DetailedReports = ({
           {Object.keys(expensesByCategory).length > 0 && (
             <div className="flex justify-between items-center pt-2 border-t font-bold">
               <span className="text-gray-900">Total:</span>
-              <span className="text-red-600">₹{totalExpenses.toLocaleString()}</span>
+              <span className="text-red-600">₹{totalExpenses.toLocaleString('en-IN')}</span>
             </div>
           )}
         </CardContent>

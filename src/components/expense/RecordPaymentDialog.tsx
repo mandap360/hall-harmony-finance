@@ -49,7 +49,7 @@ export const RecordPaymentDialog = ({
               <div className="space-y-1">
                 <p><strong>Vendor:</strong> {expense.vendorName}</p>
                 <p><strong>Bill Number:</strong> {expense.billNumber}</p>
-                <p><strong>Amount:</strong> ₹{expense.totalAmount.toFixed(2)}</p>
+                <p><strong>Amount:</strong> ₹{expense.totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
               </div>
             </div>
 
@@ -63,7 +63,7 @@ export const RecordPaymentDialog = ({
                   <SelectContent>
                     {paymentAccounts.map((account) => (
                       <SelectItem key={account.id} value={account.id}>
-                        {account.name} (₹{account.balance.toLocaleString()})
+                        {account.name} (₹{account.balance.toLocaleString('en-IN')})
                       </SelectItem>
                     ))}
                   </SelectContent>

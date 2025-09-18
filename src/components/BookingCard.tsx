@@ -118,7 +118,7 @@ export const BookingCard = ({ booking, onEdit, onCancel, onProcessRefund }: Book
           {hasRefundProcessed() && (
             <div className="mt-2 p-2 bg-blue-50 rounded-md">
               <span className="text-sm text-blue-700">
-                Refund of {getRefundAmount().toLocaleString()} processed
+                Refund of ₹{getRefundAmount().toLocaleString('en-IN')} processed
               </span>
             </div>
           )}

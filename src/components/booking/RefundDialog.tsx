@@ -99,11 +99,11 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
           {/* Amount Summary */}
           <div className="flex gap-8 justify-center py-2">
             <div className="text-center">
-              <div className="text-green-600 font-semibold text-lg">₹{amountReceived.toLocaleString()}</div>
+              <div className="text-green-600 font-semibold text-lg">₹{amountReceived.toLocaleString('en-IN')}</div>
               <div className="text-sm text-muted-foreground">Amount Received</div>
             </div>
             <div className="text-center">
-              <div className="text-red-600 font-semibold text-lg">₹{amountRefunded.toLocaleString()}</div>
+              <div className="text-red-600 font-semibold text-lg">₹{amountRefunded.toLocaleString('en-IN')}</div>
               <div className="text-sm text-muted-foreground">Amount Refunded</div>
             </div>
           </div>

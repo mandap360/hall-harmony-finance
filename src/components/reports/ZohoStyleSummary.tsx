@@ -30,7 +30,7 @@ export const ZohoStyleSummary = ({
                 <span className="text-lg font-semibold text-blue-800">Total Receivables</span>
               </div>
               <div className="text-2xl font-bold text-blue-900">
-                ₹{totalReceivables.toLocaleString()}
+                ₹{totalReceivables.toLocaleString('en-IN')}
               </div>
             </div>
             
@@ -39,7 +39,7 @@ export const ZohoStyleSummary = ({
                 <span className="text-lg font-semibold text-blue-800">Total Payables</span>
               </div>
               <div className="text-2xl font-bold text-blue-900">
-                ₹{totalPayables.toLocaleString()}
+                ₹{totalPayables.toLocaleString('en-IN')}
               </div>
             </div>
           </div>

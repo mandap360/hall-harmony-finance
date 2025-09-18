@@ -119,7 +119,7 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Payables</h2>
           <div className="flex items-center text-red-600">
-            <span className="font-bold text-xl">₹{totalPayables.toLocaleString()}</span>
+            <span className="font-bold text-xl">₹{totalPayables.toLocaleString('en-IN')}</span>
           </div>
         </div>
 
@@ -147,7 +147,7 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
                       {vendorName}
                     </h4>
                     <div className="flex items-center text-red-600">
-                      <span className="font-bold text-sm">₹{data.totalAmount.toLocaleString()}</span>
+                      <span className="font-bold text-sm">₹{data.totalAmount.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 </Card>
@@ -172,7 +172,7 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
                             {formatDate(expense.date)}
                           </div>
                           <div className="flex items-center text-red-600">
-                            <span className="font-semibold">₹{expense.totalAmount.toLocaleString()}</span>
+                            <span className="font-semibold">₹{expense.totalAmount.toLocaleString('en-IN')}</span>
                           </div>
                         </div>
                         <Button

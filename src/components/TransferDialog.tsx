@@ -72,7 +72,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, onTransfer }: Tra
               <SelectContent>
                 {accounts.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
-                    {account.name} (₹{account.balance.toLocaleString()})
+                    {account.name} (₹{account.balance.toLocaleString('en-IN')})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -88,7 +88,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, onTransfer }: Tra
               <SelectContent>
                 {accounts.filter(acc => acc.id !== fromAccountId).map((account) => (
                   <SelectItem key={account.id} value={account.id}>
-                    {account.name} (₹{account.balance.toLocaleString()})
+                    {account.name} (₹{account.balance.toLocaleString('en-IN')})
                   </SelectItem>
                 ))}
               </SelectContent>

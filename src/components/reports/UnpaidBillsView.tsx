@@ -88,7 +88,7 @@ export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
                           <div className="flex items-center justify-between mt-1">
                             <div className="flex items-center text-xs sm:text-sm text-gray-600">
                               <IndianRupee className="h-3 w-3 sm:h-4 sm:w-4" />
-                              <span className="font-medium">{totalAmount.toLocaleString()}</span>
+                              <span className="font-medium">₹{totalAmount.toLocaleString('en-IN')}</span>
                             </div>
                             <Badge variant="secondary" className="text-xs">
                               {billCount} bill{billCount !== 1 ? 's' : ''}
@@ -133,7 +133,7 @@ export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
                             <div className="flex items-center text-red-600 ml-2">
                               <IndianRupee className="h-3 w-3 sm:h-4 sm:w-4" />
                               <span className="font-bold text-sm sm:text-base">
-                                {expense.totalAmount.toLocaleString()}
+                                ₹{expense.totalAmount.toLocaleString('en-IN')}
                               </span>
                             </div>
                           </div>
@@ -153,11 +153,11 @@ export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
                               <div className="text-xs text-gray-600 space-y-1">
                                 <div className="flex justify-between">
                                   <span>Amount:</span>
-                                  <span>₹{expense.amount.toLocaleString()}</span>
+                                  <span>₹{expense.amount.toLocaleString('en-IN')}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span>GST ({expense.cgstPercentage + expense.sgstPercentage}%):</span>
-                                  <span>₹{((expense.totalAmount - expense.amount)).toLocaleString()}</span>
+                                  <span>₹{((expense.totalAmount - expense.amount)).toLocaleString('en-IN')}</span>
                                 </div>
                               </div>
                             </div>
