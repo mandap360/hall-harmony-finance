@@ -35,9 +35,9 @@ export const TransactionsPage = () => {
   const [activeTab, setActiveTab] = useState('expense');
   const [periodType, setPeriodType] = useState('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedVendor, setSelectedVendor] = useState('all');
-  const [paymentStatus, setPaymentStatus] = useState('all');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedIncomeAccount, setSelectedIncomeAccount] = useState('all');
   const [selectedIncomeCategory, setSelectedIncomeCategory] = useState('all');
   const [startDate, setStartDate] = useState<Date>(startOfWeek(new Date()));
@@ -198,20 +198,22 @@ export const TransactionsPage = () => {
 
       {activeTab === 'expense' && (
         <ExpenseFilters
-          selectedCategory={selectedCategory}
-          selectedVendor={selectedVendor}
-          paymentStatus={paymentStatus}
-          startDate={undefined}
-          endDate={undefined}
-          onCategoryChange={setSelectedCategory}
-          onVendorChange={setSelectedVendor}
-          onPaymentStatusChange={setPaymentStatus}
-          onStartDateChange={() => {}}
-          onEndDateChange={() => {}}
+          selectedCategories={selectedCategories}
+          selectedVendors={selectedVendors}
+          selectedStatuses={selectedStatuses}
+          onCategoriesChange={setSelectedCategories}
+          onVendorsChange={setSelectedVendors}
+          onStatusesChange={setSelectedStatuses}
           expenseCategories={expenseCategories}
           vendors={vendors}
           showFilters={true}
           onToggleFilters={() => {}}
+          onApplyFilters={() => {}}
+          onClearFilters={() => {
+            setSelectedCategories([]);
+            setSelectedVendors([]);
+            setSelectedStatuses([]);
+          }}
         />
       )}
 
@@ -324,17 +326,19 @@ export const TransactionsPage = () => {
             {(() => {
               let filteredExpenseData = filteredExpenses;
               
-              if (selectedCategory !== 'all') {
-                filteredExpenseData = filteredExpenseData.filter(expense => expense.category === selectedCategory);
+              if (selectedCategories.length > 0) {
+                filteredExpenseData = filteredExpenseData.filter(expense => selectedCategories.includes(expense.category));
               }
               
-              if (selectedVendor !== 'all') {
-                filteredExpenseData = filteredExpenseData.filter(expense => expense.vendorName === selectedVendor);
+              if (selectedVendors.length > 0) {
+                filteredExpenseData = filteredExpenseData.filter(expense => selectedVendors.includes(expense.vendorName));
               }
               
-              if (paymentStatus !== 'all') {
+              if (selectedStatuses.length > 0) {
                 filteredExpenseData = filteredExpenseData.filter(expense => {
-                  return paymentStatus === 'paid' ? expense.isPaid : !expense.isPaid;
+                  return selectedStatuses.some(status => 
+                    status === 'paid' ? expense.isPaid : !expense.isPaid
+                  );
                 });
               }
 
