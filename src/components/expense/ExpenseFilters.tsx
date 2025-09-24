@@ -85,7 +85,7 @@ export const ExpenseFilters = ({
           <PopoverContent className="w-80" align="start">
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-gray-900">Filter by Category</h3>
-              <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3 max-h-40 overflow-y-auto">
                 {expenseCategories.map((category) => (
                   <div key={category.id} className="flex items-center space-x-2">
                     <Checkbox
@@ -138,7 +138,7 @@ export const ExpenseFilters = ({
           <PopoverContent className="w-80" align="start">
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-gray-900">Filter by Parties</h3>
-              <div className="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto">
+              <div className="grid grid-cols-1 gap-3 max-h-40 overflow-y-auto">
                 {vendors.map((vendor) => (
                   <div key={vendor.id} className="flex items-center space-x-2">
                     <Checkbox

@@ -11,6 +11,7 @@ import { useBookings } from "@/hooks/useBookings";
 import { useVendors } from "@/hooks/useVendors";
 import { useCategories } from "@/hooks/useCategories";
 import { ExpenseFilters } from "@/components/expense/ExpenseFilters";
+import { IncomeFilters } from "@/components/income/IncomeFilters";
 import { MonthNavigation } from "@/components/MonthNavigation";
 import { ExpenseList } from "@/components/expense/ExpenseList";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
@@ -38,8 +39,8 @@ export const TransactionsPage = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  const [selectedIncomeAccount, setSelectedIncomeAccount] = useState('all');
-  const [selectedIncomeCategory, setSelectedIncomeCategory] = useState('all');
+  const [selectedIncomeAccounts, setSelectedIncomeAccounts] = useState<string[]>([]);
+  const [selectedIncomeCategories, setSelectedIncomeCategories] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<Date>(startOfWeek(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfWeek(new Date()));
   const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
@@ -218,51 +219,18 @@ export const TransactionsPage = () => {
       )}
 
       {activeTab === 'income' && (
-        <div className="bg-white border-b">
-          <div className="p-4 flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-            >
-              <Filter className="h-4 w-4" />
-            </Button>
-            
-            <div className="flex-1">
-              <div className="flex gap-4 overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted/30 hover:scrollbar-thumb-muted/50 pb-2">
-                <div className="flex-shrink-0 min-w-0 w-full max-w-xs">
-                  <Select value={selectedIncomeAccount} onValueChange={setSelectedIncomeAccount}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Accounts" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Accounts</SelectItem>
-                      {accounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex-shrink-0 min-w-0 w-full max-w-xs">
-                  <Select value={selectedIncomeCategory} onValueChange={setSelectedIncomeCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="rent">Rent</SelectItem>
-                      <SelectItem value="Secondary Income">Secondary Income</SelectItem>
-                      <SelectItem value="refund">Refund</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <IncomeFilters
+          selectedAccounts={selectedIncomeAccounts}
+          selectedCategories={selectedIncomeCategories}
+          onAccountsChange={setSelectedIncomeAccounts}
+          onCategoriesChange={setSelectedIncomeCategories}
+          accounts={accounts}
+          onApplyFilters={() => {}}
+          onClearFilters={() => {
+            setSelectedIncomeAccounts([]);
+            setSelectedIncomeCategories([]);
+          }}
+        />
       )}
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
@@ -274,15 +242,15 @@ export const TransactionsPage = () => {
                 return paymentDate >= dateStart && paymentDate <= dateEnd;
               });
 
-              if (selectedIncomeAccount !== 'all') {
+              if (selectedIncomeAccounts.length > 0) {
                 filteredIncome = filteredIncome.filter(payment => 
-                  payment.payment_mode === selectedIncomeAccount
+                  selectedIncomeAccounts.includes(payment.payment_mode)
                 );
               }
 
-              if (selectedIncomeCategory !== 'all') {
+              if (selectedIncomeCategories.length > 0) {
                 filteredIncome = filteredIncome.filter(payment => 
-                  payment.type === selectedIncomeCategory
+                  selectedIncomeCategories.includes(payment.type)
                 );
               }
 
