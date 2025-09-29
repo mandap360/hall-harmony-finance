@@ -25,10 +25,16 @@ const items = [
 ];
 
 export function AppSidebar() {
-  const { state, open, isMobile } = useSidebar();
+  const { state, open, isMobile, setOpenMobile } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
   const { user, profile } = useAuth();
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   const isActive = (path: string) => {
     if (path === "/bookings" && currentPath === "/") return true;
@@ -62,6 +68,7 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end
+                      onClick={handleNavClick}
                       className={({ isActive }) => getNavCls({ isActive })}
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
