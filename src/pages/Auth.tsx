@@ -1,12 +1,10 @@
-
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { Mail, Lock } from 'lucide-react';
+import mandap360Logo from '@/assets/mandap360-logo.png';
 
 export default function Auth() {
   const { signIn, resetPassword, user } = useAuth();
@@ -51,94 +49,117 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Mandap360
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign in to manage your hall bookings and finances
-          </p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-200 via-blue-200 to-purple-300 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-3xl shadow-2xl p-8 sm:p-12">
+          {/* Logo and Title */}
+          <div className="flex flex-col items-center mb-8">
+            <img 
+              src={mandap360Logo} 
+              alt="Mandap360 Logo" 
+              className="w-20 h-20 mb-4"
+            />
+            <h1 className="text-2xl font-bold text-[#1e3a5f]">Mandap360</h1>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{showForgotPassword ? 'Reset Password' : 'Sign In'}</CardTitle>
-            <CardDescription>
-              {showForgotPassword 
-                ? 'Enter your email address to receive a reset link'
-                : 'Enter your email or phone number and password to sign in'
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!showForgotPassword ? (
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="identifier">Email or Phone Number</Label>
-                  <Input
-                    id="identifier"
-                    type="text"
-                    value={signInData.identifier}
-                    onChange={(e) => setSignInData(prev => ({ ...prev, identifier: e.target.value }))}
-                    placeholder="Enter your email or phone number"
-                    required
-                  />
+          {!showForgotPassword ? (
+            <form onSubmit={handleSignIn} className="space-y-5">
+              {/* Email Input */}
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  <Mail className="w-5 h-5" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={signInData.password}
-                    onChange={(e) => setSignInData(prev => ({ ...prev, password: e.target.value }))}
-                    placeholder="Enter your password"
-                    required
-                  />
+                <Input
+                  id="identifier"
+                  type="text"
+                  value={signInData.identifier}
+                  onChange={(e) => setSignInData(prev => ({ ...prev, identifier: e.target.value }))}
+                  placeholder="Email"
+                  required
+                  className="pl-12 h-14 rounded-full shadow-md border-0 bg-white text-base placeholder:text-gray-400"
+                />
+              </div>
+
+              {/* Password Input */}
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  <Lock className="w-5 h-5" />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Signing In...' : 'Sign In'}
-                </Button>
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPassword(true)}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Forgot Password?
-                  </button>
+                <Input
+                  id="password"
+                  type="password"
+                  value={signInData.password}
+                  onChange={(e) => setSignInData(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Password"
+                  required
+                  className="pl-12 h-14 rounded-full shadow-md border-0 bg-white text-base placeholder:text-gray-400"
+                />
+              </div>
+
+              {/* Sign In Button */}
+              <Button 
+                type="submit" 
+                className="w-full h-14 rounded-full bg-[#4A90E2] hover:bg-[#357ABD] text-white text-lg font-medium shadow-lg transition-all" 
+                disabled={loading}
+              >
+                {loading ? 'Signing In...' : 'Sign In'}
+              </Button>
+
+              {/* Forgot Password Link */}
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-base text-[#4A90E2] hover:underline font-medium"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleForgotPassword} className="space-y-5">
+              <p className="text-center text-gray-600 mb-6">
+                Enter your email address to receive a reset link
+              </p>
+              
+              {/* Email Input */}
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  <Mail className="w-5 h-5" />
                 </div>
-              </form>
-            ) : (
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="reset-email">Email Address</Label>
-                  <Input
-                    id="reset-email"
-                    type="email"
-                    value={forgotPasswordEmail}
-                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                    placeholder="Enter your email address"
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Sending Reset Link...' : 'Send Reset Link'}
-                </Button>
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPassword(false)}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Back to Sign In
-                  </button>
-                </div>
-              </form>
-            )}
-          </CardContent>
-        </Card>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  placeholder="Email"
+                  required
+                  className="pl-12 h-14 rounded-full shadow-md border-0 bg-white text-base placeholder:text-gray-400"
+                />
+              </div>
+
+              {/* Send Reset Link Button */}
+              <Button 
+                type="submit" 
+                className="w-full h-14 rounded-full bg-[#4A90E2] hover:bg-[#357ABD] text-white text-lg font-medium shadow-lg transition-all" 
+                disabled={loading}
+              >
+                {loading ? 'Sending Reset Link...' : 'Send Reset Link'}
+              </Button>
+
+              {/* Back to Sign In Link */}
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(false)}
+                  className="text-base text-[#4A90E2] hover:underline font-medium"
+                >
+                  Back to Sign In
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );
