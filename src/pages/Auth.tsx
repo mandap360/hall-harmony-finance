@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock } from 'lucide-react';
-import mandap360Logo from '@/assets/mandap360-logo.png';
+import mandap360Logo from '@/assets/mandap360-logo.jpg';
 
 export default function Auth() {
   const { signIn, resetPassword, user } = useAuth();
