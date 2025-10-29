@@ -17,25 +17,26 @@ export const OpeningBalanceRow = ({ openingBalance, showBalance = true }: Openin
   };
 
   return (
-    <Card className="p-4 bg-blue-50 border-blue-200 mb-2">
-      <div className={`grid gap-4 items-center ${
-        showBalance ? 'grid-cols-5' : 'grid-cols-4'
+    <Card className="p-3 md:p-4 bg-blue-50 border-blue-200 mb-2">
+      <div className={`grid gap-2 md:gap-4 items-center ${
+        showBalance ? 'grid-cols-4' : 'grid-cols-3'
       }`}>
-        <div className="text-sm font-medium text-blue-900">
+        <div className="text-xs md:text-sm font-medium text-blue-900">
           Opening Balance
         </div>
-        <div className="text-sm text-blue-700">
+        <div className="text-xs md:text-sm text-blue-700 truncate">
           Starting balance for this account
         </div>
         <div className="text-right">
-          {/* Empty for Money In column */}
-        </div>
-        <div className="text-right">
-          {/* Empty for Money Out column */}
+          <span className={`text-xs md:text-sm font-semibold ${
+            openingBalance >= 0 ? 'text-green-600' : 'text-red-600'
+          }`}>
+            {formatAmount(openingBalance)}
+          </span>
         </div>
         {showBalance && (
           <div className="text-right">
-            <span className="font-semibold text-blue-600">
+            <span className="text-xs md:text-sm font-semibold text-gray-900">
               {formatAmount(openingBalance)}
             </span>
           </div>

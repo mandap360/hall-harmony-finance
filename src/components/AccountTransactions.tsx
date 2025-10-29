@@ -134,19 +134,19 @@ export const AccountTransactions = ({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 p-2 md:p-4">
       <div className="max-w-4xl mx-auto">
-        <AccountHeader 
+        <AccountHeader
           account={currentAccount}
           onBack={onBack}
           onOpeningBalanceClick={() => setShowOpeningBalanceDialog(true)}
         />
 
         {/* Combined Filter and Balance Row */}
-        <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-          <div className="flex items-center justify-between gap-4">
+        <div className="bg-white rounded-lg shadow-sm border p-3 md:p-4 mb-6 overflow-x-hidden">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             {showFilters && (
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 overflow-x-auto">
                 <div className="flex-shrink-0">
                   <TransactionFilter 
                     filter={transactionFilter}
@@ -155,19 +155,20 @@ export const AccountTransactions = ({
                 </div>
                 
                 {/* Date Range Filter */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         size="sm"
                         className={cn(
-                          "justify-start text-left font-normal",
+                          "justify-start text-left font-normal text-xs md:text-sm",
                           !startDate && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? format(startDate, "PP") : "Start date"}
+                        <CalendarIcon className="mr-1 h-3 w-3 md:h-4 md:w-4" />
+                        <span className="hidden sm:inline">{startDate ? format(startDate, "PP") : "Start date"}</span>
+                        <span className="sm:hidden">{startDate ? format(startDate, "dd/MM") : "Start"}</span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -186,12 +187,13 @@ export const AccountTransactions = ({
                         variant="outline"
                         size="sm"
                         className={cn(
-                          "justify-start text-left font-normal",
+                          "justify-start text-left font-normal text-xs md:text-sm",
                           !endDate && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, "PP") : "End date"}
+                        <CalendarIcon className="mr-1 h-3 w-3 md:h-4 md:w-4" />
+                        <span className="hidden sm:inline">{endDate ? format(endDate, "PP") : "End date"}</span>
+                        <span className="sm:hidden">{endDate ? format(endDate, "dd/MM") : "End"}</span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -208,6 +210,7 @@ export const AccountTransactions = ({
                     <Button
                       variant="outline"
                       size="sm"
+                      className="text-xs md:text-sm"
                       onClick={() => {
                         setStartDate(undefined);
                         setEndDate(undefined);
@@ -220,10 +223,10 @@ export const AccountTransactions = ({
               </div>
             )}
             
-            <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-6 text-xs md:text-sm">
               <div className="text-center">
                 <div className="text-gray-500 text-xs">Current Balance</div>
-                <div className="font-bold text-xl text-blue-600">
+                <div className="font-bold text-lg md:text-xl text-blue-600">
                   ₹{currentBalance.toLocaleString('en-IN')}
                 </div>
               </div>

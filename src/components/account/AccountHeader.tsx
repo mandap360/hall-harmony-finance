@@ -1,7 +1,8 @@
 
-import { ArrowLeft, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Account } from "@/hooks/useAccounts";
+import backButtonIcon from "@/assets/back-button.png";
 
 interface AccountHeaderProps {
   account: Account;
@@ -20,28 +21,27 @@ export const AccountHeader = ({ account, onBack, onOpeningBalanceClick }: Accoun
   };
 
   return (
-    <div className="flex items-center mb-6">
-      <Button
-        variant="ghost"
-        size="sm"
+    <div className="flex items-center mb-6 gap-2">
+      <button
         onClick={onBack}
-        className="mr-4"
+        className="flex-shrink-0"
       >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back
-      </Button>
-      <div className="flex-1">
-        <h1 className="text-2xl font-bold text-gray-900">{account.name}</h1>
-        <p className="text-gray-600 capitalize">{account.account_type} Account</p>
+        <img src={backButtonIcon} alt="Back" className="h-10 w-10 md:h-12 md:w-12" />
+      </button>
+      <div className="flex-1 min-w-0">
+        <h1 className="text-lg md:text-2xl font-bold text-gray-900 truncate">{account.name}</h1>
+        <p className="text-xs md:text-sm text-gray-600 capitalize">{account.account_type} Account</p>
       </div>
       <Button
         variant="outline"
         size="sm"
         onClick={onOpeningBalanceClick}
-        className="ml-4"
+        className="flex-shrink-0 text-xs md:text-sm px-2 md:px-4"
       >
-        <Settings className="h-4 w-4 mr-2" />
-        Opening Balance {formatBalance(account.opening_balance || 0)}
+        <Settings className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+        <span className="hidden md:inline">Opening Balance</span>
+        <span className="md:hidden">OB</span>
+        <span className="ml-1">{formatBalance(account.opening_balance || 0)}</span>
       </Button>
     </div>
   );

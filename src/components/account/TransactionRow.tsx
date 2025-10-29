@@ -1,6 +1,5 @@
 
 import { Card } from "@/components/ui/card";
-import { Plus, Minus } from "lucide-react";
 
 interface Transaction {
   id: string;
@@ -35,43 +34,32 @@ export const TransactionRow = ({ transaction, runningBalance, showBalance = true
     });
   };
 
+  const displayAmount = transaction.transaction_type === 'credit' 
+    ? transaction.amount 
+    : -transaction.amount;
+
   return (
-    <Card className="p-4">
-      <div className={`grid gap-4 items-center ${
-        showBalance ? 'grid-cols-5' : 'grid-cols-4'
+    <Card className="p-3 md:p-4">
+      <div className={`grid gap-2 md:gap-4 items-center ${
+        showBalance ? 'grid-cols-4' : 'grid-cols-3'
       }`}>
-        <div className="text-sm font-medium text-gray-900">
+        <div className="text-xs md:text-sm font-medium text-gray-900">
           {formatDate(transaction.transaction_date)}
         </div>
-        <div className="text-sm text-gray-600">
+        <div className="text-xs md:text-sm text-gray-600 truncate">
           {transaction.description || 
             (transaction.transaction_type === 'credit' ? 'Money In' : 'Money Out')}
         </div>
         <div className="text-right">
-          {transaction.transaction_type === 'credit' && (
-            <div className="flex items-center justify-end">
-              <Plus className="h-4 w-4 text-green-600 mr-1" />
-              <span className="text-green-600 font-semibold">
-                {formatAmount(transaction.amount)}
-              </span>
-            </div>
-          )}
-        </div>
-        <div className="text-right">
-          {transaction.transaction_type === 'debit' && (
-            <div className="flex items-center justify-end">
-              <Minus className="h-4 w-4 text-red-600 mr-1" />
-              <span className="text-red-600 font-semibold">
-                {formatAmount(transaction.amount)}
-              </span>
-            </div>
-          )}
+          <span className={`text-xs md:text-sm font-semibold ${
+            transaction.transaction_type === 'credit' ? 'text-green-600' : 'text-red-600'
+          }`}>
+            {formatAmount(displayAmount)}
+          </span>
         </div>
         {showBalance && (
           <div className="text-right">
-            <span className={`font-semibold ${
-              runningBalance >= 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
+            <span className="text-xs md:text-sm font-semibold text-gray-900">
               {formatAmount(runningBalance)}
             </span>
           </div>
