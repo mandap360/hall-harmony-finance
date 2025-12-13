@@ -1,5 +1,6 @@
-
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { BookOpen } from "lucide-react";
 import { Account } from "@/hooks/useAccounts";
 
 interface AccountSectionProps {
@@ -8,6 +9,8 @@ interface AccountSectionProps {
   onAccountClick: (account: Account) => void;
   formatBalance: (balance: number) => string;
   getAccountTypeDisplay: (account: Account) => string;
+  onViewLedger?: () => void;
+  showLedgerButton?: boolean;
 }
 
 export const AccountSection = ({ 
@@ -15,13 +18,28 @@ export const AccountSection = ({
   accounts, 
   onAccountClick, 
   formatBalance, 
-  getAccountTypeDisplay 
+  getAccountTypeDisplay,
+  onViewLedger,
+  showLedgerButton = false
 }: AccountSectionProps) => {
   if (accounts.length === 0) return null;
 
   return (
     <div className="mb-8">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">{title}</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+        {showLedgerButton && onViewLedger && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onViewLedger}
+            className="flex items-center gap-1.5 text-xs"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            General Ledger
+          </Button>
+        )}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {accounts.map((account) => (
           <Card 
