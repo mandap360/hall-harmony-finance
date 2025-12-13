@@ -109,7 +109,7 @@ export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) =>
               
               <div className="flex items-center text-red-600">
                 <IndianRupee className="h-4 w-4 mr-1 flex-shrink-0" />
-                <span className="font-semibold">₹{expense.totalAmount.toLocaleString('en-IN')}</span>
+                <span className="font-semibold">{expense.totalAmount.toLocaleString('en-IN')}</span>
               </div>
             </div>
             
