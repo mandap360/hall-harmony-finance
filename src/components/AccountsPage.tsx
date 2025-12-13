@@ -6,12 +6,14 @@ import { TransferDialog } from "@/components/TransferDialog";
 import { AccountSection } from "@/components/banking/AccountSection";
 import { BankingActionButtons } from "@/components/banking/BankingActionButtons";
 import { BankingEmptyState } from "@/components/banking/BankingEmptyState";
+import { GeneralLedger } from "@/components/GeneralLedger";
 
 export const AccountsPage = () => {
   const { accounts, loading, addAccount, transferAmount, refreshAccounts } = useAccounts();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [showGeneralLedger, setShowGeneralLedger] = useState(false);
 
   const handleAddAccount = async (accountData: any) => {
     await addAccount(accountData);
@@ -47,6 +49,10 @@ export const AccountsPage = () => {
   const capitalAccounts = accounts.filter(acc => acc.account_type === 'capital');
   const otherAccounts = accounts.filter(acc => acc.account_type === 'other');
 
+  if (showGeneralLedger) {
+    return <GeneralLedger onBack={() => setShowGeneralLedger(false)} />;
+  }
+
   if (selectedAccount) {
     return (
       <AccountTransactions 
@@ -75,6 +81,8 @@ export const AccountsPage = () => {
           onAccountClick={setSelectedAccount}
           formatBalance={formatBalance}
           getAccountTypeDisplay={getAccountTypeDisplay}
+          showLedgerButton={true}
+          onViewLedger={() => setShowGeneralLedger(true)}
         />
 
         <AccountSection
