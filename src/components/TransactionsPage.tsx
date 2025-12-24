@@ -1,56 +1,84 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CalendarDays, Filter, Plus } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { useExpenses } from "@/hooks/useExpenses";
-import { useBookings } from "@/hooks/useBookings";
-import { useVendors } from "@/hooks/useVendors";
-import { useCategories } from "@/hooks/useCategories";
-import { ExpenseFilters } from "@/components/expense/ExpenseFilters";
-import { IncomeFilters } from "@/components/income/IncomeFilters";
 import { MonthNavigation } from "@/components/MonthNavigation";
-import { ExpenseList } from "@/components/expense/ExpenseList";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useIncome } from "@/hooks/useIncome";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths } from "date-fns";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
+import { VoucherTypeDialog, VoucherType } from "@/components/VoucherTypeDialog";
+import { VoucherFormDialog } from "@/components/voucher/VoucherFormDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-const MAIN_TABS = [
-  { id: 'expense', label: 'Expense' },
-  { id: 'income', label: 'Income' }
-];
+interface FinancialTransaction {
+  id: string;
+  transaction_date: string;
+  amount: number;
+  voucher_type: string;
+  from_account_id: string | null;
+  to_account_id: string | null;
+  description: string | null;
+  vendor_id: string | null;
+}
 
 const PERIOD_OPTIONS = [
   { value: 'monthly', label: 'Monthly', short: 'M' },
   { value: 'period', label: 'Period', short: 'P' }
 ];
 
+const VOUCHER_TYPE_COLORS: Record<string, string> = {
+  'payment': 'bg-red-100 text-red-700 border-red-200',
+  'receipt': 'bg-green-100 text-green-700 border-green-200',
+  'fund_transfer': 'bg-blue-100 text-blue-700 border-blue-200'
+};
+
+const VOUCHER_TYPE_LABELS: Record<string, string> = {
+  'payment': 'Payment',
+  'receipt': 'Receipt',
+  'fund_transfer': 'Transfer'
+};
+
 export const TransactionsPage = () => {
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('expense');
+  const { toast } = useToast();
   const [periodType, setPeriodType] = useState('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  const [selectedIncomeAccounts, setSelectedIncomeAccounts] = useState<string[]>([]);
-  const [selectedIncomeCategories, setSelectedIncomeCategories] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<Date>(startOfWeek(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfWeek(new Date()));
+  const [showVoucherDialog, setShowVoucherDialog] = useState(false);
+  const [selectedVoucherType, setSelectedVoucherType] = useState<VoucherType | null>(null);
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  const { expenses, refetch } = useExpenses();
-  const { getExpenseCategories } = useCategories();
-  const expenseCategories = getExpenseCategories();
-  const { bookings } = useBookings();
-  const { vendors } = useVendors();
   const { accounts } = useAccounts();
-  const { income } = useIncome();
+
+  const fetchFinancialTransactions = async () => {
+    try {
+      setLoading(true);
+      const { start, end } = getDateRange();
+      
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('is_financial_transaction', true)
+        .gte('transaction_date', format(start, 'yyyy-MM-dd'))
+        .lte('transaction_date', format(end, 'yyyy-MM-dd'))
+        .order('transaction_date', { ascending: false });
+
+      if (error) throw error;
+      setTransactions(data || []);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      toast({ title: "Error", description: "Failed to fetch transactions", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getDateRange = () => {
     switch (periodType) {
@@ -63,17 +91,9 @@ export const TransactionsPage = () => {
     }
   };
 
-  const { start: dateStart, end: dateEnd } = getDateRange();
-
-  const filteredExpenses = expenses.filter(expense => {
-    const expenseDate = new Date(expense.date);
-    return expenseDate >= dateStart && expenseDate <= dateEnd;
-  });
-
-  const filteredBookings = bookings.filter(booking => {
-    const bookingDate = new Date(booking.startDate);
-    return bookingDate >= dateStart && bookingDate <= dateEnd;
-  });
+  useEffect(() => {
+    fetchFinancialTransactions();
+  }, [currentDate, periodType, startDate, endDate]);
 
   const handlePreviousPeriod = () => {
     if (periodType === 'monthly') {
@@ -88,7 +108,49 @@ export const TransactionsPage = () => {
   };
 
   const handleAddTransaction = () => {
-    navigate('/add-transaction');
+    setShowVoucherDialog(true);
+  };
+
+  const handleVoucherSelect = (type: VoucherType) => {
+    setShowVoucherDialog(false);
+    setSelectedVoucherType(type);
+  };
+
+  const handleVoucherFormClose = () => {
+    setSelectedVoucherType(null);
+  };
+
+  const handleVoucherSuccess = () => {
+    setSelectedVoucherType(null);
+    fetchFinancialTransactions();
+  };
+
+  const getAccountName = (accountId: string | null) => {
+    if (!accountId) return '-';
+    const account = accounts.find(a => a.id === accountId);
+    return account?.name || '-';
+  };
+
+  const getFromTo = (transaction: FinancialTransaction) => {
+    switch (transaction.voucher_type) {
+      case 'payment':
+        return {
+          from: getAccountName(transaction.from_account_id),
+          to: transaction.description?.replace('Payment to ', '') || '-'
+        };
+      case 'receipt':
+        return {
+          from: transaction.description?.replace('Receipt', '').trim() || 'Customer',
+          to: getAccountName(transaction.to_account_id)
+        };
+      case 'fund_transfer':
+        return {
+          from: getAccountName(transaction.from_account_id),
+          to: getAccountName(transaction.to_account_id)
+        };
+      default:
+        return { from: '-', to: '-' };
+    }
   };
 
   const renderPeriodNavigation = () => {
@@ -145,25 +207,9 @@ export const TransactionsPage = () => {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      <div className="flex items-center justify-between border-b border-border bg-card">
-        <div className="flex flex-1">
-          {MAIN_TABS.map(tab => (
-            <Button
-              key={tab.id}
-              variant="ghost"
-              className={cn(
-                "flex-1 rounded-none border-b-2 h-12 font-medium",
-                activeTab === tab.id 
-                  ? 'border-blue-500 bg-transparent text-orange-600' 
-                  : 'border-transparent text-foreground hover:text-foreground hover:bg-muted'
-              )}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </Button>
-          ))}
-        </div>
-        
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
+        <h1 className="text-lg font-semibold text-foreground">Financial Transactions</h1>
         <div className="pl-1">
           <Select value={periodType} onValueChange={setPeriodType}>
             <SelectTrigger className="w-16 h-8 border-none bg-transparent focus:ring-0 px-1 gap-0 justify-start">
@@ -184,138 +230,70 @@ export const TransactionsPage = () => {
 
       {renderPeriodNavigation()}
 
-      {activeTab === 'expense' && (
-        <ExpenseFilters
-          selectedCategories={selectedCategories}
-          selectedVendors={selectedVendors}
-          selectedStatuses={selectedStatuses}
-          onCategoriesChange={setSelectedCategories}
-          onVendorsChange={setSelectedVendors}
-          onStatusesChange={setSelectedStatuses}
-          expenseCategories={expenseCategories}
-          vendors={vendors}
-          showFilters={true}
-          onToggleFilters={() => {}}
-          onApplyFilters={() => {}}
-          onClearFilters={() => {
-            setSelectedCategories([]);
-            setSelectedVendors([]);
-            setSelectedStatuses([]);
-          }}
-        />
-      )}
+      {/* Transaction Table Header */}
+      <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+        <div className="col-span-2">Date</div>
+        <div className="col-span-3">From</div>
+        <div className="col-span-3">To</div>
+        <div className="col-span-2 text-right">Amount</div>
+        <div className="col-span-2 text-center">Type</div>
+      </div>
 
-      {activeTab === 'income' && (
-        <IncomeFilters
-          selectedAccounts={selectedIncomeAccounts}
-          selectedCategories={selectedIncomeCategories}
-          onAccountsChange={setSelectedIncomeAccounts}
-          onCategoriesChange={setSelectedIncomeCategories}
-          accounts={accounts}
-          onApplyFilters={() => {}}
-          onClearFilters={() => {
-            setSelectedIncomeAccounts([]);
-            setSelectedIncomeCategories([]);
-          }}
-        />
-      )}
-
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        {activeTab === 'income' && (
-          <div className="p-4 space-y-4">
-            {(() => {
-              let filteredIncome = income.filter(payment => {
-                const paymentDate = new Date(payment.date);
-                return paymentDate >= dateStart && paymentDate <= dateEnd;
-              });
-
-              if (selectedIncomeAccounts.length > 0) {
-                filteredIncome = filteredIncome.filter(payment => 
-                  selectedIncomeAccounts.includes(payment.payment_mode)
-                );
-              }
-
-              if (selectedIncomeCategories.length > 0) {
-                filteredIncome = filteredIncome.filter(payment => 
-                  selectedIncomeCategories.includes(payment.type)
-                );
-              }
-
-              return (
-                <>
-                  {filteredIncome.map((payment) => {
-                    return (
-                      <Card key={payment.id} className="p-4">
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-foreground">
-                            {payment.description || 'Payment'}
-                          </h4>
-                          
-                          <div className={`text-lg font-bold ${payment.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            <CurrencyDisplay amount={Math.abs(payment.amount)} displayMode="text-only" />
-                          </div>
-                          
-                          <div className="flex justify-between items-center">
-                            <p className="text-sm text-muted-foreground">
-                              {format(new Date(payment.date), 'dd MMM yyyy')}
-                            </p>
-                            <Badge variant="outline" className="px-3 py-1 bg-muted/80 border-muted-foreground/20">
-                              {(() => {
-                                const account = accounts.find(acc => acc.id === payment.payment_mode);
-                                return account ? account.name : 'Cash';
-                              })()}
-                            </Badge>
-                          </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                 </>
-              );
-            })()}
+      {/* Transaction List */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24">
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-muted-foreground">Loading...</div>
           </div>
-        )}
-
-        {activeTab === 'expense' && (
-          <div className="p-4 w-full max-w-full">
-            {(() => {
-              let filteredExpenseData = filteredExpenses;
-              
-              if (selectedCategories.length > 0) {
-                filteredExpenseData = filteredExpenseData.filter(expense => selectedCategories.includes(expense.category));
-              }
-              
-              if (selectedVendors.length > 0) {
-                filteredExpenseData = filteredExpenseData.filter(expense => selectedVendors.includes(expense.vendorName));
-              }
-              
-              if (selectedStatuses.length > 0) {
-                filteredExpenseData = filteredExpenseData.filter(expense => {
-                  return selectedStatuses.some(status => 
-                    status === 'paid' ? expense.isPaid : !expense.isPaid
-                  );
-                });
-              }
-
+        ) : transactions.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No financial transactions found for this period.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {transactions.map((transaction) => {
+              const { from, to } = getFromTo(transaction);
               return (
-                <>
-                  <ExpenseList 
-                    expenses={filteredExpenseData} 
-                    onExpenseUpdated={refetch} 
-                  />
-                  
-                  {filteredExpenseData.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No expenses found for the selected filters.
-                    </div>
-                  )}
-                </>
+                <div 
+                  key={transaction.id} 
+                  className="grid grid-cols-12 gap-2 px-4 py-3 hover:bg-muted/30 transition-colors"
+                >
+                  <div className="col-span-2 text-sm">
+                    {format(new Date(transaction.transaction_date), 'dd/MM')}
+                  </div>
+                  <div className="col-span-3 text-sm truncate" title={from}>
+                    {from}
+                  </div>
+                  <div className="col-span-3 text-sm truncate" title={to}>
+                    {to}
+                  </div>
+                  <div className="col-span-2 text-right">
+                    <span className={cn(
+                      "text-sm font-medium",
+                      transaction.voucher_type === 'receipt' ? 'text-green-600' : 'text-red-600'
+                    )}>
+                      <CurrencyDisplay amount={transaction.amount} displayMode="text-only" />
+                    </span>
+                  </div>
+                  <div className="col-span-2 flex justify-center">
+                    <Badge 
+                      variant="outline" 
+                      className={cn(
+                        "text-xs",
+                        VOUCHER_TYPE_COLORS[transaction.voucher_type] || 'bg-gray-100'
+                      )}
+                    >
+                      {VOUCHER_TYPE_LABELS[transaction.voucher_type] || transaction.voucher_type}
+                    </Badge>
+                  </div>
+                </div>
               );
-            })()}
+            })}
           </div>
         )}
       </div>
 
+      {/* FAB */}
       <Button
         onClick={handleAddTransaction}
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 text-white z-50"
@@ -323,6 +301,27 @@ export const TransactionsPage = () => {
       >
         <Plus className="h-6 w-6" />
       </Button>
+
+      {/* Voucher Type Selection Dialog */}
+      <VoucherTypeDialog
+        open={showVoucherDialog}
+        onOpenChange={setShowVoucherDialog}
+        onSelectVoucher={handleVoucherSelect}
+      />
+
+      {/* Voucher Form Dialog */}
+      {selectedVoucherType && (
+        <VoucherFormDialog
+          open={!!selectedVoucherType}
+          onOpenChange={(open) => !open && handleVoucherFormClose()}
+          voucherType={selectedVoucherType}
+          onBack={() => {
+            setSelectedVoucherType(null);
+            setShowVoucherDialog(true);
+          }}
+          onSuccess={handleVoucherSuccess}
+        />
+      )}
     </div>
   );
 };
