@@ -372,7 +372,7 @@ export function VoucherFormDialog({
       {renderCommonFields()}
 
       <div className="space-y-2">
-        <Label>Pay From (Account) *</Label>
+        <Label>Payment Method *</Label>
         <Select value={fromAccountId} onValueChange={setFromAccountId}>
           <SelectTrigger>
             <SelectValue placeholder="Select account" />
@@ -444,7 +444,7 @@ export function VoucherFormDialog({
   const renderReceiptForm = () => (
     <>
       <div className="space-y-2">
-        <Label>Receive To (Account) *</Label>
+        <Label>Payment Method *</Label>
         <Select value={toAccountId} onValueChange={setToAccountId}>
           <SelectTrigger>
             <SelectValue placeholder="Select account (Cash/Bank)" />
