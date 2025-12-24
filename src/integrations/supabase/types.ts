@@ -466,35 +466,53 @@ export type Database = {
         Row: {
           account_id: string
           amount: number
+          booking_id: string | null
           created_at: string
           description: string | null
+          from_account_id: string | null
           id: string
+          is_financial_transaction: boolean | null
           reference_id: string | null
           reference_type: string | null
+          to_account_id: string | null
           transaction_date: string
           transaction_type: string
+          vendor_id: string | null
+          voucher_type: string | null
         }
         Insert: {
           account_id: string
           amount: number
+          booking_id?: string | null
           created_at?: string
           description?: string | null
+          from_account_id?: string | null
           id?: string
+          is_financial_transaction?: boolean | null
           reference_id?: string | null
           reference_type?: string | null
+          to_account_id?: string | null
           transaction_date?: string
           transaction_type: string
+          vendor_id?: string | null
+          voucher_type?: string | null
         }
         Update: {
           account_id?: string
           amount?: number
+          booking_id?: string | null
           created_at?: string
           description?: string | null
+          from_account_id?: string | null
           id?: string
+          is_financial_transaction?: boolean | null
           reference_id?: string | null
           reference_type?: string | null
+          to_account_id?: string | null
           transaction_date?: string
           transaction_type?: string
+          vendor_id?: string | null
+          voucher_type?: string | null
         }
         Relationships: [
           {
@@ -502,6 +520,34 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_from_account_id_fkey"
+            columns: ["from_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]

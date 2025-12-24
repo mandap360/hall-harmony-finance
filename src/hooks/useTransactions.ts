@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +12,12 @@ export interface Transaction {
   reference_id?: string;
   transaction_date: string;
   created_at: string;
+  voucher_type?: string;
+  is_financial_transaction?: boolean;
+  from_account_id?: string;
+  to_account_id?: string;
+  vendor_id?: string;
+  booking_id?: string;
 }
 
 export const useTransactions = (accountId?: string) => {
@@ -46,6 +51,37 @@ export const useTransactions = (accountId?: string) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFinancialTransactions = async (startDate?: string, endDate?: string) => {
+    try {
+      let query = supabase
+        .from('transactions')
+        .select('*')
+        .eq('is_financial_transaction', true)
+        .order('transaction_date', { ascending: false });
+
+      if (startDate) {
+        query = query.gte('transaction_date', startDate);
+      }
+      if (endDate) {
+        query = query.lte('transaction_date', endDate);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      
+      return data as Transaction[] || [];
+    } catch (error) {
+      console.error('Error fetching financial transactions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch financial transactions",
+        variant: "destructive",
+      });
+      return [];
     }
   };
 
@@ -117,5 +153,6 @@ export const useTransactions = (accountId?: string) => {
     addTransaction,
     deleteTransaction,
     refreshTransactions: fetchTransactions,
+    fetchFinancialTransactions,
   };
 };
