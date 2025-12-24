@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,15 +15,13 @@ import { ExpenseFilters } from "@/components/expense/ExpenseFilters";
 import { IncomeFilters } from "@/components/income/IncomeFilters";
 import { MonthNavigation } from "@/components/MonthNavigation";
 import { ExpenseList } from "@/components/expense/ExpenseList";
-import { AddExpenseDialog } from "@/components/AddExpenseDialog";
-import { AddIncomeDialog } from "@/components/AddIncomeDialog";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useIncome } from "@/hooks/useIncome";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths } from "date-fns";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
 
-const MAIN_TABS = [  
+const MAIN_TABS = [
   { id: 'expense', label: 'Expense' },
   { id: 'income', label: 'Income' }
 ];
@@ -33,6 +32,7 @@ const PERIOD_OPTIONS = [
 ];
 
 export const TransactionsPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('expense');
   const [periodType, setPeriodType] = useState('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -43,10 +43,8 @@ export const TransactionsPage = () => {
   const [selectedIncomeCategories, setSelectedIncomeCategories] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<Date>(startOfWeek(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfWeek(new Date()));
-  const [showAddExpenseDialog, setShowAddExpenseDialog] = useState(false);
-  const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   
-  const { expenses, addExpense, refetch } = useExpenses();
+  const { expenses, refetch } = useExpenses();
   const { getExpenseCategories } = useCategories();
   const expenseCategories = getExpenseCategories();
   const { bookings } = useBookings();
@@ -89,19 +87,8 @@ export const TransactionsPage = () => {
     }
   };
 
-  const handleAddExpense = async (expenseData: any) => {
-    try {
-      await addExpense(expenseData);
-      setShowAddExpenseDialog(false);
-      refetch();
-    } catch (error) {
-      console.error('Error adding expense:', error);
-    }
-  };
-
-  const handleIncomeAdded = () => {
-    refetch();
-    window.location.reload();
+  const handleAddTransaction = () => {
+    navigate('/add-transaction');
   };
 
   const renderPeriodNavigation = () => {
@@ -329,38 +316,13 @@ export const TransactionsPage = () => {
         )}
       </div>
 
-      {activeTab === 'income' && (
-        <Button
-          onClick={() => setShowAddIncomeDialog(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 text-white z-50"
-          size="icon"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      )}
-
-      {activeTab === 'expense' && (
-        <Button
-          onClick={() => setShowAddExpenseDialog(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 text-white z-50"
-          size="icon"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      )}
-
-      <AddExpenseDialog
-        open={showAddExpenseDialog}
-        onOpenChange={setShowAddExpenseDialog}
-        onSubmit={handleAddExpense}
-      />
-
-      <AddIncomeDialog
-        open={showAddIncomeDialog}
-        onOpenChange={setShowAddIncomeDialog}
-        onIncomeAdded={handleIncomeAdded}
-      />
-      
+      <Button
+        onClick={handleAddTransaction}
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 text-white z-50"
+        size="icon"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
     </div>
   );
 };

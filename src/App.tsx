@@ -10,6 +10,7 @@ import { AuthenticatedLayout } from "@/components/AuthenticatedLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import AddTransactions from "./pages/AddTransactions";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,11 @@ const App = () => (
                 <AuthenticatedLayout>
                   <Index activeTab="transactions" />
                 </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/add-transaction" element={
+              <ProtectedRoute>
+                <AddTransactions />
               </ProtectedRoute>
             } />
             <Route path="/stats" element={
