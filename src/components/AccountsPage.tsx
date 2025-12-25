@@ -4,26 +4,47 @@ import { AddAccountDialog } from "@/components/AddAccountDialog";
 import { AccountTransactions } from "@/components/AccountTransactions";
 import { TransferDialog } from "@/components/TransferDialog";
 import { AccountSection } from "@/components/banking/AccountSection";
+import { PartySection } from "@/components/banking/PartySection";
 import { BankingActionButtons } from "@/components/banking/BankingActionButtons";
 import { BankingEmptyState } from "@/components/banking/BankingEmptyState";
-import { GeneralLedger } from "@/components/GeneralLedger";
 
 export const AccountsPage = () => {
-  const { accounts, loading, addAccount, transferAmount, refreshAccounts } = useAccounts();
+  const { accounts, loading, addAccount, updateAccount, deleteAccount, transferAmount, refreshAccounts } = useAccounts();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [showGeneralLedger, setShowGeneralLedger] = useState(false);
 
   const handleAddAccount = async (accountData: any) => {
-    await addAccount(accountData);
+    // Store party details in sub_type field as JSON
+    const dataToSave = {
+      name: accountData.name,
+      account_type: accountData.account_type,
+      opening_balance: accountData.opening_balance || 0,
+      is_default: accountData.is_default || false,
+      sub_type: accountData.account_type === 'party' ? JSON.stringify({
+        gstin: accountData.gstin || '',
+        phone_number: accountData.phone_number || '',
+        address: accountData.address || ''
+      }) : null
+    };
+    await addAccount(dataToSave);
     setShowAddDialog(false);
   };
 
   const handleAccountBack = () => {
-    // Refresh accounts when returning from transaction view
     refreshAccounts();
     setSelectedAccount(null);
+  };
+
+  const handleEditParty = async (account: Account) => {
+    await updateAccount(account.id, {
+      name: account.name,
+      sub_type: account.sub_type
+    });
+  };
+
+  const handleDeleteParty = async (accountId: string) => {
+    await deleteAccount(accountId);
   };
 
   const formatBalance = (balance: number) => {
@@ -37,21 +58,19 @@ export const AccountsPage = () => {
 
   const getAccountTypeDisplay = (account: Account) => {
     if (account.account_type === 'operational') {
-      return 'Operational Account';
+      return 'Cash/Bank';
     } else if (account.account_type === 'capital') {
-      return 'Capital Account';
+      return "Owner's Capital";
+    } else if (account.account_type === 'party') {
+      return 'Party';
     } else {
       return 'Other Account';
     }
   };
 
-  const operationalAccounts = accounts.filter(acc => acc.account_type === 'operational');
+  const cashBankAccounts = accounts.filter(acc => acc.account_type === 'operational');
   const capitalAccounts = accounts.filter(acc => acc.account_type === 'capital');
-  const otherAccounts = accounts.filter(acc => acc.account_type === 'other');
-
-  if (showGeneralLedger) {
-    return <GeneralLedger onBack={() => setShowGeneralLedger(false)} />;
-  }
+  const partyAccounts = accounts.filter(acc => acc.account_type === 'party');
 
   if (selectedAccount) {
     return (
@@ -76,29 +95,27 @@ export const AccountsPage = () => {
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
         <AccountSection
-          title="Operational Accounts"
-          accounts={operationalAccounts}
+          title="Cash/Bank"
+          accounts={cashBankAccounts}
           onAccountClick={setSelectedAccount}
           formatBalance={formatBalance}
           getAccountTypeDisplay={getAccountTypeDisplay}
-          showLedgerButton={true}
-          onViewLedger={() => setShowGeneralLedger(true)}
         />
 
         <AccountSection
-          title="Capital Accounts"
+          title="Owner's Capital"
           accounts={capitalAccounts}
           onAccountClick={setSelectedAccount}
           formatBalance={formatBalance}
           getAccountTypeDisplay={getAccountTypeDisplay}
         />
 
-        <AccountSection
-          title="Other Accounts"
-          accounts={otherAccounts}
+        <PartySection
+          accounts={partyAccounts}
           onAccountClick={setSelectedAccount}
           formatBalance={formatBalance}
-          getAccountTypeDisplay={getAccountTypeDisplay}
+          onEdit={handleEditParty}
+          onDelete={handleDeleteParty}
         />
 
         {accounts.length === 0 && <BankingEmptyState />}

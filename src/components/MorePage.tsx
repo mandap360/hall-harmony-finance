@@ -1,10 +1,8 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Settings, User, HelpCircle, Info, Calculator, Tag, Users, Shield } from "lucide-react";
+import { Calculator, Tag, Shield, HelpCircle } from "lucide-react";
 import { TaxManagement } from "@/components/TaxManagement";
 import { CategorySettings } from "@/components/CategorySettings";
-import { VendorManagement } from "@/components/VendorManagement";
 import { PasswordSecuritySettings } from "@/components/PasswordSecuritySettings";
 
 export const MorePage = () => {
@@ -22,12 +20,6 @@ export const MorePage = () => {
       label: "Category Settings", 
       description: "Manage income and expense categories",
       action: () => setCurrentView("categories")
-    },
-    { 
-      icon: Users, 
-      label: "Manage Parties", 
-      description: "Manage party information",
-      action: () => setCurrentView("vendors")
     },
     { 
       icon: Shield, 
@@ -66,22 +58,6 @@ export const MorePage = () => {
           </button>
         </div>
         <CategorySettings />
-      </div>
-    );
-  }
-
-  if (currentView === "vendors") {
-    return (
-      <div>
-        <div className="p-4 border-b">
-          <button 
-            onClick={() => setCurrentView("menu")}
-            className="text-blue-600 hover:text-blue-800"
-          >
-            ← Back
-          </button>
-        </div>
-        <VendorManagement />
       </div>
     );
   }
