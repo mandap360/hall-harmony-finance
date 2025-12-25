@@ -11,18 +11,38 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import backButtonIcon from "@/assets/back-button.png";
 
-interface Transaction {
+interface TransactionDB {
   id: string;
-  account_id: string;
-  transaction_type: 'credit' | 'debit';
+  voucher_type: string;
+  voucher_date: string;
   amount: number;
-  description?: string;
-  reference_type?: string;
-  reference_id?: string;
-  transaction_date: string;
+  description?: string | null;
+  from_account_id?: string | null;
+  to_account_id?: string | null;
   created_at: string;
-  account_name?: string;
 }
+
+interface Transaction extends TransactionDB {
+  transaction_type: 'credit' | 'debit';
+  transaction_date: string;
+  account_id: string | null;
+}
+
+// Helper to compute transaction type
+const computeTransactionType = (tx: TransactionDB): 'credit' | 'debit' => {
+  if (tx.voucher_type === 'payment' || tx.voucher_type === 'purchase') {
+    return 'debit';
+  }
+  return 'credit';
+};
+
+// Helper to transform DB transaction
+const transformTransaction = (tx: TransactionDB): Transaction => ({
+  ...tx,
+  transaction_type: computeTransactionType(tx),
+  transaction_date: tx.voucher_date,
+  account_id: tx.from_account_id || tx.to_account_id || null,
+});
 
 interface GeneralLedgerProps {
   onBack: () => void;
@@ -45,11 +65,12 @@ export const GeneralLedger = ({ onBack }: GeneralLedgerProps) => {
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
-        .order('transaction_date', { ascending: false })
+        .order('voucher_date', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTransactions(data as Transaction[] || []);
+      const transformed = (data || []).map((tx: any) => transformTransaction(tx as TransactionDB));
+      setTransactions(transformed);
     } catch (error) {
       console.error('Error fetching transactions:', error);
     } finally {

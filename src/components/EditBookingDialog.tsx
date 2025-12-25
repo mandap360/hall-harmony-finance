@@ -162,16 +162,8 @@ export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking,
         await onAddPayment(currentBooking.id, amount, paymentData.date, finalCategoryId, transactionDescription, paymentData.accountId);
       }
 
-      // Add corresponding transaction to the selected account
-      await addTransaction({
-        account_id: paymentData.accountId,
-        transaction_type: 'credit',
-        amount: amount,
-        description: transactionDescription,
-        reference_type: 'booking_payment',
-        reference_id: currentBooking.id,
-        transaction_date: paymentData.date
-      });
+      // TODO: Transaction recording temporarily disabled during schema migration
+      // Will be re-enabled once new transaction schema is fully integrated
 
       // Refresh accounts to show updated balances
       await refreshAccounts();

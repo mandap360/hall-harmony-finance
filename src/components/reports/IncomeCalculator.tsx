@@ -25,8 +25,8 @@ export const calculateIncomeData = async (selectedFY?: { startYear: number; endY
       .single();
 
     // Fetch all income with their corresponding booking end dates for user's organization
-    const { data: allIncomeWithBookings, error: incomeError } = await supabase
-      .from('income')
+    const { data: allIncomeWithBookings, error: incomeError } = await (supabase
+      .from('income' as any)
       .select(`
         amount,
         category_id,
@@ -37,7 +37,7 @@ export const calculateIncomeData = async (selectedFY?: { startYear: number; endY
           parent_id
         )
       `)
-      .eq('organization_id', profile.organization_id);
+      .eq('organization_id', profile.organization_id) as any);
 
     // Fetch booking end dates separately
     const { data: bookingsData, error: bookingsError } = await supabase
