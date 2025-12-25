@@ -323,6 +323,85 @@ export type Database = {
           },
         ]
       }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          from_account_id: string | null
+          id: string
+          is_financial_transaction: boolean
+          organization_id: string
+          party_id: string | null
+          party_type: Database["public"]["Enums"]["party_type"] | null
+          payment_method:
+            | Database["public"]["Enums"]["payment_method_type"]
+            | null
+          reference_voucher_id: string | null
+          to_account_id: string | null
+          voucher_date: string
+          voucher_type: Database["public"]["Enums"]["voucher_type"]
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          from_account_id?: string | null
+          id?: string
+          is_financial_transaction?: boolean
+          organization_id: string
+          party_id?: string | null
+          party_type?: Database["public"]["Enums"]["party_type"] | null
+          payment_method?:
+            | Database["public"]["Enums"]["payment_method_type"]
+            | null
+          reference_voucher_id?: string | null
+          to_account_id?: string | null
+          voucher_date: string
+          voucher_type: Database["public"]["Enums"]["voucher_type"]
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          from_account_id?: string | null
+          id?: string
+          is_financial_transaction?: boolean
+          organization_id?: string
+          party_id?: string | null
+          party_type?: Database["public"]["Enums"]["party_type"] | null
+          payment_method?:
+            | Database["public"]["Enums"]["payment_method_type"]
+            | null
+          reference_voucher_id?: string | null
+          to_account_id?: string | null
+          voucher_date?: string
+          voucher_type?: Database["public"]["Enums"]["voucher_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_from_account_id_fkey"
+            columns: ["from_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_reference_voucher_id_fkey"
+            columns: ["reference_voucher_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendors: {
         Row: {
           address: string | null
@@ -374,7 +453,15 @@ export type Database = {
       migrate_advance_to_payments: { Args: never; Returns: undefined }
     }
     Enums: {
+      party_type: "customer" | "vendor"
+      payment_method_type: "cash" | "bank"
       user_role: "admin" | "manager"
+      voucher_type:
+        | "purchase"
+        | "payment"
+        | "fund_transfer"
+        | "sales"
+        | "receipt"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -502,7 +589,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      party_type: ["customer", "vendor"],
+      payment_method_type: ["cash", "bank"],
       user_role: ["admin", "manager"],
+      voucher_type: [
+        "purchase",
+        "payment",
+        "fund_transfer",
+        "sales",
+        "receipt",
+      ],
     },
   },
 } as const

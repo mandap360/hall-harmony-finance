@@ -38,25 +38,34 @@ export const useAccounts = () => {
       // Calculate current balance for each account based on opening balance + transactions
       const accountsWithCalculatedBalance = await Promise.all(
         (data || []).map(async (account) => {
-          const { data: transactions, error: txError } = await supabase
+          // Query transactions where this account is involved (from or to)
+          const { data: fromTransactions, error: fromError } = await supabase
             .from('transactions')
-            .select('transaction_type, amount')
-            .eq('account_id', account.id);
+            .select('voucher_type, amount')
+            .eq('from_account_id', account.id);
 
-          if (txError) {
-            console.error('Error fetching transactions for account:', txError);
+          const { data: toTransactions, error: toError } = await supabase
+            .from('transactions')
+            .select('voucher_type, amount')
+            .eq('to_account_id', account.id);
+
+          if (fromError || toError) {
+            console.error('Error fetching transactions for account:', fromError || toError);
             return account;
           }
 
           // Calculate balance from opening balance + all transactions
           const openingBalance = account.opening_balance || 0;
-          const transactionBalance = (transactions || []).reduce((sum, tx) => {
-            return sum + (tx.transaction_type === 'credit' ? tx.amount : -tx.amount);
-          }, 0);
+          
+          // Money out (from this account)
+          const moneyOut = (fromTransactions || []).reduce((sum, tx) => sum + tx.amount, 0);
+          
+          // Money in (to this account)
+          const moneyIn = (toTransactions || []).reduce((sum, tx) => sum + tx.amount, 0);
 
           return {
             ...account,
-            balance: openingBalance + transactionBalance
+            balance: openingBalance + moneyIn - moneyOut
           };
         })
       );
@@ -117,16 +126,19 @@ export const useAccounts = () => {
 
       // Recalculate balance if opening_balance was updated
       if (updates.opening_balance !== undefined) {
-        const { data: transactions } = await supabase
+        const { data: fromTransactions } = await supabase
           .from('transactions')
-          .select('transaction_type, amount')
-          .eq('account_id', id);
+          .select('amount')
+          .eq('from_account_id', id);
 
-        const transactionBalance = (transactions || []).reduce((sum, tx) => {
-          return sum + (tx.transaction_type === 'credit' ? tx.amount : -tx.amount);
-        }, 0);
+        const { data: toTransactions } = await supabase
+          .from('transactions')
+          .select('amount')
+          .eq('to_account_id', id);
 
-        const calculatedBalance = (updates.opening_balance || 0) + transactionBalance;
+        const moneyOut = (fromTransactions || []).reduce((sum, tx) => sum + tx.amount, 0);
+        const moneyIn = (toTransactions || []).reduce((sum, tx) => sum + tx.amount, 0);
+        const calculatedBalance = (updates.opening_balance || 0) + moneyIn - moneyOut;
         
         setAccounts(prev => prev.map(account => 
           account.id === id ? { ...data as Account, balance: calculatedBalance } : account
@@ -180,6 +192,8 @@ export const useAccounts = () => {
   };
 
   const transferAmount = async (fromAccountId: string, toAccountId: string, amount: number, description?: string, transferDate?: string) => {
+    if (!profile?.organization_id) return;
+    
     try {
       // Get account names for better descriptions
       const { data: fromAccount } = await supabase
@@ -194,48 +208,23 @@ export const useAccounts = () => {
         .eq('id', toAccountId)
         .single();
 
-      // Create debit transaction for source account
-      await (supabase.rpc as any)('update_account_balance', {
-        account_uuid: fromAccountId,
-        amount_change: -amount
-      });
-
-      // Create credit transaction for destination account
-      await (supabase.rpc as any)('update_account_balance', {
-        account_uuid: toAccountId,
-        amount_change: amount
-      });
-
-      // Add transaction records with account names in descriptions
+      // Add transaction record with new schema
       const transactionDate = transferDate || new Date().toISOString().split('T')[0];
       
-      const { error: debitError } = await supabase
+      const { error: txError } = await supabase
         .from('transactions')
         .insert([{
-          account_id: fromAccountId,
-          transaction_type: 'debit',
+          voucher_type: 'fund_transfer' as const,
+          voucher_date: transactionDate,
           amount: amount,
-          description: description || `Transfer to ${toAccount?.name || 'account'}`,
-          reference_type: 'transfer',
-          reference_id: toAccountId,
-          transaction_date: transactionDate
+          from_account_id: fromAccountId,
+          to_account_id: toAccountId,
+          is_financial_transaction: true,
+          organization_id: profile.organization_id,
+          description: description || `Transfer from ${fromAccount?.name} to ${toAccount?.name}`
         }]);
 
-      if (debitError) throw debitError;
-
-      const { error: creditError } = await supabase
-        .from('transactions')
-        .insert([{
-          account_id: toAccountId,
-          transaction_type: 'credit',
-          amount: amount,
-          description: description || `Transfer from ${fromAccount?.name || 'account'}`,
-          reference_type: 'transfer',
-          reference_id: fromAccountId,
-          transaction_date: transactionDate
-        }]);
-
-      if (creditError) throw creditError;
+      if (txError) throw txError;
 
       // Refresh accounts to show updated balances
       await fetchAccounts();
