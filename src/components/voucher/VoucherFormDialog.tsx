@@ -18,6 +18,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { PaymentMethodType, PartyType } from "@/hooks/useTransactions";
 
 interface VoucherFormDialogProps {
   open: boolean;
@@ -80,9 +81,23 @@ export function VoucherFormDialog({
 
   const voucherInfo = VOUCHER_TYPES.find(v => v.id === voucherType);
 
+  // Helper to determine payment method type based on account
+  const getPaymentMethodType = (accountId: string): PaymentMethodType => {
+    const account = accounts.find(a => a.id === accountId);
+    if (account?.account_type === 'cash' || account?.name?.toLowerCase().includes('cash')) {
+      return 'cash';
+    }
+    return 'bank';
+  };
+
   const handleSubmit = async () => {
     if (!amount || parseFloat(amount) <= 0) {
       toast({ title: "Error", description: "Please enter a valid amount", variant: "destructive" });
+      return;
+    }
+
+    if (!profile?.organization_id) {
+      toast({ title: "Error", description: "Organization not found", variant: "destructive" });
       return;
     }
 
@@ -102,29 +117,27 @@ export function VoucherFormDialog({
           const vendor = vendors.find(v => v.id === vendorId);
           
           // Create expense record
-          const { data: expenseData } = await supabase.from('expenses').insert({
+          await supabase.from('expenses').insert({
             vendor_name: vendor?.businessName || '',
             bill_number: billNumber || `PUR-${Date.now()}`,
             expense_date: formattedDate,
             category_id: categoryId,
             amount: parsedAmount,
             total_amount: parsedAmount,
-            organization_id: profile?.organization_id,
+            organization_id: profile.organization_id,
             is_paid: false
-          }).select().single();
+          });
 
           // Create transaction record (not a financial transaction)
           await supabase.from('transactions').insert({
-            account_id: accounts[0]?.id, // Default account
+            voucher_type: 'purchase' as const,
+            voucher_date: formattedDate,
             amount: parsedAmount,
-            transaction_type: 'debit',
-            transaction_date: formattedDate,
-            description: description || `Purchase from ${vendor?.businessName}`,
-            voucher_type: 'purchase',
+            party_type: 'vendor' as PartyType,
+            party_id: vendorId,
             is_financial_transaction: false,
-            vendor_id: vendorId,
-            reference_id: expenseData?.id,
-            reference_type: 'expense'
+            organization_id: profile.organization_id,
+            description: description || `Purchase from ${vendor?.businessName}`
           });
           break;
         }
@@ -148,17 +161,16 @@ export function VoucherFormDialog({
 
           // Create financial transaction
           await supabase.from('transactions').insert({
-            account_id: fromAccountId,
+            voucher_type: 'payment' as const,
+            voucher_date: formattedDate,
             amount: parsedAmount,
-            transaction_type: 'debit',
-            transaction_date: formattedDate,
-            description: description || `Payment to ${vendor?.businessName}`,
-            voucher_type: 'payment',
-            is_financial_transaction: true,
-            vendor_id: vendorId,
+            party_type: 'vendor' as PartyType,
+            party_id: vendorId,
+            payment_method: getPaymentMethodType(fromAccountId),
             from_account_id: fromAccountId,
-            reference_id: linkedPurchaseId || null,
-            reference_type: linkedPurchaseId ? 'expense' : null
+            is_financial_transaction: true,
+            organization_id: profile.organization_id,
+            description: description || `Payment to ${vendor?.businessName}`
           });
           break;
         }
@@ -172,16 +184,14 @@ export function VoucherFormDialog({
 
           // Create financial transaction for transfer
           await supabase.from('transactions').insert({
-            account_id: fromAccountId,
+            voucher_type: 'fund_transfer' as const,
+            voucher_date: formattedDate,
             amount: parsedAmount,
-            transaction_type: 'debit',
-            transaction_date: formattedDate,
-            description: description || 'Fund Transfer',
-            voucher_type: 'fund_transfer',
-            is_financial_transaction: true,
             from_account_id: fromAccountId,
             to_account_id: toAccountId,
-            reference_type: 'transfer'
+            is_financial_transaction: true,
+            organization_id: profile.organization_id,
+            description: description || 'Fund Transfer'
           });
           break;
         }
@@ -194,23 +204,21 @@ export function VoucherFormDialog({
           }
           
           // Create secondary income record
-          const { data: incomeData } = await supabase.from('secondary_income').insert({
+          await supabase.from('secondary_income').insert({
             amount: parsedAmount,
             category_id: incomeCategoryId,
-            organization_id: profile?.organization_id
-          }).select().single();
+            organization_id: profile.organization_id
+          });
 
           // Create transaction (not financial - until receipt is made)
           await supabase.from('transactions').insert({
-            account_id: accounts[0]?.id,
+            voucher_type: 'sales' as const,
+            voucher_date: formattedDate,
             amount: parsedAmount,
-            transaction_type: 'credit',
-            transaction_date: formattedDate,
-            description: description || 'Sales',
-            voucher_type: 'sales',
+            party_type: 'customer' as PartyType,
             is_financial_transaction: false,
-            reference_id: incomeData?.id,
-            reference_type: 'secondary_income'
+            organization_id: profile.organization_id,
+            description: description || 'Sales'
           });
           break;
         }
@@ -224,16 +232,15 @@ export function VoucherFormDialog({
           
           // Create financial transaction
           await supabase.from('transactions').insert({
-            account_id: toAccountId,
+            voucher_type: 'receipt' as const,
+            voucher_date: formattedDate,
             amount: parsedAmount,
-            transaction_type: 'credit',
-            transaction_date: formattedDate,
-            description: description || 'Receipt',
-            voucher_type: 'receipt',
-            is_financial_transaction: true,
+            party_type: 'customer' as PartyType,
+            payment_method: getPaymentMethodType(toAccountId),
             to_account_id: toAccountId,
-            reference_id: linkedSaleId || null,
-            reference_type: linkedSaleId ? 'secondary_income' : null
+            is_financial_transaction: true,
+            organization_id: profile.organization_id,
+            description: description || 'Receipt'
           });
           break;
         }

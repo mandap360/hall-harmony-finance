@@ -18,13 +18,15 @@ import { useToast } from "@/hooks/use-toast";
 
 interface FinancialTransaction {
   id: string;
-  transaction_date: string;
+  voucher_date: string;
   amount: number;
   voucher_type: string;
+  party_type: string | null;
+  party_id: string | null;
+  payment_method: string | null;
   from_account_id: string | null;
   to_account_id: string | null;
   description: string | null;
-  vendor_id: string | null;
 }
 
 const PERIOD_OPTIONS = [
@@ -66,9 +68,9 @@ export const TransactionsPage = () => {
         .from('transactions')
         .select('*')
         .eq('is_financial_transaction', true)
-        .gte('transaction_date', format(start, 'yyyy-MM-dd'))
-        .lte('transaction_date', format(end, 'yyyy-MM-dd'))
-        .order('transaction_date', { ascending: false });
+        .gte('voucher_date', format(start, 'yyyy-MM-dd'))
+        .lte('voucher_date', format(end, 'yyyy-MM-dd'))
+        .order('voucher_date', { ascending: false });
 
       if (error) throw error;
       setTransactions(data || []);
@@ -259,7 +261,7 @@ export const TransactionsPage = () => {
                   className="grid grid-cols-12 gap-2 px-4 py-3 hover:bg-muted/30 transition-colors"
                 >
                   <div className="col-span-2 text-sm">
-                    {format(new Date(transaction.transaction_date), 'dd/MM')}
+                    {format(new Date(transaction.voucher_date), 'dd/MM')}
                   </div>
                   <div className="col-span-3 text-sm truncate" title={from}>
                     {from}
