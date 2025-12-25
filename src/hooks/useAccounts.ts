@@ -7,8 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 export interface Account {
   id: string;
   name: string;
-  account_type: 'operational' | 'capital' | 'other';
-  sub_type?: string;
+  account_type: 'operational' | 'capital' | 'party' | 'other';
+  sub_type?: string | null;
   balance: number;
   opening_balance: number;
   is_default: boolean;
@@ -89,7 +89,12 @@ export const useAccounts = () => {
     try {
       const { data, error } = await supabase
         .from('accounts')
-        .insert([{ ...accountData, balance: 0, opening_balance: 0, organization_id: profile.organization_id }])
+        .insert([{ 
+          ...accountData, 
+          balance: 0, 
+          opening_balance: accountData.opening_balance || 0, 
+          organization_id: profile.organization_id 
+        }])
         .select()
         .single();
 
