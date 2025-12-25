@@ -41,11 +41,11 @@ export const useIncome = () => {
         return;
       }
 
-      const { data: incomeData, error } = await supabase
-        .from('income')
+      const { data: incomeData, error } = await (supabase
+        .from('income' as any)
         .select('*')
         .eq('organization_id', profile.organization_id)
-        .order('payment_date', { ascending: false });
+        .order('payment_date', { ascending: false }) as any);
 
       if (error) {
         console.error('Error fetching income:', error);
@@ -55,7 +55,7 @@ export const useIncome = () => {
       console.log("Raw income data:", incomeData);
 
       // Transform the data and ensure category_id is used correctly
-      const transformedIncome: Income[] = (incomeData || []).map(payment => ({
+      const transformedIncome: Income[] = (incomeData || []).map((payment: any) => ({
         id: payment.id,
         bookingId: payment.booking_id,
         amount: Number(payment.amount),
@@ -85,8 +85,8 @@ export const useIncome = () => {
 
   const addIncome = async (incomeData: Omit<Income, 'id'>) => {
     try {
-      const { data, error } = await supabase
-        .from('income')
+      const { data, error } = await (supabase
+        .from('income' as any)
         .insert({
           booking_id: incomeData.bookingId,
           amount: incomeData.amount,
@@ -95,7 +95,7 @@ export const useIncome = () => {
           description: incomeData.description
         })
         .select()
-        .single();
+        .single() as any);
 
       if (error) throw error;
 

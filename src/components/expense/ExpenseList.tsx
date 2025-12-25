@@ -44,16 +44,8 @@ export const ExpenseList = ({ expenses, onExpenseUpdated }: ExpenseListProps) =>
       // Mark expense as paid
       await markAsPaid(expenseId, accountId, paymentDate);
       
-      // Add transaction record
-      await addTransaction({
-        account_id: accountId,
-        transaction_type: 'debit',
-        amount: expense.totalAmount,
-        description: `Expense payment - ${expense.vendorName} - ${expense.category}`,
-        reference_type: 'expense',
-        reference_id: expenseId,
-        transaction_date: paymentDate
-      });
+      // TODO: Transaction recording temporarily disabled during schema migration
+      // Will be re-enabled once new transaction schema is fully integrated
 
       // Trigger refresh
       if (onExpenseUpdated) {

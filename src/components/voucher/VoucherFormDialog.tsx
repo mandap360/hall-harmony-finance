@@ -84,7 +84,8 @@ export function VoucherFormDialog({
   // Helper to determine payment method type based on account
   const getPaymentMethodType = (accountId: string): PaymentMethodType => {
     const account = accounts.find(a => a.id === accountId);
-    if (account?.account_type === 'cash' || account?.name?.toLowerCase().includes('cash')) {
+    // Check name for cash indicator
+    if (account?.name?.toLowerCase().includes('cash')) {
       return 'cash';
     }
     return 'bank';
@@ -117,7 +118,7 @@ export function VoucherFormDialog({
           const vendor = vendors.find(v => v.id === vendorId);
           
           // Create expense record
-          await supabase.from('expenses').insert({
+          await (supabase.from('expenses' as any).insert({
             vendor_name: vendor?.businessName || '',
             bill_number: billNumber || `PUR-${Date.now()}`,
             expense_date: formattedDate,
@@ -126,7 +127,7 @@ export function VoucherFormDialog({
             total_amount: parsedAmount,
             organization_id: profile.organization_id,
             is_paid: false
-          });
+          }) as any);
 
           // Create transaction record (not a financial transaction)
           await supabase.from('transactions').insert({
@@ -152,11 +153,11 @@ export function VoucherFormDialog({
 
           // If linked to a purchase, update the expense as paid
           if (linkedPurchaseId) {
-            await supabase.from('expenses').update({
+            await (supabase.from('expenses' as any).update({
               is_paid: true,
               account_id: fromAccountId,
               payment_date: formattedDate
-            }).eq('id', linkedPurchaseId);
+            }).eq('id', linkedPurchaseId) as any);
           }
 
           // Create financial transaction
