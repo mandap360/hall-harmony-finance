@@ -37,22 +37,11 @@ export const PartySection = ({
       onEdit({
         ...editingParty,
         name: updatedData.businessName,
-        sub_type: JSON.stringify({
-          gstin: updatedData.gstin,
-          phone_number: updatedData.phoneNumber,
-          address: updatedData.address
-        })
+        gstin: updatedData.gstin || null,
+        phone_number: updatedData.phoneNumber || null,
+        address: updatedData.address || null
       });
       setEditingParty(null);
-    }
-  };
-
-  const getPartyDetails = (account: Account) => {
-    if (!account.sub_type) return { gstin: '', phone_number: '', address: '' };
-    try {
-      return JSON.parse(account.sub_type);
-    } catch {
-      return { gstin: '', phone_number: '', address: '' };
     }
   };
 
@@ -84,9 +73,7 @@ export const PartySection = ({
             </p>
           </Card>
         ) : (
-          filteredParties.map((account) => {
-            const details = getPartyDetails(account);
-            return (
+          filteredParties.map((account) => (
               <Card 
                 key={account.id} 
                 className="p-4 hover:shadow-md transition-shadow cursor-pointer"
@@ -97,19 +84,19 @@ export const PartySection = ({
                     <h3 className="font-semibold text-lg text-gray-900 mb-1">
                       {account.name}
                     </h3>
-                    {details.phone_number && (
+                    {account.phone_number && (
                       <p className="text-sm text-gray-600 mb-0.5">
-                        <span className="font-medium">Phone:</span> {details.phone_number}
+                        <span className="font-medium">Phone:</span> {account.phone_number}
                       </p>
                     )}
-                    {details.gstin && (
+                    {account.gstin && (
                       <p className="text-sm text-gray-600 mb-0.5">
-                        <span className="font-medium">GSTIN:</span> {details.gstin}
+                        <span className="font-medium">GSTIN:</span> {account.gstin}
                       </p>
                     )}
-                    {details.address && (
+                    {account.address && (
                       <p className="text-sm text-gray-600">
-                        <span className="font-medium">Address:</span> {details.address}
+                        <span className="font-medium">Address:</span> {account.address}
                       </p>
                     )}
                   </div>
@@ -146,8 +133,7 @@ export const PartySection = ({
                   </div>
                 </div>
               </Card>
-            );
-          })
+          ))
         )}
       </div>
 
@@ -158,7 +144,9 @@ export const PartySection = ({
           vendor={{
             id: editingParty.id,
             businessName: editingParty.name,
-            ...getPartyDetails(editingParty)
+            gstin: editingParty.gstin || '',
+            phone_number: editingParty.phone_number || '',
+            address: editingParty.address || ''
           }}
           onSubmit={handleEditParty}
         />
