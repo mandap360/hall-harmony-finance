@@ -13,7 +13,6 @@ import { VoucherType, VOUCHER_TYPES } from "@/components/VoucherTypeDialog";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
-import { useExpenses } from "@/hooks/useExpenses";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +24,13 @@ interface VoucherFormDialogProps {
   voucherType: VoucherType;
   onBack: () => void;
   onSuccess: () => void;
+}
+
+interface UnpaidPurchase {
+  id: string;
+  amount: number;
+  voucher_date: string;
+  description: string;
 }
 
 export function VoucherFormDialog({ 
@@ -40,7 +46,6 @@ export function VoucherFormDialog({
   const partyAccounts = accounts.filter(acc => acc.account_type === 'party');
   const { getExpenseCategories } = useCategories();
   const { categories: incomeCategories } = useIncomeCategories();
-  const { expenses } = useExpenses();
   const expenseCategories = getExpenseCategories();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,11 +61,35 @@ export function VoucherFormDialog({
   const [incomeCategoryId, setIncomeCategoryId] = useState("");
   const [linkedPurchaseId, setLinkedPurchaseId] = useState("");
   const [linkedSaleId, setLinkedSaleId] = useState("");
+  const [vendorUnpaidPurchases, setVendorUnpaidPurchases] = useState<UnpaidPurchase[]>([]);
 
-  // Get unpaid purchases for the selected vendor (for Payment Voucher)
-  const vendorUnpaidPurchases = expenses.filter(
-    exp => partyAccounts.find(v => v.id === vendorId)?.name === exp.vendorName && !exp.isPaid
-  );
+  // Fetch unpaid purchases for the selected vendor (for Payment Voucher)
+  useEffect(() => {
+    const fetchUnpaidPurchases = async () => {
+      if (!vendorId || !profile?.organization_id) {
+        setVendorUnpaidPurchases([]);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('id, amount, voucher_date, description')
+          .eq('organization_id', profile.organization_id)
+          .eq('voucher_type', 'purchase')
+          .eq('party_id', vendorId)
+          .eq('is_financial_transaction', false);
+
+        if (error) throw error;
+        setVendorUnpaidPurchases(data || []);
+      } catch (error) {
+        console.error('Error fetching unpaid purchases:', error);
+        setVendorUnpaidPurchases([]);
+      }
+    };
+
+    fetchUnpaidPurchases();
+  }, [vendorId, profile?.organization_id]);
 
   // Reset form when voucher type changes
   useEffect(() => {
@@ -115,20 +144,8 @@ export function VoucherFormDialog({
             return;
           }
           const vendor = partyAccounts.find(v => v.id === vendorId);
-          
-          // Create expense record
-          await (supabase.from('expenses' as any).insert({
-            vendor_name: vendor?.name || '',
-            bill_number: billNumber || `PUR-${Date.now()}`,
-            expense_date: formattedDate,
-            category_id: categoryId,
-            amount: parsedAmount,
-            total_amount: parsedAmount,
-            organization_id: profile.organization_id,
-            is_paid: false
-          }) as any);
 
-          // Create transaction record (not a financial transaction)
+          // Create transaction record (not a financial transaction - will become financial when paid)
           await supabase.from('transactions').insert({
             voucher_type: 'purchase' as const,
             voucher_date: formattedDate,
@@ -150,13 +167,12 @@ export function VoucherFormDialog({
           }
           const vendor = partyAccounts.find(v => v.id === vendorId);
 
-          // If linked to a purchase, update the expense as paid
+          // If linked to a purchase, mark the purchase as financial (paid)
           if (linkedPurchaseId) {
-            await (supabase.from('expenses' as any).update({
-              is_paid: true,
-              account_id: fromAccountId,
-              payment_date: formattedDate
-            }).eq('id', linkedPurchaseId) as any);
+            await supabase
+              .from('transactions')
+              .update({ is_financial_transaction: true })
+              .eq('id', linkedPurchaseId);
           }
 
           // Create financial transaction
@@ -170,7 +186,8 @@ export function VoucherFormDialog({
             from_account_id: fromAccountId,
             is_financial_transaction: true,
             organization_id: profile.organization_id,
-            description: description || `Payment to ${vendor?.name}`
+            description: description || `Payment to ${vendor?.name}`,
+            reference_voucher_id: linkedPurchaseId || null
           });
           break;
         }
@@ -360,7 +377,7 @@ export function VoucherFormDialog({
           <Select value={linkedPurchaseId} onValueChange={(val) => {
             setLinkedPurchaseId(val);
             const purchase = vendorUnpaidPurchases.find(p => p.id === val);
-            if (purchase) setAmount(purchase.totalAmount.toString());
+            if (purchase) setAmount(purchase.amount.toString());
           }}>
             <SelectTrigger>
               <SelectValue placeholder="Select unpaid purchase" />
@@ -368,7 +385,7 @@ export function VoucherFormDialog({
             <SelectContent>
               {vendorUnpaidPurchases.map(purchase => (
                 <SelectItem key={purchase.id} value={purchase.id}>
-                  {purchase.billNumber} - ₹{purchase.totalAmount} ({format(new Date(purchase.date), 'dd/MM/yyyy')})
+                  ₹{purchase.amount} ({format(new Date(purchase.voucher_date), 'dd/MM/yyyy')})
                 </SelectItem>
               ))}
             </SelectContent>

@@ -1,35 +1,93 @@
 
+import { useState, useEffect } from "react";
 import { ArrowLeft, Building2, FileText, IndianRupee, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface UnpaidBillsViewProps {
   onBack: () => void;
 }
 
+interface UnpaidPurchase {
+  id: string;
+  amount: number;
+  voucher_date: string;
+  description: string;
+  party_id: string;
+  vendorName: string;
+}
+
 export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
-  const { expenses } = useExpenses();
   const { accounts } = useAccounts();
+  const { profile } = useAuth();
   const partyAccounts = accounts.filter(acc => acc.account_type === 'party');
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
+  const [unpaidPurchases, setUnpaidPurchases] = useState<UnpaidPurchase[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const unpaidExpenses = expenses.filter(expense => !expense.isPaid);
+  useEffect(() => {
+    const fetchUnpaidPurchases = async () => {
+      if (!profile?.organization_id) return;
+
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('id, amount, voucher_date, description, party_id')
+          .eq('organization_id', profile.organization_id)
+          .eq('voucher_type', 'purchase')
+          .eq('is_financial_transaction', false)
+          .order('voucher_date', { ascending: false });
+
+        if (error) throw error;
+
+        // Map party_id to vendor names
+        const purchasesWithVendorNames = (data || []).map(purchase => {
+          const vendor = partyAccounts.find(acc => acc.id === purchase.party_id);
+          return {
+            ...purchase,
+            vendorName: vendor?.name || 'Unknown Vendor'
+          };
+        });
+
+        setUnpaidPurchases(purchasesWithVendorNames);
+      } catch (error) {
+        console.error('Error fetching unpaid purchases:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUnpaidPurchases();
+  }, [profile?.organization_id, partyAccounts]);
   
-  // Group expenses by vendor
-  const expensesByVendor = unpaidExpenses.reduce((acc, expense) => {
-    if (!acc[expense.vendorName]) {
-      acc[expense.vendorName] = [];
+  // Group purchases by vendor
+  const purchasesByVendor = unpaidPurchases.reduce((acc, purchase) => {
+    if (!acc[purchase.vendorName]) {
+      acc[purchase.vendorName] = [];
     }
-    acc[expense.vendorName].push(expense);
+    acc[purchase.vendorName].push(purchase);
     return acc;
-  }, {} as Record<string, typeof unpaidExpenses>);
+  }, {} as Record<string, UnpaidPurchase[]>);
 
-  const vendorNames = Object.keys(expensesByVendor);
-  const selectedVendorExpenses = selectedVendor ? expensesByVendor[selectedVendor] || [] : [];
+  const vendorNames = Object.keys(purchasesByVendor);
+  const selectedVendorPurchases = selectedVendor ? purchasesByVendor[selectedVendor] || [] : [];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <p className="text-gray-500">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
@@ -69,9 +127,9 @@ export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
                 <CardContent className="p-2 sm:p-6 pt-0">
                   <div className="space-y-2 max-h-[70vh] overflow-y-auto">
                     {vendorNames.map((vendorName) => {
-                      const vendorExpenses = expensesByVendor[vendorName];
-                      const totalAmount = vendorExpenses.reduce((sum, expense) => sum + expense.totalAmount, 0);
-                      const billCount = vendorExpenses.length;
+                      const vendorPurchases = purchasesByVendor[vendorName];
+                      const totalAmount = vendorPurchases.reduce((sum, p) => sum + p.amount, 0);
+                      const billCount = vendorPurchases.length;
                       
                       return (
                         <div
@@ -120,21 +178,21 @@ export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
                 <CardContent className="p-2 sm:p-6 pt-0">
                   {selectedVendor ? (
                     <div className="space-y-2 sm:space-y-3 max-h-[70vh] overflow-y-auto">
-                      {selectedVendorExpenses.map((expense) => (
-                        <div key={expense.id} className="p-2 sm:p-4 bg-white border border-gray-200 rounded-lg">
+                      {selectedVendorPurchases.map((purchase) => (
+                        <div key={purchase.id} className="p-2 sm:p-4 bg-white border border-gray-200 rounded-lg">
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex-1 min-w-0">
                               <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">
-                                Bill #{expense.billNumber}
+                                {purchase.description || 'Purchase'}
                               </h4>
                               <p className="text-xs sm:text-sm text-gray-600 truncate">
-                                {expense.vendorName}
+                                {purchase.vendorName}
                               </p>
                             </div>
                             <div className="flex items-center text-red-600 ml-2">
                               <IndianRupee className="h-3 w-3 sm:h-4 sm:w-4" />
                               <span className="font-bold text-sm sm:text-base">
-                                ₹{expense.totalAmount.toLocaleString('en-IN')}
+                                ₹{purchase.amount.toLocaleString('en-IN')}
                               </span>
                             </div>
                           </div>
@@ -142,27 +200,12 @@ export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
                           <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
                             <div className="flex items-center">
                               <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                              <span>{new Date(expense.date).toLocaleDateString()}</span>
+                              <span>{new Date(purchase.voucher_date).toLocaleDateString()}</span>
                             </div>
                             <Badge variant="destructive" className="text-xs">
                               Unpaid
                             </Badge>
                           </div>
-                          
-                          {(expense.cgstPercentage > 0 || expense.sgstPercentage > 0) && (
-                            <div className="mt-2 pt-2 border-t border-gray-100">
-                              <div className="text-xs text-gray-600 space-y-1">
-                                <div className="flex justify-between">
-                                  <span>Amount:</span>
-                                  <span>₹{expense.amount.toLocaleString('en-IN')}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>GST ({expense.cgstPercentage + expense.sgstPercentage}%):</span>
-                                  <span>₹{((expense.totalAmount - expense.amount)).toLocaleString('en-IN')}</span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>

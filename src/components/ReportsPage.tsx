@@ -1,23 +1,20 @@
 
 import { useState, useEffect } from "react";
 import { useBookings } from "@/hooks/useBookings";
-import { useExpenses } from "@/hooks/useExpenses";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useTransactions } from "@/hooks/useTransactions";
 import { SalesExpenseSummary } from "@/components/reports/SalesExpenseSummary";
 import { DashboardSummaryCards } from "@/components/reports/DashboardSummaryCards";
 import { IncomeListView } from "@/components/reports/IncomeListView";
-import { ExpenseListView } from "@/components/reports/ExpenseListView";
 import { VendorPayablesView } from "@/components/reports/VendorPayablesView";
 import { UnpaidBillsView } from "@/components/reports/UnpaidBillsView";
 import { ReceivablesView } from "@/components/reports/ReceivablesView";
 import { AccountTransactions } from "@/components/AccountTransactions";
 import { Account } from "@/hooks/useAccounts";
 import { calculateIncomeData } from "@/components/reports/IncomeCalculator";
-import { calculateExpenseData } from "@/components/reports/ExpenseCalculator";
 import { FinancialYearNavigation } from "@/components/reports/FinancialYearNavigation";
 import { getCurrentFY } from "@/components/reports/FinancialYearCalculator";
-import { TrendingUp, FileText, PlusCircle, Calendar } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { TrendingUp, FileText, Calendar } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 // Reports page component with dashboard summary cards
@@ -26,22 +23,78 @@ export const ReportsPage = () => {
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [selectedFY, setSelectedFY] = useState(getCurrentFY());
   const [incomeData, setIncomeData] = useState<any>(null);
-  const [expenseData, setExpenseData] = useState<any>(null);
+  const [expenseData, setExpenseData] = useState<{ totalExpenses: number; expensesByCategory: Record<string, number>; totalPayables: number } | null>(null);
   const { bookings } = useBookings();
-  const { expenses } = useExpenses();
   const { accounts } = useAccounts();
+  const { transactions } = useTransactions();
 
-  // Calculate income and expense data asynchronously based on selected FY
+  // Calculate expense data from transactions
   useEffect(() => {
-    const fetchFinancialData = async () => {
+    const calculateExpenseData = () => {
+      const targetFY = selectedFY;
+      
+      // Filter purchase transactions for the selected FY
+      const purchaseTransactions = transactions.filter(tx => {
+        if (tx.voucher_type !== 'purchase') return false;
+        
+        const txDate = new Date(tx.voucher_date);
+        const txYear = txDate.getFullYear();
+        const txMonth = txDate.getMonth();
+        
+        // Calculate transaction FY
+        let txFY;
+        if (txMonth >= 3) { // April onwards
+          txFY = { startYear: txYear, endYear: txYear + 1 };
+        } else { // January to March
+          txFY = { startYear: txYear - 1, endYear: txYear };
+        }
+        
+        return txFY.startYear === targetFY.startYear && txFY.endYear === targetFY.endYear;
+      });
+
+      const totalExpenses = purchaseTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+
+      // Group by description (as proxy for category since we don't have category_id on transactions)
+      const expensesByCategory = purchaseTransactions.reduce((acc, tx) => {
+        const category = tx.description || 'Uncategorized';
+        acc[category] = (acc[category] || 0) + tx.amount;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Calculate payables (unpaid purchases from selected FY and earlier)
+      const unpaidPurchases = transactions.filter(tx => {
+        if (tx.voucher_type !== 'purchase' || tx.is_financial_transaction) return false;
+        
+        const txDate = new Date(tx.voucher_date);
+        const txYear = txDate.getFullYear();
+        const txMonth = txDate.getMonth();
+        
+        let txFY;
+        if (txMonth >= 3) {
+          txFY = { startYear: txYear, endYear: txYear + 1 };
+        } else {
+          txFY = { startYear: txYear - 1, endYear: txYear };
+        }
+        
+        return txFY.endYear <= targetFY.endYear;
+      });
+
+      const totalPayables = unpaidPurchases.reduce((sum, tx) => sum + tx.amount, 0);
+
+      setExpenseData({ totalExpenses, expensesByCategory, totalPayables });
+    };
+
+    calculateExpenseData();
+  }, [transactions, selectedFY]);
+
+  // Calculate income data asynchronously based on selected FY
+  useEffect(() => {
+    const fetchIncomeData = async () => {
       const incomeResult = await calculateIncomeData(selectedFY);
       setIncomeData(incomeResult);
-      
-      const expenseResult = await calculateExpenseData(expenses, selectedFY);
-      setExpenseData(expenseResult);
     };
-    fetchFinancialData();
-  }, [expenses, selectedFY]);
+    fetchIncomeData();
+  }, [selectedFY]);
 
   // Calculate banking summary
   const bankingSummary = accounts.reduce((acc, account) => {
@@ -72,10 +125,6 @@ export const ReportsPage = () => {
     return <IncomeListView onBack={() => setCurrentView("dashboard")} />;
   }
 
-  if (currentView === "expenses") {
-    return <ExpenseListView onBack={() => setCurrentView("dashboard")} />;
-  }
-
   if (currentView === "payables") {
     return <VendorPayablesView onBack={() => setCurrentView("dashboard")} selectedFY={selectedFY} />;
   }
@@ -103,7 +152,7 @@ export const ReportsPage = () => {
   }
 
   // Check if there's no data to display
-  const hasNoData = bookings.length === 0 && expenses.length === 0;
+  const hasNoData = bookings.length === 0 && transactions.filter(tx => tx.voucher_type === 'purchase').length === 0;
 
   if (hasNoData) {
     return (
@@ -144,10 +193,6 @@ export const ReportsPage = () => {
       </div>
     );
   }
-
-  // Calculate overdue invoices and bills for display
-  const overdueInvoices = bookings.filter(booking => booking.rentFinalized > booking.paidAmount).length;
-  const overdueBills = expenses.filter(expense => !expense.isPaid).length;
 
   return (
     <div className="bg-background p-4">
