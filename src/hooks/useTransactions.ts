@@ -77,13 +77,26 @@ export const convertLegacyTransaction = (
 };
 
 // Helper to compute transaction type based on account context
-const computeTransactionType = (tx: TransactionDB, accountId?: string): 'credit' | 'debit' => {
+const computeTransactionType = (tx: TransactionDB, accountId?: string, isPartyAccount?: boolean): 'credit' | 'debit' => {
   // For fund transfers, check if this account is source or destination
   if (tx.voucher_type === 'fund_transfer') {
     if (accountId === tx.from_account_id) return 'debit';
     if (accountId === tx.to_account_id) return 'credit';
   }
   
+  // If viewing from party perspective
+  if (isPartyAccount && accountId === tx.party_id) {
+    // Purchase: we owe the vendor (credit to vendor's account)
+    // Payment: we paid the vendor (debit from vendor's account)
+    // Sales: customer owes us (debit to customer's account)
+    // Receipt: customer paid us (credit from customer's account)
+    if (tx.voucher_type === 'purchase') return 'credit'; // We owe them
+    if (tx.voucher_type === 'payment') return 'debit'; // We paid them
+    if (tx.voucher_type === 'sales') return 'debit'; // They owe us
+    if (tx.voucher_type === 'receipt') return 'credit'; // They paid us
+  }
+  
+  // Default perspective (cash/bank accounts)
   // Payment vouchers are debits (money going out)
   if (tx.voucher_type === 'payment' || tx.voucher_type === 'purchase') {
     return 'debit';
@@ -98,16 +111,18 @@ const computeTransactionType = (tx: TransactionDB, accountId?: string): 'credit'
 };
 
 // Helper to transform DB transaction to extended format
-const transformTransaction = (tx: TransactionDB, accountId?: string): Transaction => ({
+const transformTransaction = (tx: TransactionDB, accountId?: string, isPartyAccount?: boolean): Transaction => ({
   ...tx,
-  transaction_type: computeTransactionType(tx, accountId),
+  transaction_type: computeTransactionType(tx, accountId, isPartyAccount),
   transaction_date: tx.voucher_date,
 });
 
-export const useTransactions = (accountId?: string) => {
+export const useTransactions = (accountId?: string, accountType?: string) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  
+  const isPartyAccount = accountType === 'party';
 
   const fetchTransactions = async () => {
     try {
@@ -118,14 +133,20 @@ export const useTransactions = (accountId?: string) => {
         .order('created_at', { ascending: false });
 
       if (accountId) {
-        query = query.or(`from_account_id.eq.${accountId},to_account_id.eq.${accountId}`);
+        if (isPartyAccount) {
+          // For party accounts, check party_id OR from/to account (for any direct transfers)
+          query = query.or(`party_id.eq.${accountId},from_account_id.eq.${accountId},to_account_id.eq.${accountId}`);
+        } else {
+          // For cash/bank accounts, check from/to account
+          query = query.or(`from_account_id.eq.${accountId},to_account_id.eq.${accountId}`);
+        }
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
       
-      const transformed = (data || []).map((tx: TransactionDB) => transformTransaction(tx, accountId));
+      const transformed = (data || []).map((tx: TransactionDB) => transformTransaction(tx, accountId, isPartyAccount));
       setTransactions(transformed);
     } catch (error) {
       console.error('Error fetching transactions:', error);
@@ -231,7 +252,7 @@ export const useTransactions = (accountId?: string) => {
 
   useEffect(() => {
     fetchTransactions();
-  }, [accountId]);
+  }, [accountId, accountType]);
 
   return {
     transactions,
