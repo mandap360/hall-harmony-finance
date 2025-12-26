@@ -284,8 +284,8 @@ export const AccountTransactions = ({
         )}
       </div>
 
-      {/* Fixed + Button at bottom right - Only for operational accounts */}
-      {currentAccount.account_type === 'operational' && (
+      {/* Fixed + Button at bottom right - Only for cash/bank accounts */}
+      {currentAccount.account_type === 'cash_bank' && (
         <Button
           onClick={() => setShowAddDialog(true)}
           className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"

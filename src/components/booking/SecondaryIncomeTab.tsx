@@ -473,7 +473,7 @@ export const SecondaryIncomeTab = ({ booking }: SecondaryIncomeTabProps) => {
     return category?.name || '';
   };
 
-  const operationalAccounts = accounts.filter(account => account.account_type === 'operational');
+  const operationalAccounts = accounts.filter(account => account.account_type === 'cash_bank');
 
   return (
     <div className="space-y-4">

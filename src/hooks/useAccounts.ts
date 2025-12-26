@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 export interface Account {
   id: string;
   name: string;
-  account_type: 'operational' | 'capital' | 'party' | 'other';
+  account_type: 'cash_bank' | 'owners_capital' | 'party';
   sub_type?: string | null;
   balance: number;
   opening_balance: number;

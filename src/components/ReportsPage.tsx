@@ -45,9 +45,9 @@ export const ReportsPage = () => {
 
   // Calculate banking summary
   const bankingSummary = accounts.reduce((acc, account) => {
-    if (account.account_type === 'operational' && account.sub_type === 'cash') {
+    if (account.account_type === 'cash_bank' && account.sub_type === 'cash') {
       acc.cashInHand += account.balance;
-    } else if (account.account_type === 'operational' && account.sub_type === 'bank') {
+    } else if (account.account_type === 'cash_bank' && account.sub_type === 'bank') {
       acc.bankBalance += account.balance;
     }
     return acc;

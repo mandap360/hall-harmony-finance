@@ -145,7 +145,7 @@ export const PartySection = ({
             id: editingParty.id,
             businessName: editingParty.name,
             gstin: editingParty.gstin || '',
-            phone_number: editingParty.phone_number || '',
+            phoneNumber: editingParty.phone_number || '',
             address: editingParty.address || ''
           }}
           onSubmit={handleEditParty}
