@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Building, Edit, IndianRupee } from "lucide-react";
+import { ArrowLeft, Building, IndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useExpenses } from "@/hooks/useExpenses";
-import { useTransactions } from "@/hooks/useTransactions";
-import { useCategories } from "@/hooks/useCategories";
-import { EditExpenseDialog } from "@/components/expense/EditExpenseDialog";
+import { useAccounts } from "@/hooks/useAccounts";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { getCurrentFY } from "./FinancialYearCalculator";
 
 interface VendorPayablesViewProps {
@@ -14,51 +13,90 @@ interface VendorPayablesViewProps {
   selectedFY?: { startYear: number; endYear: number };
 }
 
+interface UnpaidPurchase {
+  id: string;
+  amount: number;
+  voucher_date: string;
+  description: string;
+  party_id: string;
+  vendorName: string;
+}
+
 export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewProps) => {
-  const { expenses, updateExpense } = useExpenses();
-  const { addTransaction } = useTransactions();
-  const { getExpenseCategories } = useCategories();
+  const { accounts } = useAccounts();
+  const { profile } = useAuth();
+  const partyAccounts = accounts.filter(acc => acc.account_type === 'party');
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [unpaidPurchases, setUnpaidPurchases] = useState<UnpaidPurchase[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const targetFY = selectedFY || getCurrentFY();
-  const expenseCategories = getExpenseCategories();
 
-  // Filter unpaid expenses from selected FY and previous years (exclude future FY)
-  const unpaidExpenses = expenses.filter(expense => {
-    if (expense.isPaid) return false;
-    
-    // Check if expense is from selected FY or previous years (exclude future FY)
-    const expenseDate = new Date(expense.date);
-    const expenseYear = expenseDate.getFullYear();
-    const expenseMonth = expenseDate.getMonth();
-    
-    // Calculate expense FY
-    let expenseFY;
-    if (expenseMonth >= 3) { // April onwards (month is 0-indexed, so March = 2, April = 3)
-      expenseFY = { startYear: expenseYear, endYear: expenseYear + 1 };
-    } else { // January to March
-      expenseFY = { startYear: expenseYear - 1, endYear: expenseYear };
-    }
-    
-    // Only include current FY and previous years, exclude future FY
-    return expenseFY.endYear < targetFY.endYear || 
-           (expenseFY.startYear === targetFY.startYear && expenseFY.endYear === targetFY.endYear);
-  });
+  useEffect(() => {
+    const fetchUnpaidPurchases = async () => {
+      if (!profile?.organization_id) return;
 
-  // Group unpaid expenses by vendor
-  const vendorPayables = unpaidExpenses.reduce((acc, expense) => {
-    if (!acc[expense.vendorName]) {
-      acc[expense.vendorName] = {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('id, amount, voucher_date, description, party_id')
+          .eq('organization_id', profile.organization_id)
+          .eq('voucher_type', 'purchase')
+          .eq('is_financial_transaction', false)
+          .order('voucher_date', { ascending: false });
+
+        if (error) throw error;
+
+        // Filter by FY and map party_id to vendor names
+        const filteredPurchases = (data || []).filter(purchase => {
+          const purchaseDate = new Date(purchase.voucher_date);
+          const purchaseYear = purchaseDate.getFullYear();
+          const purchaseMonth = purchaseDate.getMonth();
+          
+          // Calculate purchase FY
+          let purchaseFY;
+          if (purchaseMonth >= 3) { // April onwards
+            purchaseFY = { startYear: purchaseYear, endYear: purchaseYear + 1 };
+          } else { // January to March
+            purchaseFY = { startYear: purchaseYear - 1, endYear: purchaseYear };
+          }
+          
+          // Only include current FY and previous years, exclude future FY
+          return purchaseFY.endYear <= targetFY.endYear;
+        });
+
+        const purchasesWithVendorNames = filteredPurchases.map(purchase => {
+          const vendor = partyAccounts.find(acc => acc.id === purchase.party_id);
+          return {
+            ...purchase,
+            vendorName: vendor?.name || 'Unknown Vendor'
+          };
+        });
+
+        setUnpaidPurchases(purchasesWithVendorNames);
+      } catch (error) {
+        console.error('Error fetching unpaid purchases:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUnpaidPurchases();
+  }, [profile?.organization_id, partyAccounts, targetFY]);
+
+  // Group unpaid purchases by vendor
+  const vendorPayables = unpaidPurchases.reduce((acc, purchase) => {
+    if (!acc[purchase.vendorName]) {
+      acc[purchase.vendorName] = {
         totalAmount: 0,
-        expenses: []
+        purchases: []
       };
     }
-    acc[expense.vendorName].totalAmount += expense.totalAmount;
-    acc[expense.vendorName].expenses.push(expense);
+    acc[purchase.vendorName].totalAmount += purchase.amount;
+    acc[purchase.vendorName].purchases.push(purchase);
     return acc;
-  }, {} as Record<string, { totalAmount: number; expenses: any[] }>);
+  }, {} as Record<string, { totalAmount: number; purchases: UnpaidPurchase[] }>);
 
   const totalPayables = Object.values(vendorPayables).reduce((sum, vendor) => sum + vendor.totalAmount, 0);
   const vendorNames = Object.keys(vendorPayables);
@@ -78,22 +116,17 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
     });
   };
 
-  const handleEditExpense = (expense: any) => {
-    setSelectedExpense(expense);
-    setShowEditDialog(true);
-  };
-
-  const handleUpdateExpense = async (expenseData: any) => {
-    if (selectedExpense) {
-      await updateExpense(expenseData);
-    }
-  };
-
-  const handleRecordPayment = async (expenseId: string, accountId: string, paymentDate: string) => {
-    // TODO: Transaction recording temporarily disabled during schema migration
-    // Will be re-enabled once new transaction schema is fully integrated
-    console.log('Payment recorded for expense:', expenseId, 'to account:', accountId);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <p className="text-gray-500">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -151,31 +184,23 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
             <div className="flex-1 space-y-4">
               {selectedVendor && vendorPayables[selectedVendor] ? (
                 <div className="space-y-3">
-                  {vendorPayables[selectedVendor].expenses.map((expense) => (
-                    <Card key={expense.id} className="p-4">
+                  {vendorPayables[selectedVendor].purchases.map((purchase) => (
+                    <Card key={purchase.id} className="p-4">
                       <div className="flex justify-between items-start">
                         <div className="space-y-2 flex-1">
                            <div className="flex items-center gap-2">
-                             <span className="text-sm font-medium">Invoice: {expense.billNumber || 'N/A'}</span>
+                             <span className="text-sm font-medium">{purchase.description || 'Purchase'}</span>
                               <Badge variant="secondary" className="text-xs">
-                                {expense.category}
+                                Unpaid
                               </Badge>
                            </div>
                           <div className="text-sm text-gray-500">
-                            {formatDate(expense.date)}
+                            {formatDate(purchase.voucher_date)}
                           </div>
                           <div className="flex items-center text-red-600">
-                            <span className="font-semibold">₹{expense.totalAmount.toLocaleString('en-IN')}</span>
+                            <span className="font-semibold">₹{purchase.amount.toLocaleString('en-IN')}</span>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditExpense(expense)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
                       </div>
                     </Card>
                   ))}
@@ -188,14 +213,6 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
             </div>
           </div>
         )}
-
-        <EditExpenseDialog
-          open={showEditDialog}
-          onOpenChange={setShowEditDialog}
-          expense={selectedExpense}
-          onUpdateExpense={handleUpdateExpense}
-          onRecordPayment={handleRecordPayment}
-        />
       </div>
     </div>
   );
