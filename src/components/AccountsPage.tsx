@@ -77,6 +77,19 @@ export const AccountsPage = () => {
     );
   }
 
+  if (accounts.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <BankingEmptyState onAddAccount={() => setShowAddDialog(true)} />
+        <AddAccountDialog
+          open={showAddDialog}
+          onOpenChange={setShowAddDialog}
+          onSubmit={handleAddAccount}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
@@ -103,26 +116,16 @@ export const AccountsPage = () => {
           onEdit={handleEditParty}
           onDelete={handleDeleteParty}
         />
-
-        {accounts.length === 0 && <BankingEmptyState />}
       </div>
 
       <BankingActionButtons
         onAddAccount={() => setShowAddDialog(true)}
-        onTransfer={() => setShowTransferDialog(true)}
       />
 
       <AddAccountDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         onSubmit={handleAddAccount}
-      />
-
-      <TransferDialog
-        open={showTransferDialog}
-        onOpenChange={setShowTransferDialog}
-        accounts={accounts}
-        onTransfer={transferAmount}
       />
     </div>
   );
