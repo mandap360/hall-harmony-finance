@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useExpenses } from "@/hooks/useExpenses";
-import { useVendors } from "@/hooks/useVendors";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useState } from "react";
 
 interface UnpaidBillsViewProps {
@@ -13,7 +13,8 @@ interface UnpaidBillsViewProps {
 
 export const UnpaidBillsView = ({ onBack }: UnpaidBillsViewProps) => {
   const { expenses } = useExpenses();
-  const { vendors } = useVendors();
+  const { accounts } = useAccounts();
+  const partyAccounts = accounts.filter(acc => acc.account_type === 'party');
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
 
   const unpaidExpenses = expenses.filter(expense => !expense.isPaid);

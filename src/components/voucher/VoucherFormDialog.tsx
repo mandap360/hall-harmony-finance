@@ -11,7 +11,6 @@ import { CalendarDays, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { VoucherType, VOUCHER_TYPES } from "@/components/VoucherTypeDialog";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useVendors } from "@/hooks/useVendors";
 import { useCategories } from "@/hooks/useCategories";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { useExpenses } from "@/hooks/useExpenses";
@@ -38,7 +37,7 @@ export function VoucherFormDialog({
   const { toast } = useToast();
   const { profile } = useAuth();
   const { accounts } = useAccounts();
-  const { vendors } = useVendors();
+  const partyAccounts = accounts.filter(acc => acc.account_type === 'party');
   const { getExpenseCategories } = useCategories();
   const { categories: incomeCategories } = useIncomeCategories();
   const { expenses } = useExpenses();
@@ -60,7 +59,7 @@ export function VoucherFormDialog({
 
   // Get unpaid purchases for the selected vendor (for Payment Voucher)
   const vendorUnpaidPurchases = expenses.filter(
-    exp => vendors.find(v => v.id === vendorId)?.businessName === exp.vendorName && !exp.isPaid
+    exp => partyAccounts.find(v => v.id === vendorId)?.name === exp.vendorName && !exp.isPaid
   );
 
   // Reset form when voucher type changes
@@ -115,11 +114,11 @@ export function VoucherFormDialog({
             setIsSubmitting(false);
             return;
           }
-          const vendor = vendors.find(v => v.id === vendorId);
+          const vendor = partyAccounts.find(v => v.id === vendorId);
           
           // Create expense record
           await (supabase.from('expenses' as any).insert({
-            vendor_name: vendor?.businessName || '',
+            vendor_name: vendor?.name || '',
             bill_number: billNumber || `PUR-${Date.now()}`,
             expense_date: formattedDate,
             category_id: categoryId,
@@ -138,7 +137,7 @@ export function VoucherFormDialog({
             party_id: vendorId,
             is_financial_transaction: false,
             organization_id: profile.organization_id,
-            description: description || `Purchase from ${vendor?.businessName}`
+            description: description || `Purchase from ${vendor?.name}`
           });
           break;
         }
@@ -149,7 +148,7 @@ export function VoucherFormDialog({
             setIsSubmitting(false);
             return;
           }
-          const vendor = vendors.find(v => v.id === vendorId);
+          const vendor = partyAccounts.find(v => v.id === vendorId);
 
           // If linked to a purchase, update the expense as paid
           if (linkedPurchaseId) {
@@ -171,7 +170,7 @@ export function VoucherFormDialog({
             from_account_id: fromAccountId,
             is_financial_transaction: true,
             organization_id: profile.organization_id,
-            description: description || `Payment to ${vendor?.businessName}`
+            description: description || `Payment to ${vendor?.name}`
           });
           break;
         }
@@ -309,8 +308,8 @@ export function VoucherFormDialog({
             <SelectValue placeholder="Select vendor" />
           </SelectTrigger>
           <SelectContent>
-            {vendors.map(vendor => (
-              <SelectItem key={vendor.id} value={vendor.id}>{vendor.businessName}</SelectItem>
+            {partyAccounts.map(party => (
+              <SelectItem key={party.id} value={party.id}>{party.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -348,8 +347,8 @@ export function VoucherFormDialog({
             <SelectValue placeholder="Select vendor" />
           </SelectTrigger>
           <SelectContent>
-            {vendors.map(vendor => (
-              <SelectItem key={vendor.id} value={vendor.id}>{vendor.businessName}</SelectItem>
+            {partyAccounts.map(party => (
+              <SelectItem key={party.id} value={party.id}>{party.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>

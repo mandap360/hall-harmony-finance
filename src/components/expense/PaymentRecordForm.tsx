@@ -20,7 +20,7 @@ export const PaymentRecordForm = ({ expense, onRecordPayment, onCancel }: Paymen
   });
 
   const { accounts } = useAccounts();
-  const paymentAccounts = accounts.filter(acc => acc.account_type === 'operational' || acc.account_type === 'capital');
+  const paymentAccounts = accounts.filter(acc => acc.account_type === 'cash_bank' || acc.account_type === 'owners_capital');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

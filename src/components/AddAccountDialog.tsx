@@ -15,7 +15,7 @@ interface AddAccountDialogProps {
 export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDialogProps) => {
   const [formData, setFormData] = useState({
     name: "",
-    account_type: "operational" as "operational" | "capital" | "party",
+    account_type: "cash_bank" as "cash_bank" | "owners_capital" | "party",
     opening_balance: "",
     gstin: "",
     phone_number: "",
@@ -33,7 +33,7 @@ export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDia
     // Reset form
     setFormData({
       name: "",
-      account_type: "operational",
+      account_type: "cash_bank",
       opening_balance: "",
       gstin: "",
       phone_number: "",
@@ -74,8 +74,8 @@ export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDia
                 <SelectValue placeholder="Select account type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="operational">Cash/Bank</SelectItem>
-                <SelectItem value="capital">Owner's Capital</SelectItem>
+                <SelectItem value="cash_bank">Cash/Bank</SelectItem>
+                <SelectItem value="owners_capital">Owner's Capital</SelectItem>
                 <SelectItem value="party">Party</SelectItem>
               </SelectContent>
             </Select>

@@ -30,7 +30,7 @@ export const AddPaymentForm = ({ onAddPayment }: AddPaymentFormProps) => {
   
   const { accounts } = useAccounts();
   const { getIncomeCategories } = useCategories();
-  const operationalAccounts = accounts.filter(acc => acc.account_type === 'operational');
+  const operationalAccounts = accounts.filter(acc => acc.account_type === 'cash_bank');
   const incomeCategories = getIncomeCategories();
   const defaultIncomeCategories = incomeCategories.filter(cat => !cat.parent_id);
   

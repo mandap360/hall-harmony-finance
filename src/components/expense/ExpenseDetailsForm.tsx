@@ -4,13 +4,73 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { useCategories } from "@/hooks/useCategories";
 import { useTax } from "@/hooks/useTax";
-import { useVendors } from "@/hooks/useVendors";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useTaxCalculation } from "@/hooks/useTaxCalculation";
-import { AddVendorDialog } from "@/components/AddVendorDialog";
 import { APP_CONSTANTS, financialUtils } from "@/lib/utils";
 import type { Expense } from "@/hooks/useExpenses";
+
+// Inline party form component
+const AddPartyForm = ({ onSubmit, onCancel }: { onSubmit: (data: any) => void; onCancel: () => void }) => {
+  const [formData, setFormData] = useState({
+    businessName: "",
+    phoneNumber: "",
+    gstin: "",
+    address: ""
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.businessName.trim()) return;
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="businessName">Party Name *</Label>
+        <Input
+          id="businessName"
+          value={formData.businessName}
+          onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="phoneNumber">Phone Number</Label>
+        <Input
+          id="phoneNumber"
+          value={formData.phoneNumber}
+          onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+        />
+      </div>
+      <div>
+        <Label htmlFor="gstin">GSTIN</Label>
+        <Input
+          id="gstin"
+          value={formData.gstin}
+          onChange={(e) => setFormData(prev => ({ ...prev, gstin: e.target.value }))}
+        />
+      </div>
+      <div>
+        <Label htmlFor="address">Address</Label>
+        <Textarea
+          id="address"
+          value={formData.address}
+          onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+          rows={2}
+        />
+      </div>
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button type="submit">Add Party</Button>
+      </div>
+    </form>
+  );
+};
 
 interface ExpenseDetailsFormProps {
   expense: Expense;
@@ -31,7 +91,8 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
 
   const { getExpenseCategories } = useCategories();
   const { taxRates } = useTax();
-  const { vendors, addVendor } = useVendors();
+  const { accounts, addAccount } = useAccounts();
+  const partyAccounts = accounts.filter(acc => acc.account_type === 'party');
   const expenseCategories = getExpenseCategories();
   
   // Use tax calculation hook
@@ -41,7 +102,14 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
   });
 
   const handleAddVendor = async (vendorData: any) => {
-    await addVendor(vendorData);
+    await addAccount({
+      name: vendorData.businessName,
+      account_type: 'party',
+      opening_balance: 0,
+      gstin: vendorData.gstin || null,
+      phone_number: vendorData.phoneNumber || null,
+      address: vendorData.address || null
+    });
     setFormData(prev => ({ ...prev, vendorName: vendorData.businessName }));
     setShowAddVendorDialog(false);
   };
@@ -51,7 +119,7 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
     if (!expense) return;
 
     // Wait for all required data to be loaded
-    if (taxRates.length === 0 || vendors.length === 0 || expenseCategories.length === 0) {
+    if (taxRates.length === 0 || partyAccounts.length === 0 || expenseCategories.length === 0) {
       return;
     }
 
@@ -72,7 +140,7 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
     };
 
     setFormData(newFormData);
-  }, [expense, taxRates, vendors, expenseCategories]);
+  }, [expense, taxRates, partyAccounts, expenseCategories]);
 
   // Remove duplicate tax calculation (now handled by useTaxCalculation hook)
 
@@ -124,9 +192,9 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
               <SelectValue placeholder="Select vendor" />
             </SelectTrigger>
             <SelectContent>
-              {vendors.map((vendor) => (
-                <SelectItem key={vendor.id} value={vendor.businessName}>
-                  {vendor.businessName}
+              {partyAccounts.map((party) => (
+                <SelectItem key={party.id} value={party.name}>
+                  {party.name}
                 </SelectItem>
               ))}
               <SelectItem value="add_new">+ Add New Vendor</SelectItem>
@@ -249,11 +317,14 @@ export const ExpenseDetailsForm = ({ expense, onUpdateExpense, onCancel }: Expen
         )}
       </div>
 
-      <AddVendorDialog
-        open={showAddVendorDialog}
-        onOpenChange={setShowAddVendorDialog}
-        onSubmit={handleAddVendor}
-      />
+      <Dialog open={showAddVendorDialog} onOpenChange={setShowAddVendorDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Party</DialogTitle>
+          </DialogHeader>
+          <AddPartyForm onSubmit={handleAddVendor} onCancel={() => setShowAddVendorDialog(false)} />
+        </DialogContent>
+      </Dialog>
     </form>
   );
 };

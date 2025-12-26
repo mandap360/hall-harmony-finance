@@ -138,7 +138,7 @@ export const RefundDialog = ({ open, onOpenChange, booking, onRefund }: RefundDi
                   <SelectValue placeholder="Select payment mode" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accounts.filter(account => account.account_type === 'operational').map((account) => (
+                  {accounts.filter(account => account.account_type === 'cash_bank').map((account) => (
                     <SelectItem key={account.id} value={account.id}>
                       {account.name}
                     </SelectItem>

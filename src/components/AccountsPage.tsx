@@ -15,19 +15,7 @@ export const AccountsPage = () => {
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
   const handleAddAccount = async (accountData: any) => {
-    // Store party details in sub_type field as JSON
-    const dataToSave = {
-      name: accountData.name,
-      account_type: accountData.account_type,
-      opening_balance: accountData.opening_balance || 0,
-      is_default: accountData.is_default || false,
-      sub_type: accountData.account_type === 'party' ? JSON.stringify({
-        gstin: accountData.gstin || '',
-        phone_number: accountData.phone_number || '',
-        address: accountData.address || ''
-      }) : null
-    };
-    await addAccount(dataToSave);
+    await addAccount(accountData);
     setShowAddDialog(false);
   };
 
@@ -57,19 +45,17 @@ export const AccountsPage = () => {
   };
 
   const getAccountTypeDisplay = (account: Account) => {
-    if (account.account_type === 'operational') {
+    if (account.account_type === 'cash_bank') {
       return 'Cash/Bank';
-    } else if (account.account_type === 'capital') {
+    } else if (account.account_type === 'owners_capital') {
       return "Owner's Capital";
-    } else if (account.account_type === 'party') {
-      return 'Party';
     } else {
-      return 'Other Account';
+      return 'Party';
     }
   };
 
-  const cashBankAccounts = accounts.filter(acc => acc.account_type === 'operational');
-  const capitalAccounts = accounts.filter(acc => acc.account_type === 'capital');
+  const cashBankAccounts = accounts.filter(acc => acc.account_type === 'cash_bank');
+  const capitalAccounts = accounts.filter(acc => acc.account_type === 'owners_capital');
   const partyAccounts = accounts.filter(acc => acc.account_type === 'party');
 
   if (selectedAccount) {
