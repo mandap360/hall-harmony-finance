@@ -12,6 +12,9 @@ export interface Account {
   balance: number;
   opening_balance: number;
   is_default: boolean;
+  gstin?: string | null;
+  phone_number?: string | null;
+  address?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -83,16 +86,21 @@ export const useAccounts = () => {
     }
   };
 
-  const addAccount = async (accountData: Omit<Account, 'id' | 'created_at' | 'updated_at' | 'balance'>) => {
+  const addAccount = async (accountData: any) => {
     if (!profile?.organization_id) return;
     
     try {
       const { data, error } = await supabase
         .from('accounts')
         .insert([{ 
-          ...accountData, 
+          name: accountData.name,
+          account_type: accountData.account_type,
+          is_default: accountData.is_default || false,
           balance: 0, 
-          opening_balance: accountData.opening_balance || 0, 
+          opening_balance: accountData.opening_balance || 0,
+          gstin: accountData.gstin || null,
+          phone_number: accountData.phone_number || null,
+          address: accountData.address || null,
           organization_id: profile.organization_id 
         }])
         .select()

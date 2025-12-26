@@ -17,37 +17,46 @@ export type Database = {
       accounts: {
         Row: {
           account_type: string
+          address: string | null
           balance: number
           created_at: string
+          gstin: string | null
           id: string
           is_default: boolean
           name: string
           opening_balance: number
           organization_id: string
+          phone_number: string | null
           sub_type: string | null
           updated_at: string
         }
         Insert: {
           account_type: string
+          address?: string | null
           balance?: number
           created_at?: string
+          gstin?: string | null
           id?: string
           is_default?: boolean
           name: string
           opening_balance?: number
           organization_id: string
+          phone_number?: string | null
           sub_type?: string | null
           updated_at?: string
         }
         Update: {
           account_type?: string
+          address?: string | null
           balance?: number
           created_at?: string
+          gstin?: string | null
           id?: string
           is_default?: boolean
           name?: string
           opening_balance?: number
           organization_id?: string
+          phone_number?: string | null
           sub_type?: string | null
           updated_at?: string
         }
