@@ -146,7 +146,7 @@ export function VoucherFormDialog({
           const vendor = partyAccounts.find(v => v.id === vendorId);
 
           // Create transaction record (not a financial transaction - will become financial when paid)
-          await supabase.from('transactions').insert({
+          const { error: purchaseError } = await supabase.from('transactions').insert({
             voucher_type: 'purchase' as const,
             voucher_date: formattedDate,
             amount: parsedAmount,
@@ -154,8 +154,9 @@ export function VoucherFormDialog({
             party_id: vendorId,
             is_financial_transaction: false,
             organization_id: profile.organization_id,
-            description: description || `Purchase from ${vendor?.name}`
+            description: description || `Purchase from ${vendor?.name}`,
           });
+          if (purchaseError) throw purchaseError;
           break;
         }
         
@@ -169,14 +170,16 @@ export function VoucherFormDialog({
 
           // If linked to a purchase, mark the purchase as financial (paid)
           if (linkedPurchaseId) {
-            await supabase
+            const { error: markPaidError } = await supabase
               .from('transactions')
               .update({ is_financial_transaction: true })
               .eq('id', linkedPurchaseId);
+
+            if (markPaidError) throw markPaidError;
           }
 
           // Create financial transaction
-          await supabase.from('transactions').insert({
+          const { error: paymentError } = await supabase.from('transactions').insert({
             voucher_type: 'payment' as const,
             voucher_date: formattedDate,
             amount: parsedAmount,
@@ -187,8 +190,9 @@ export function VoucherFormDialog({
             is_financial_transaction: true,
             organization_id: profile.organization_id,
             description: description || `Payment to ${vendor?.name}`,
-            reference_voucher_id: linkedPurchaseId || null
+            reference_voucher_id: linkedPurchaseId || null,
           });
+          if (paymentError) throw paymentError;
           break;
         }
         
@@ -200,7 +204,7 @@ export function VoucherFormDialog({
           }
 
           // Create financial transaction for transfer
-          await supabase.from('transactions').insert({
+          const { error: transferError } = await supabase.from('transactions').insert({
             voucher_type: 'fund_transfer' as const,
             voucher_date: formattedDate,
             amount: parsedAmount,
@@ -208,8 +212,9 @@ export function VoucherFormDialog({
             to_account_id: toAccountId,
             is_financial_transaction: true,
             organization_id: profile.organization_id,
-            description: description || 'Fund Transfer'
+            description: description || 'Fund Transfer',
           });
+          if (transferError) throw transferError;
           break;
         }
         
@@ -221,22 +226,24 @@ export function VoucherFormDialog({
           }
           
           // Create secondary income record
-          await supabase.from('secondary_income').insert({
+          const { error: incomeError } = await supabase.from('secondary_income').insert({
             amount: parsedAmount,
             category_id: incomeCategoryId,
-            organization_id: profile.organization_id
+            organization_id: profile.organization_id,
           });
+          if (incomeError) throw incomeError;
 
           // Create transaction (not financial - until receipt is made)
-          await supabase.from('transactions').insert({
+          const { error: salesError } = await supabase.from('transactions').insert({
             voucher_type: 'sales' as const,
             voucher_date: formattedDate,
             amount: parsedAmount,
             party_type: 'customer' as PartyType,
             is_financial_transaction: false,
             organization_id: profile.organization_id,
-            description: description || 'Sales'
+            description: description || 'Sales',
           });
+          if (salesError) throw salesError;
           break;
         }
         
@@ -248,7 +255,7 @@ export function VoucherFormDialog({
           }
           
           // Create financial transaction
-          await supabase.from('transactions').insert({
+          const { error: receiptError } = await supabase.from('transactions').insert({
             voucher_type: 'receipt' as const,
             voucher_date: formattedDate,
             amount: parsedAmount,
@@ -257,8 +264,9 @@ export function VoucherFormDialog({
             to_account_id: toAccountId,
             is_financial_transaction: true,
             organization_id: profile.organization_id,
-            description: description || 'Receipt'
+            description: description || 'Receipt',
           });
+          if (receiptError) throw receiptError;
           break;
         }
       }
@@ -267,7 +275,8 @@ export function VoucherFormDialog({
       onSuccess();
     } catch (error) {
       console.error('Error creating voucher:', error);
-      toast({ title: "Error", description: "Failed to create voucher", variant: "destructive" });
+      const message = (error as any)?.message || "Failed to create voucher";
+      toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
