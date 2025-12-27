@@ -4,8 +4,10 @@ import { Plus, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useTransactions } from "@/hooks/useTransactions";
+import { useTransactions, convertLegacyTransaction, type LegacyTransactionInput } from "@/hooks/useTransactions";
 import { useAccounts, Account } from "@/hooks/useAccounts";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { SetOpeningBalanceDialog } from "@/components/SetOpeningBalanceDialog";
 import { AccountHeader } from "@/components/account/AccountHeader";
@@ -29,6 +31,8 @@ export const AccountTransactions = ({
   showFilters = true, 
   showBalance = true 
 }: AccountTransactionsProps) => {
+  const { toast } = useToast();
+  const { profile } = useAuth();
   const { transactions, loading, addTransaction, refreshTransactions } = useTransactions(account.id, account.account_type);
   const { refreshAccounts, accounts } = useAccounts();
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -47,13 +51,26 @@ export const AccountTransactions = ({
   }, [accounts, account.id]);
 
   const handleAddTransaction = async (transactionData: any) => {
-    await addTransaction({
-      ...transactionData,
-      account_id: currentAccount.id,
-    });
-    // Refresh accounts to show updated balance
-    await refreshAccounts();
-    setShowAddDialog(false);
+    if (!profile?.organization_id) {
+      toast({ title: "Error", description: "Organization not found", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const legacy: LegacyTransactionInput = {
+        ...transactionData,
+        account_id: currentAccount.id,
+      };
+
+      const insertData = convertLegacyTransaction(legacy, profile.organization_id);
+      await addTransaction(insertData);
+
+      // Refresh accounts to show updated balance
+      await refreshAccounts();
+      setShowAddDialog(false);
+    } catch {
+      // addTransaction already shows a toast with the error
+    }
   };
 
   const handleOpeningBalanceUpdate = async () => {
