@@ -3,7 +3,7 @@ import { ArrowLeft, Building, IndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useAccounts } from "@/hooks/useAccounts";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getCurrentFY } from "./FinancialYearCalculator";
@@ -23,9 +23,7 @@ interface UnpaidPurchase {
 }
 
 export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewProps) => {
-  const { accounts } = useAccounts();
   const { profile } = useAuth();
-  const partyAccounts = accounts.filter(acc => acc.account_type === 'party');
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
   const [unpaidPurchases, setUnpaidPurchases] = useState<UnpaidPurchase[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +36,16 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
 
       try {
         setLoading(true);
+        
+        // Fetch party accounts directly in the effect to avoid dependency issues
+        const { data: partyAccountsData } = await supabase
+          .from('accounts')
+          .select('id, name')
+          .eq('organization_id', profile.organization_id)
+          .eq('account_type', 'party');
+        
+        const partyAccounts = partyAccountsData || [];
+        
         const { data, error } = await supabase
           .from('transactions')
           .select('id, amount, voucher_date, description, party_id')
@@ -83,7 +91,7 @@ export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewPro
     };
 
     fetchUnpaidPurchases();
-  }, [profile?.organization_id, partyAccounts, targetFY]);
+  }, [profile?.organization_id, targetFY]);
 
   // Group unpaid purchases by vendor
   const vendorPayables = unpaidPurchases.reduce((acc, purchase) => {
