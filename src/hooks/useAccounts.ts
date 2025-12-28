@@ -29,6 +29,7 @@ export const useAccounts = () => {
     if (!profile?.organization_id) return;
     
     try {
+      // Balance is now stored in DB and updated by triggers automatically
       const { data, error } = await supabase
         .from('accounts')
         .select('*')
@@ -38,42 +39,7 @@ export const useAccounts = () => {
 
       if (error) throw error;
       
-      // Calculate current balance for each account based on opening balance + transactions
-      const accountsWithCalculatedBalance = await Promise.all(
-        (data || []).map(async (account) => {
-          // Query transactions where this account is involved (from or to)
-          const { data: fromTransactions, error: fromError } = await supabase
-            .from('transactions')
-            .select('voucher_type, amount')
-            .eq('from_account_id', account.id);
-
-          const { data: toTransactions, error: toError } = await supabase
-            .from('transactions')
-            .select('voucher_type, amount')
-            .eq('to_account_id', account.id);
-
-          if (fromError || toError) {
-            console.error('Error fetching transactions for account:', fromError || toError);
-            return account;
-          }
-
-          // Calculate balance from opening balance + all transactions
-          const openingBalance = account.opening_balance || 0;
-          
-          // Money out (from this account)
-          const moneyOut = (fromTransactions || []).reduce((sum, tx) => sum + tx.amount, 0);
-          
-          // Money in (to this account)
-          const moneyIn = (toTransactions || []).reduce((sum, tx) => sum + tx.amount, 0);
-
-          return {
-            ...account,
-            balance: openingBalance + moneyIn - moneyOut
-          };
-        })
-      );
-
-      setAccounts(accountsWithCalculatedBalance as Account[]);
+      setAccounts((data || []) as Account[]);
     } catch (error) {
       console.error('Error fetching accounts:', error);
       toast({
@@ -137,30 +103,9 @@ export const useAccounts = () => {
 
       if (error) throw error;
 
-      // Recalculate balance if opening_balance was updated
-      if (updates.opening_balance !== undefined) {
-        const { data: fromTransactions } = await supabase
-          .from('transactions')
-          .select('amount')
-          .eq('from_account_id', id);
-
-        const { data: toTransactions } = await supabase
-          .from('transactions')
-          .select('amount')
-          .eq('to_account_id', id);
-
-        const moneyOut = (fromTransactions || []).reduce((sum, tx) => sum + tx.amount, 0);
-        const moneyIn = (toTransactions || []).reduce((sum, tx) => sum + tx.amount, 0);
-        const calculatedBalance = (updates.opening_balance || 0) + moneyIn - moneyOut;
-        
-        setAccounts(prev => prev.map(account => 
-          account.id === id ? { ...data as Account, balance: calculatedBalance } : account
-        ));
-      } else {
-        setAccounts(prev => prev.map(account => 
-          account.id === id ? data as Account : account
-        ));
-      }
+      // Balance is updated by DB trigger when opening_balance changes
+      // Just refresh to get the latest balance
+      await fetchAccounts();
 
       toast({
         title: "Success",
