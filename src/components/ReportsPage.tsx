@@ -32,9 +32,9 @@ export const ReportsPage = () => {
     const calculateExpenseData = () => {
       const targetFY = selectedFY;
       
-      // Filter purchase transactions for the selected FY
-      const purchaseTransactions = transactions.filter(tx => {
-        if (tx.voucher_type !== 'purchase') return false;
+      // Filter payment transactions for the selected FY (total expenses = all payment vouchers)
+      const paymentTransactions = transactions.filter(tx => {
+        if (tx.voucher_type !== 'payment') return false;
         
         const txDate = new Date(tx.voucher_date);
         const txYear = txDate.getFullYear();
@@ -51,40 +51,26 @@ export const ReportsPage = () => {
         return txFY.startYear === targetFY.startYear && txFY.endYear === targetFY.endYear;
       });
 
-      const totalExpenses = purchaseTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+      const totalExpenses = paymentTransactions.reduce((sum, tx) => sum + tx.amount, 0);
 
       // Group by description (as proxy for category since we don't have category_id on transactions)
-      const expensesByCategory = purchaseTransactions.reduce((acc, tx) => {
+      const expensesByCategory = paymentTransactions.reduce((acc, tx) => {
         const category = tx.description || 'Uncategorized';
         acc[category] = (acc[category] || 0) + tx.amount;
         return acc;
       }, {} as Record<string, number>);
 
-      // Calculate payables (unpaid purchases from selected FY and earlier)
-      const unpaidPurchases = transactions.filter(tx => {
-        if (tx.voucher_type !== 'purchase' || tx.is_financial_transaction) return false;
-        
-        const txDate = new Date(tx.voucher_date);
-        const txYear = txDate.getFullYear();
-        const txMonth = txDate.getMonth();
-        
-        let txFY;
-        if (txMonth >= 3) {
-          txFY = { startYear: txYear, endYear: txYear + 1 };
-        } else {
-          txFY = { startYear: txYear - 1, endYear: txYear };
-        }
-        
-        return txFY.endYear <= targetFY.endYear;
-      });
-
-      const totalPayables = unpaidPurchases.reduce((sum, tx) => sum + tx.amount, 0);
+      // Calculate payables (party accounts with positive balance - they owe us money we need to pay)
+      const partyAccounts = accounts.filter(acc => acc.account_type === 'party');
+      const totalPayables = partyAccounts.reduce((sum, acc) => {
+        return acc.balance > 0 ? sum + acc.balance : sum;
+      }, 0);
 
       setExpenseData({ totalExpenses, expensesByCategory, totalPayables });
     };
 
     calculateExpenseData();
-  }, [transactions, selectedFY]);
+  }, [transactions, accounts, selectedFY]);
 
   // Calculate income data asynchronously based on selected FY
   useEffect(() => {
