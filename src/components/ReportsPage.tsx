@@ -7,7 +7,6 @@ import { SalesExpenseSummary } from "@/components/reports/SalesExpenseSummary";
 import { DashboardSummaryCards } from "@/components/reports/DashboardSummaryCards";
 import { IncomeListView } from "@/components/reports/IncomeListView";
 import { VendorPayablesView } from "@/components/reports/VendorPayablesView";
-import { UnpaidBillsView } from "@/components/reports/UnpaidBillsView";
 import { ReceivablesView } from "@/components/reports/ReceivablesView";
 import { AccountTransactions } from "@/components/AccountTransactions";
 import { Account } from "@/hooks/useAccounts";
@@ -126,11 +125,7 @@ export const ReportsPage = () => {
   }
 
   if (currentView === "payables") {
-    return <VendorPayablesView onBack={() => setCurrentView("dashboard")} selectedFY={selectedFY} />;
-  }
-
-  if (currentView === "unpaid-bills") {
-    return <UnpaidBillsView onBack={() => setCurrentView("dashboard")} />;
+    return <VendorPayablesView onBack={() => setCurrentView("dashboard")} />;
   }
 
   if (currentView === "receivables") {
