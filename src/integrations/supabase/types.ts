@@ -460,6 +460,10 @@ export type Database = {
       cleanup_deleted_records: { Args: never; Returns: undefined }
       is_super_admin: { Args: never; Returns: boolean }
       migrate_advance_to_payments: { Args: never; Returns: undefined }
+      recalculate_account_balance: {
+        Args: { account_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       party_type: "customer" | "vendor"
