@@ -1,227 +1,150 @@
-import { useState, useEffect } from "react";
-import { ArrowLeft, Building, IndianRupee } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft } from "lucide-react";
+
+import { AccountTransactions } from "@/components/AccountTransactions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-
+import { CurrencyDisplay } from "@/components/ui/currency-display";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { getCurrentFY } from "./FinancialYearCalculator";
+import type { Account } from "@/hooks/useAccounts";
 
 interface VendorPayablesViewProps {
   onBack: () => void;
-  selectedFY?: { startYear: number; endYear: number };
 }
 
-interface UnpaidPurchase {
-  id: string;
-  amount: number;
-  voucher_date: string;
-  description: string;
-  party_id: string;
-  vendorName: string;
-}
-
-export const VendorPayablesView = ({ onBack, selectedFY }: VendorPayablesViewProps) => {
+/**
+ * Payables = party accounts with balance > 0 (what we owe them).
+ * Clicking a party opens the existing AccountTransactions view for that party.
+ */
+export const VendorPayablesView = ({ onBack }: VendorPayablesViewProps) => {
   const { profile } = useAuth();
-  const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
-  const [unpaidPurchases, setUnpaidPurchases] = useState<UnpaidPurchase[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  const targetFY = selectedFY || getCurrentFY();
+  const [payableParties, setPayableParties] = useState<Account[]>([]);
+  const [selectedParty, setSelectedParty] = useState<Account | null>(null);
+
+  const orgId = profile?.organization_id ?? null;
 
   useEffect(() => {
-    const fetchUnpaidPurchases = async () => {
-      if (!profile?.organization_id) return;
+    let cancelled = false;
+
+    const fetchPayables = async () => {
+      if (!orgId) return;
 
       try {
         setLoading(true);
-        
-        // Fetch party accounts directly in the effect to avoid dependency issues
-        const { data: partyAccountsData } = await supabase
-          .from('accounts')
-          .select('id, name')
-          .eq('organization_id', profile.organization_id)
-          .eq('account_type', 'party');
-        
-        const partyAccounts = partyAccountsData || [];
-        
+
         const { data, error } = await supabase
-          .from('transactions')
-          .select('id, amount, voucher_date, description, party_id')
-          .eq('organization_id', profile.organization_id)
-          .eq('voucher_type', 'purchase')
-          .eq('is_financial_transaction', false)
-          .order('voucher_date', { ascending: false });
+          .from("accounts")
+          .select("*")
+          .eq("organization_id", orgId)
+          .eq("account_type", "party")
+          .gt("balance", 0)
+          .order("balance", { ascending: false });
 
         if (error) throw error;
+        if (cancelled) return;
 
-        // Filter by FY and map party_id to vendor names
-        const filteredPurchases = (data || []).filter(purchase => {
-          const purchaseDate = new Date(purchase.voucher_date);
-          const purchaseYear = purchaseDate.getFullYear();
-          const purchaseMonth = purchaseDate.getMonth();
-          
-          // Calculate purchase FY
-          let purchaseFY;
-          if (purchaseMonth >= 3) { // April onwards
-            purchaseFY = { startYear: purchaseYear, endYear: purchaseYear + 1 };
-          } else { // January to March
-            purchaseFY = { startYear: purchaseYear - 1, endYear: purchaseYear };
-          }
-          
-          // Only include current FY and previous years, exclude future FY
-          return purchaseFY.endYear <= targetFY.endYear;
-        });
-
-        const purchasesWithVendorNames = filteredPurchases.map(purchase => {
-          const vendor = partyAccounts.find(acc => acc.id === purchase.party_id);
-          return {
-            ...purchase,
-            vendorName: vendor?.name || 'Unknown Vendor'
-          };
-        });
-
-        setUnpaidPurchases(purchasesWithVendorNames);
-      } catch (error) {
-        console.error('Error fetching unpaid purchases:', error);
+        setPayableParties((data || []) as Account[]);
+      } catch (e) {
+        console.error("Error fetching payables parties:", e);
+        if (!cancelled) setPayableParties([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchUnpaidPurchases();
-  }, [profile?.organization_id, targetFY]);
+    fetchPayables();
 
-  // Group unpaid purchases by vendor
-  const vendorPayables = unpaidPurchases.reduce((acc, purchase) => {
-    if (!acc[purchase.vendorName]) {
-      acc[purchase.vendorName] = {
-        totalAmount: 0,
-        purchases: []
-      };
-    }
-    acc[purchase.vendorName].totalAmount += purchase.amount;
-    acc[purchase.vendorName].purchases.push(purchase);
-    return acc;
-  }, {} as Record<string, { totalAmount: number; purchases: UnpaidPurchase[] }>);
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId]);
 
-  const totalPayables = Object.values(vendorPayables).reduce((sum, vendor) => sum + vendor.totalAmount, 0);
-  const vendorNames = Object.keys(vendorPayables);
-  
-  // Auto-select first vendor when page loads
-  useEffect(() => {
-    if (!selectedVendor && vendorNames.length > 0) {
-      setSelectedVendor(vendorNames[0]);
-    }
-  }, [vendorNames, selectedVendor]);
+  const totalPayables = useMemo(
+    () => payableParties.reduce((sum, p) => sum + (p.balance || 0), 0),
+    [payableParties]
+  );
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
+  if (selectedParty) {
+    return (
+      <AccountTransactions
+        account={selectedParty}
+        onBack={() => setSelectedParty(null)}
+        showFilters={true}
+        showBalance={false}
+      />
+    );
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-12">
-            <p className="text-gray-500">Loading...</p>
-          </div>
-        </div>
-      </div>
+      <main className="min-h-screen bg-background">
+        <section className="mx-auto w-full max-w-6xl p-4">
+          <div className="text-center py-12 text-muted-foreground">Loading…</div>
+        </section>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center mb-6">
-          <Button
-            variant="ghost"
-            onClick={onBack}
-            className="flex items-center text-blue-600 hover:text-blue-800"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+    <main className="min-h-screen bg-background">
+      <section className="mx-auto w-full max-w-6xl p-4 space-y-6">
+        <header className="flex items-center justify-between gap-3">
+          <Button variant="ghost" onClick={onBack} className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
             Back to Reports
           </Button>
-        </div>
 
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Payables</h2>
-          <div className="flex items-center text-red-600">
-            <span className="font-bold text-xl">₹{totalPayables.toLocaleString('en-IN')}</span>
+          <div className="text-right">
+            <div className="text-sm text-muted-foreground">Total Payables</div>
+            <div className="text-lg font-semibold text-foreground">
+              <CurrencyDisplay amount={totalPayables} displayMode="text-only" />
+            </div>
           </div>
-        </div>
+        </header>
 
-        {Object.keys(vendorPayables).length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No unpaid bills found</p>
-            <p className="text-sm text-gray-400 mt-2">All expenses are paid!</p>
-          </div>
-        ) : (
-          <div className="flex gap-6">
-            {/* Vendor List Column - Reduced width */}
-            <div className="w-64 space-y-3">
-              {Object.entries(vendorPayables).map(([vendorName, data]) => (
-                <Card 
-                  key={vendorName} 
-                  className={`p-3 cursor-pointer transition-colors ${
-                    selectedVendor === vendorName 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:bg-gray-50'
-                  }`}
-                  onClick={() => setSelectedVendor(vendorName)}
+        <section aria-label="Payables parties" className="space-y-3">
+          <h1 className="text-xl font-semibold text-foreground">Payables</h1>
+
+          {payableParties.length === 0 ? (
+            <div className="rounded-lg border bg-card p-6 text-center">
+              <p className="text-foreground font-medium">No payables</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                No party accounts currently have a balance greater than 0.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {payableParties.map((party) => (
+                <Card
+                  key={party.id}
+                  className="p-4 cursor-pointer hover:bg-accent transition-colors"
+                  onClick={() => setSelectedParty(party)}
                 >
-                  <div className="space-y-1">
-                    <h4 className="font-semibold text-gray-900 text-sm">
-                      {vendorName}
-                    </h4>
-                    <div className="flex items-center text-red-600">
-                      <span className="font-bold text-sm">₹{data.totalAmount.toLocaleString('en-IN')}</span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium text-foreground truncate">
+                        {party.name}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Party account
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-sm text-muted-foreground">Payable</div>
+                      <div className="font-semibold text-foreground">
+                        <CurrencyDisplay amount={party.balance} displayMode="text-only" />
+                      </div>
                     </div>
                   </div>
                 </Card>
               ))}
             </div>
-
-            {/* Bills Column - Takes remaining space */}
-            <div className="flex-1 space-y-4">
-              {selectedVendor && vendorPayables[selectedVendor] ? (
-                <div className="space-y-3">
-                  {vendorPayables[selectedVendor].purchases.map((purchase) => (
-                    <Card key={purchase.id} className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2 flex-1">
-                           <div className="flex items-center gap-2">
-                             <span className="text-sm font-medium">{purchase.description || 'Purchase'}</span>
-                              <Badge variant="secondary" className="text-xs">
-                                Unpaid
-                              </Badge>
-                           </div>
-                          <div className="text-sm text-gray-500">
-                            {formatDate(purchase.voucher_date)}
-                          </div>
-                          <div className="flex items-center text-red-600">
-                            <span className="font-semibold">₹{purchase.amount.toLocaleString('en-IN')}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  Select a vendor to view their unpaid bills
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+          )}
+        </section>
+      </section>
+    </main>
   );
 };
