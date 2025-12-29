@@ -41,9 +41,11 @@ const VOUCHER_TYPE_COLORS: Record<string, string> = {
 };
 
 const VOUCHER_TYPE_LABELS: Record<string, string> = {
+  'purchase': 'Purchase/Expense',
   'payment': 'Payment',
   'receipt': 'Receipt',
-  'fund_transfer': 'Transfer'
+  'fund_transfer': 'Transfer',
+  'sales': 'Sales'
 };
 
 export const TransactionsPage = () => {
