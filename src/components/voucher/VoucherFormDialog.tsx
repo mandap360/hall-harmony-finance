@@ -72,7 +72,7 @@ export function VoucherFormDialog({
       }
 
       try {
-        const { data, error } = await supabase
+        const { data: purchases, error: purchasesError } = await supabase
           .from('transactions')
           .select('id, amount, voucher_date, description')
           .eq('organization_id', profile.organization_id)
@@ -80,8 +80,27 @@ export function VoucherFormDialog({
           .eq('party_id', vendorId)
           .eq('is_financial_transaction', false);
 
-        if (error) throw error;
-        setVendorUnpaidPurchases(data || []);
+        if (purchasesError) throw purchasesError;
+
+        const purchaseIds = (purchases || []).map(p => p.id);
+        if (purchaseIds.length === 0) {
+          setVendorUnpaidPurchases([]);
+          return;
+        }
+
+        // Purchases are considered "paid" if a payment references them.
+        const { data: linkedPayments, error: paymentsError } = await supabase
+          .from('transactions')
+          .select('reference_voucher_id')
+          .eq('organization_id', profile.organization_id)
+          .eq('voucher_type', 'payment')
+          .eq('party_id', vendorId)
+          .in('reference_voucher_id', purchaseIds);
+
+        if (paymentsError) throw paymentsError;
+
+        const paidPurchaseIds = new Set((linkedPayments || []).map(p => p.reference_voucher_id).filter(Boolean) as string[]);
+        setVendorUnpaidPurchases((purchases || []).filter(p => !paidPurchaseIds.has(p.id)));
       } catch (error) {
         console.error('Error fetching unpaid purchases:', error);
         setVendorUnpaidPurchases([]);
@@ -168,15 +187,9 @@ export function VoucherFormDialog({
           }
           const vendor = partyAccounts.find(v => v.id === vendorId);
 
-          // If linked to a purchase, mark the purchase as financial (paid)
-          if (linkedPurchaseId) {
-            const { error: markPaidError } = await supabase
-              .from('transactions')
-              .update({ is_financial_transaction: true })
-              .eq('id', linkedPurchaseId);
+          // If linked to a purchase, we keep the purchase as a non-financial entry.
+          // The payment references it via `reference_voucher_id`.
 
-            if (markPaidError) throw markPaidError;
-          }
 
           // Create financial transaction
           const { error: paymentError } = await supabase.from('transactions').insert({

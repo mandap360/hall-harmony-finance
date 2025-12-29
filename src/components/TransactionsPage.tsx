@@ -70,6 +70,7 @@ export const TransactionsPage = () => {
         .from('transactions')
         .select('*')
         .eq('is_financial_transaction', true)
+        .neq('voucher_type', 'purchase')
         .gte('voucher_date', format(start, 'yyyy-MM-dd'))
         .lte('voucher_date', format(end, 'yyyy-MM-dd'))
         .order('voucher_date', { ascending: false });
