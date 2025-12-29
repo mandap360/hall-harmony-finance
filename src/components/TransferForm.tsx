@@ -59,7 +59,7 @@ export const TransferForm = ({ onSubmit }: TransferFormProps) => {
             <SelectValue placeholder="Select source account" />
           </SelectTrigger>
           <SelectContent>
-            {accounts.map((account) => (
+            {accounts.filter(acc => acc.account_type === 'cash_bank').map((account) => (
               <SelectItem key={account.id} value={account.id}>
                 {account.name} (₹{account.balance.toLocaleString('en-IN')})
               </SelectItem>
@@ -75,7 +75,7 @@ export const TransferForm = ({ onSubmit }: TransferFormProps) => {
             <SelectValue placeholder="Select destination account" />
           </SelectTrigger>
           <SelectContent>
-            {accounts.filter(acc => acc.id !== fromAccountId).map((account) => (
+            {accounts.filter(acc => acc.account_type === 'cash_bank' && acc.id !== fromAccountId).map((account) => (
               <SelectItem key={account.id} value={account.id}>
                 {account.name} (₹{account.balance.toLocaleString('en-IN')})
               </SelectItem>

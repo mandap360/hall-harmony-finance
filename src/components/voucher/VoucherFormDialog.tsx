@@ -411,7 +411,7 @@ export function VoucherFormDialog({
             <SelectValue placeholder="Select account" />
           </SelectTrigger>
           <SelectContent>
-            {accounts.map(account => (
+            {accounts.filter(acc => acc.account_type === 'cash_bank').map(account => (
               <SelectItem key={account.id} value={account.id}>{account.name}</SelectItem>
             ))}
           </SelectContent>
@@ -429,7 +429,7 @@ export function VoucherFormDialog({
             <SelectValue placeholder="Select source account" />
           </SelectTrigger>
           <SelectContent>
-            {accounts.map(account => (
+            {accounts.filter(acc => acc.account_type === 'cash_bank').map(account => (
               <SelectItem key={account.id} value={account.id}>{account.name}</SelectItem>
             ))}
           </SelectContent>
@@ -443,7 +443,7 @@ export function VoucherFormDialog({
             <SelectValue placeholder="Select destination account" />
           </SelectTrigger>
           <SelectContent>
-            {accounts.filter(a => a.id !== fromAccountId).map(account => (
+            {accounts.filter(a => a.account_type === 'cash_bank' && a.id !== fromAccountId).map(account => (
               <SelectItem key={account.id} value={account.id}>{account.name}</SelectItem>
             ))}
           </SelectContent>
@@ -483,7 +483,7 @@ export function VoucherFormDialog({
             <SelectValue placeholder="Select account (Cash/Bank)" />
           </SelectTrigger>
           <SelectContent>
-            {accounts.map(account => (
+            {accounts.filter(acc => acc.account_type === 'cash_bank').map(account => (
               <SelectItem key={account.id} value={account.id}>{account.name}</SelectItem>
             ))}
           </SelectContent>
