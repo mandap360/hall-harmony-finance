@@ -16,8 +16,8 @@ interface VoucherOption {
 const VOUCHER_TYPES: VoucherOption[] = [
   {
     id: 'purchase',
-    label: 'Purchase Voucher',
-    description: 'Record purchase of goods/services',
+    label: 'Purchase/Expense Voucher',
+    description: 'Record purchase of goods/services or expenses',
     icon: <ShoppingCart className="h-6 w-6" />,
     color: 'bg-orange-500/10 text-orange-600 border-orange-500/20'
   },
