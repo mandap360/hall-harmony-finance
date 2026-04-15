@@ -21,11 +21,13 @@ export default function Auth() {
   // Forgot password form state
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
 
+  const { loading: authLoading } = useAuth();
+
   useEffect(() => {
-    if (user) {
+    if (user && !authLoading) {
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
