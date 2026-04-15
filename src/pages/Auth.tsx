@@ -48,6 +48,8 @@ export default function Auth() {
     }
   };
 
+  if (user && !authLoading) return null;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-200 via-blue-200 to-purple-300 py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
