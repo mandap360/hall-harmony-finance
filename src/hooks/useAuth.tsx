@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -32,6 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const hasHandledAuthEvent = useRef(false);
   const { toast } = useToast();
 
   const fetchProfile = async (userId: string) => {
@@ -43,11 +44,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           organizations!inner(name)
         `)
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+
+      if (!data) {
+        setProfile(null);
+        return;
+      }
       
-      // Get the actual organization name from the joined organizations table
       const profileWithOrgName = {
         ...data,
         organization_name: data.organizations?.name || data.organization_id
@@ -60,9 +65,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        hasHandledAuthEvent.current = true;
+
         if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
@@ -74,19 +80,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session) {
           setSession(session);
           setUser(session.user);
-          setTimeout(() => fetchProfile(session.user.id), 0);
+
+          if (event !== 'TOKEN_REFRESHED') {
+            setTimeout(() => fetchProfile(session.user.id), 0);
+          }
         }
+
         setLoading(false);
       }
     );
 
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
+      if (hasHandledAuthEvent.current) return;
+
+      if (session) {
+        setSession(session);
+        setUser(session.user);
         fetchProfile(session.user.id);
+      } else {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
       }
+
       setLoading(false);
     });
 
@@ -95,7 +111,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (identifier: string, password: string) => {
     try {
-      // Try to sign in with email first
       const { error } = await supabase.auth.signInWithPassword({
         email: identifier,
         password,
