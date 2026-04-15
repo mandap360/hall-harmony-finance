@@ -21,8 +21,6 @@ export default function Auth() {
   // Forgot password form state
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
 
-  const { loading: authLoading } = useAuth();
-
   useEffect(() => {
     if (user && !authLoading) {
       navigate('/');
