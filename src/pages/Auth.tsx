@@ -7,7 +7,7 @@ import { Mail, Lock } from 'lucide-react';
 import mandap360Logo from '@/assets/mandap360-logo.jpg';
 
 export default function Auth() {
-  const { signIn, resetPassword, user } = useAuth();
+  const { signIn, resetPassword, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -22,10 +22,10 @@ export default function Auth() {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
 
   useEffect(() => {
-    if (user) {
+    if (user && !authLoading) {
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
