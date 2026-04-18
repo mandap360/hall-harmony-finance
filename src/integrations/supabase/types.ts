@@ -246,6 +246,7 @@ export type Database = {
           phone_verified: boolean | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
+          user_id: Json | null
         }
         Insert: {
           business_name?: string | null
@@ -259,6 +260,7 @@ export type Database = {
           phone_verified?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
+          user_id?: Json | null
         }
         Update: {
           business_name?: string | null
@@ -272,6 +274,7 @@ export type Database = {
           phone_verified?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
+          user_id?: Json | null
         }
         Relationships: [
           {
