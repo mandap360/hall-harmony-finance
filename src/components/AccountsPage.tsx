@@ -1,70 +1,52 @@
-import { useState } from "react";
-import { useAccounts, Account } from "@/hooks/useAccounts";
-import { AddAccountDialog } from "@/components/AddAccountDialog";
-import { AccountTransactions } from "@/components/AccountTransactions";
-import { TransferDialog } from "@/components/TransferDialog";
-import { AccountSection } from "@/components/banking/AccountSection";
-import { PartySection } from "@/components/banking/PartySection";
-import { BankingActionButtons } from "@/components/banking/BankingActionButtons";
-import { BankingEmptyState } from "@/components/banking/BankingEmptyState";
+import { useState } from 'react';
+import { useAccounts, type Account } from '@/hooks/useAccounts';
+import { AddAccountDialog } from '@/components/AddAccountDialog';
+import { AccountTransactions } from '@/components/AccountTransactions';
+import { AccountSection } from '@/components/banking/AccountSection';
+import { BankingActionButtons } from '@/components/banking/BankingActionButtons';
+import { BankingEmptyState } from '@/components/banking/BankingEmptyState';
 
 export const AccountsPage = () => {
-  const { accounts, loading, addAccount, updateAccount, deleteAccount, transferAmount, refreshAccounts } = useAccounts();
+  const { accounts, loading, addAccount, refreshAccounts } = useAccounts();
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
-  const handleAddAccount = async (accountData: any) => {
-    await addAccount(accountData);
+  const handleAddAccount = async (data: {
+    name: string;
+    account_type: Account['account_type'];
+    initial_balance?: number;
+    is_default?: boolean;
+  }) => {
+    await addAccount(data);
     setShowAddDialog(false);
   };
 
-  const handleAccountBack = () => {
-    refreshAccounts();
-    setSelectedAccount(null);
-  };
-
-  const handleEditParty = async (account: Account) => {
-    await updateAccount(account.id, {
-      name: account.name,
-      sub_type: account.sub_type
-    });
-  };
-
-  const handleDeleteParty = async (accountId: string) => {
-    await deleteAccount(accountId);
-  };
-
-  const formatBalance = (balance: number) => {
-    return new Intl.NumberFormat('en-IN', {
+  const formatBalance = (balance: number) =>
+    new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
     }).format(balance);
-  };
 
   const getAccountTypeDisplay = (account: Account) => {
-    if (account.account_type === 'cash_bank') {
-      return 'Cash/Bank';
-    } else if (account.account_type === 'owners_capital') {
-      return "Owner's Capital";
-    } else {
-      return 'Party';
-    }
+    if (account.account_type === 'cash_bank') return 'Cash/Bank';
+    if (account.account_type === 'owners_capital') return "Owner's Capital";
+    return 'Party';
   };
 
-  const cashBankAccounts = accounts.filter(acc => acc.account_type === 'cash_bank');
-  const capitalAccounts = accounts.filter(acc => acc.account_type === 'owners_capital');
-  const partyAccounts = accounts.filter(acc => acc.account_type === 'party');
+  const cashBankAccounts = accounts.filter((a) => a.account_type === 'cash_bank');
+  const capitalAccounts = accounts.filter((a) => a.account_type === 'owners_capital');
+  const partyAccounts = accounts.filter((a) => a.account_type === 'party');
 
   if (selectedAccount) {
     return (
-      <AccountTransactions 
-        account={selectedAccount} 
-        onBack={handleAccountBack}
-        showFilters={false}
-        showBalance={true}
+      <AccountTransactions
+        account={selectedAccount}
+        onBack={() => {
+          refreshAccounts();
+          setSelectedAccount(null);
+        }}
+        showBalance
       />
     );
   }
@@ -72,26 +54,22 @@ export const AccountsPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
   if (accounts.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <BankingEmptyState onAddAccount={() => setShowAddDialog(true)} />
-        <AddAccountDialog
-          open={showAddDialog}
-          onOpenChange={setShowAddDialog}
-          onSubmit={handleAddAccount}
-        />
+        <AddAccountDialog open={showAddDialog} onOpenChange={setShowAddDialog} onSubmit={handleAddAccount} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto">
         <AccountSection
           title="Cash/Bank"
@@ -100,7 +78,6 @@ export const AccountsPage = () => {
           formatBalance={formatBalance}
           getAccountTypeDisplay={getAccountTypeDisplay}
         />
-
         <AccountSection
           title="Owner's Capital"
           accounts={capitalAccounts}
@@ -108,25 +85,17 @@ export const AccountsPage = () => {
           formatBalance={formatBalance}
           getAccountTypeDisplay={getAccountTypeDisplay}
         />
-
-        <PartySection
+        <AccountSection
+          title="Parties"
           accounts={partyAccounts}
           onAccountClick={setSelectedAccount}
           formatBalance={formatBalance}
-          onEdit={handleEditParty}
-          onDelete={handleDeleteParty}
+          getAccountTypeDisplay={getAccountTypeDisplay}
         />
       </div>
 
-      <BankingActionButtons
-        onAddAccount={() => setShowAddDialog(true)}
-      />
-
-      <AddAccountDialog
-        open={showAddDialog}
-        onOpenChange={setShowAddDialog}
-        onSubmit={handleAddAccount}
-      />
+      <BankingActionButtons onAddAccount={() => setShowAddDialog(true)} />
+      <AddAccountDialog open={showAddDialog} onOpenChange={setShowAddDialog} onSubmit={handleAddAccount} />
     </div>
   );
 };

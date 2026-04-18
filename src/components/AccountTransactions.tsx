@@ -1,22 +1,12 @@
-
-import { useState, useEffect } from "react";
-import { Plus, CalendarIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useTransactions, convertLegacyTransaction, type LegacyTransactionInput } from "@/hooks/useTransactions";
-import { useAccounts, Account } from "@/hooks/useAccounts";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { AddTransactionDialog } from "@/components/AddTransactionDialog";
-import { SetOpeningBalanceDialog } from "@/components/SetOpeningBalanceDialog";
-import { AccountHeader } from "@/components/account/AccountHeader";
-import { TransactionHeaders } from "@/components/account/TransactionHeaders";
-import { OpeningBalanceRow } from "@/components/account/OpeningBalanceRow";
-import { TransactionRow } from "@/components/account/TransactionRow";
-import { TransactionFilter } from "@/components/account/TransactionFilter";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { useState, useMemo } from 'react';
+import { Plus, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { useTransactions, type Transaction } from '@/hooks/useTransactions';
+import { useAccounts, type Account } from '@/hooks/useAccounts';
+import { AddTransactionDialog } from '@/components/AddTransactionDialog';
+import { SetOpeningBalanceDialog } from '@/components/SetOpeningBalanceDialog';
+import { format } from 'date-fns';
 
 interface AccountTransactionsProps {
   account: Account;
@@ -25,287 +15,123 @@ interface AccountTransactionsProps {
   showBalance?: boolean;
 }
 
-export const AccountTransactions = ({ 
-  account, 
-  onBack, 
-  showFilters = true, 
-  showBalance = true 
-}: AccountTransactionsProps) => {
-  const { toast } = useToast();
-  const { profile } = useAuth();
-  const { transactions, loading, addTransaction, refreshTransactions } = useTransactions(account.id, account.account_type);
+export const AccountTransactions = ({ account, onBack, showBalance = true }: AccountTransactionsProps) => {
+  const { transactions, loading, refreshTransactions } = useTransactions(account.id);
   const { refreshAccounts, accounts } = useAccounts();
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showOpeningBalanceDialog, setShowOpeningBalanceDialog] = useState(false);
-  const [currentAccount, setCurrentAccount] = useState(account);
-  const [transactionFilter, setTransactionFilter] = useState("all");
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [showAdd, setShowAdd] = useState(false);
+  const [showOB, setShowOB] = useState(false);
 
-  // Update current account when accounts change
-  useEffect(() => {
-    const updatedAccount = accounts.find(acc => acc.id === account.id);
-    if (updatedAccount) {
-      setCurrentAccount(updatedAccount);
-    }
-  }, [accounts, account.id]);
+  const currentAccount = accounts.find((a) => a.id === account.id) || account;
 
-  const handleAddTransaction = async (transactionData: any) => {
-    if (!profile?.organization_id) {
-      toast({ title: "Error", description: "Organization not found", variant: "destructive" });
-      return;
-    }
-
-    try {
-      const legacy: LegacyTransactionInput = {
-        ...transactionData,
-        account_id: currentAccount.id,
-      };
-
-      const insertData = convertLegacyTransaction(legacy, profile.organization_id);
-      await addTransaction(insertData);
-
-      // Refresh accounts to show updated balance
-      await refreshAccounts();
-      setShowAddDialog(false);
-    } catch {
-      // addTransaction already shows a toast with the error
-    }
-  };
-
-  const handleOpeningBalanceUpdate = async () => {
-    // Refresh both accounts and transactions after opening balance update
-    await refreshAccounts();
-    await refreshTransactions();
-    setShowOpeningBalanceDialog(false);
-  };
-
-  // Calculate running balances for all transactions chronologically
-  const calculateRunningBalances = () => {
-    // Sort all transactions chronologically (oldest first)
-    const sortedTransactions = [...transactions].sort((a, b) => {
-      const dateA = new Date(a.transaction_date);
-      const dateB = new Date(b.transaction_date);
-      if (dateA.getTime() === dateB.getTime()) {
-        // If same date, sort by created_at
+  const sorted = useMemo(
+    () =>
+      [...transactions].sort((a, b) => {
+        const da = new Date(a.transaction_date).getTime();
+        const db = new Date(b.transaction_date).getTime();
+        if (da !== db) return da - db;
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      }
-      return dateA.getTime() - dateB.getTime();
-    });
-
-    // Calculate running balance for each transaction
-    let runningBalance = currentAccount.opening_balance || 0;
-    const transactionsWithBalance = sortedTransactions.map(transaction => {
-      // Apply this transaction to the running balance
-      if (transaction.transaction_type === 'credit') {
-        runningBalance += transaction.amount;
-      } else {
-        runningBalance -= transaction.amount;
-      }
-      
-      return {
-        transaction,
-        runningBalance
-      };
-    });
-
-    return transactionsWithBalance;
-  };
-
-  // Get transactions with running balances
-  const transactionsWithBalance = calculateRunningBalances();
-
-  // Filter transactions based on selected filter and date range
-  const filteredTransactionsWithBalance = transactionsWithBalance.filter(({ transaction }) => {
-    if (transactionFilter !== "all" && transaction.transaction_type !== transactionFilter) {
-      return false;
-    }
-    
-    const transactionDate = new Date(transaction.transaction_date);
-    if (startDate && transactionDate < startDate) return false;
-    if (endDate && transactionDate > endDate) return false;
-    
-    return true;
-  }).reverse(); // Show newest first in the UI
-
-  // Calculate money in and money out totals
-  const moneyIn = transactions.reduce((sum, tx) => 
-    tx.transaction_type === 'credit' ? sum + tx.amount : sum, 0
-  );
-  
-  const moneyOut = transactions.reduce((sum, tx) => 
-    tx.transaction_type === 'debit' ? sum + tx.amount : sum, 0
+      }),
+    [transactions],
   );
 
-  // Get current balance (latest transaction's running balance or opening balance)
-  const currentBalance = transactionsWithBalance.length > 0 
-    ? transactionsWithBalance[transactionsWithBalance.length - 1].runningBalance 
-    : (currentAccount.opening_balance || 0);
+  // Compute running balance
+  let running = currentAccount.initial_balance || 0;
+  const rows = sorted.map((tx) => {
+    const isIn = tx.to_account_id === currentAccount.id;
+    const amt = Number(tx.amount);
+    if (isIn) running += amt;
+    else if (tx.from_account_id === currentAccount.id) running -= amt;
+    return { tx, balance: running, direction: isIn ? 'in' : ('out' as 'in' | 'out') };
+  });
+
+  const moneyIn = transactions.reduce(
+    (s, t) => (t.to_account_id === currentAccount.id ? s + Number(t.amount) : s),
+    0,
+  );
+  const moneyOut = transactions.reduce(
+    (s, t) => (t.from_account_id === currentAccount.id ? s + Number(t.amount) : s),
+    0,
+  );
+  const currentBalance = (currentAccount.initial_balance || 0) + moneyIn - moneyOut;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
+  const fmt = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+
   return (
-    <div className="min-h-screen bg-gray-50 p-2 md:p-4">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto">
-        <AccountHeader
-          account={currentAccount}
-          onBack={onBack}
-          onOpeningBalanceClick={() => setShowOpeningBalanceDialog(true)}
-        />
+        <div className="flex items-center gap-2 mb-6">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold truncate">{currentAccount.name}</h1>
+            <p className="text-xs text-muted-foreground capitalize">
+              {currentAccount.account_type.replace('_', '/')}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowOB(true)}>
+            Initial: {fmt(currentAccount.initial_balance || 0)}
+          </Button>
+        </div>
 
-        {/* Combined Filter and Balance Row */}
-        <div className="bg-white rounded-lg shadow-sm border p-3 md:p-4 mb-6 overflow-x-hidden">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            {showFilters && (
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 overflow-x-auto">
-                <div className="flex-shrink-0">
-                  <TransactionFilter 
-                    filter={transactionFilter}
-                    onFilterChange={setTransactionFilter}
-                  />
-                </div>
-                
-                {/* Date Range Filter */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          "justify-start text-left font-normal text-xs md:text-sm",
-                          !startDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-1 h-3 w-3 md:h-4 md:w-4" />
-                        <span className="hidden sm:inline">{startDate ? format(startDate, "PP") : "Start date"}</span>
-                        <span className="sm:hidden">{startDate ? format(startDate, "dd/MM") : "Start"}</span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          "justify-start text-left font-normal text-xs md:text-sm",
-                          !endDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-1 h-3 w-3 md:h-4 md:w-4" />
-                        <span className="hidden sm:inline">{endDate ? format(endDate, "PP") : "End date"}</span>
-                        <span className="sm:hidden">{endDate ? format(endDate, "dd/MM") : "End"}</span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-
-                  {(startDate || endDate) && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs md:text-sm"
-                      onClick={() => {
-                        setStartDate(undefined);
-                        setEndDate(undefined);
-                      }}
-                    >
-                      Clear
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-6 text-xs md:text-sm">
-              <div className="text-center">
-                <div className="text-gray-500 text-xs">Current Balance</div>
-                <div className="font-bold text-lg md:text-xl text-blue-600">
-                  ₹{currentBalance.toLocaleString('en-IN')}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-gray-500 text-xs">Money In</div>
-                <div className="font-semibold text-green-600">
-                  ₹{moneyIn.toLocaleString('en-IN')}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-gray-500 text-xs">Money Out</div>
-                <div className="font-semibold text-red-600">
-                  ₹{moneyOut.toLocaleString('en-IN')}
-                </div>
-              </div>
+        <Card className="p-4 mb-4">
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-xs text-muted-foreground">Current Balance</p>
+              <p className="text-lg font-bold text-primary">{fmt(currentBalance)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Money In</p>
+              <p className="font-semibold text-green-600">{fmt(moneyIn)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Money Out</p>
+              <p className="font-semibold text-red-600">{fmt(moneyOut)}</p>
             </div>
           </div>
-        </div>
+        </Card>
 
-        {/* Transaction Headers */}
-        {(transactions.length > 0 || (currentAccount.opening_balance || 0) > 0) && (
-          <TransactionHeaders showBalance={showBalance} />
-        )}
-
-        {/* Opening Balance Row */}
-        {(currentAccount.opening_balance || 0) > 0 && (
-          <OpeningBalanceRow 
-            openingBalance={currentAccount.opening_balance || 0} 
-            showBalance={showBalance}
-          />
-        )}
-
-        {/* Transactions List */}
-        <div className="space-y-2">
-          {filteredTransactionsWithBalance.map(({ transaction, runningBalance }) => (
-            <TransactionRow 
-              key={transaction.id} 
-              transaction={transaction} 
-              runningBalance={runningBalance}
-              showBalance={showBalance}
-            />
-          ))}
-        </div>
-
-        {filteredTransactionsWithBalance.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No transactions found</p>
-            <p className="text-gray-400 text-sm mt-2">
-              {transactionFilter === "all" 
-                ? "Click the + button to add your first transaction"
-                : `No ${transactionFilter === "credit" ? "money in" : "money out"} transactions found`
-              }
-            </p>
+        {rows.length === 0 ? (
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground">No transactions yet</p>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {[...rows].reverse().map(({ tx, balance, direction }) => (
+              <Card key={tx.id} className="p-3">
+                <div className={`grid gap-2 items-center ${showBalance ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                  <div className="text-sm">{format(new Date(tx.transaction_date), 'dd MMM yyyy')}</div>
+                  <div className="text-sm text-muted-foreground truncate">
+                    {tx.description || tx.type}
+                  </div>
+                  <div className="text-right">
+                    <span className={`font-semibold text-sm ${direction === 'in' ? 'text-green-600' : 'text-red-600'}`}>
+                      {direction === 'in' ? '+' : '-'}
+                      {fmt(Number(tx.amount))}
+                    </span>
+                  </div>
+                  {showBalance && (
+                    <div className="text-right text-sm font-semibold">{fmt(balance)}</div>
+                  )}
+                </div>
+              </Card>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Fixed + Button at bottom right - Only for cash/bank accounts */}
       {currentAccount.account_type === 'cash_bank' && (
         <Button
-          onClick={() => setShowAddDialog(true)}
-          className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+          onClick={() => setShowAdd(true)}
+          className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg z-50"
           size="icon"
         >
           <Plus className="h-6 w-6" />
@@ -313,17 +139,25 @@ export const AccountTransactions = ({
       )}
 
       <AddTransactionDialog
-        open={showAddDialog}
-        onOpenChange={setShowAddDialog}
-        onSubmit={handleAddTransaction}
+        open={showAdd}
+        onOpenChange={setShowAdd}
+        defaultAccountId={currentAccount.id}
+        onSuccess={() => {
+          refreshTransactions();
+          refreshAccounts();
+        }}
       />
 
       <SetOpeningBalanceDialog
-        open={showOpeningBalanceDialog}
-        onOpenChange={setShowOpeningBalanceDialog}
+        open={showOB}
+        onOpenChange={setShowOB}
         accountId={currentAccount.id}
-        currentOpeningBalance={currentAccount.opening_balance || 0}
-        onSuccess={handleOpeningBalanceUpdate}
+        currentOpeningBalance={currentAccount.initial_balance || 0}
+        onSuccess={() => {
+          refreshAccounts();
+          refreshTransactions();
+          setShowOB(false);
+        }}
       />
     </div>
   );
