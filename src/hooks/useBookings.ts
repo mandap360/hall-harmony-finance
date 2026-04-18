@@ -1,34 +1,28 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface Booking {
   id: string;
   eventName: string;
+  clientId: string | null;
   clientName: string;
-  phoneNumber?: string;
+  phoneNumber: string;
+  email?: string;
   startDate: string;
   endDate: string;
   rentFinalized: number;
   rentReceived: number;
   notes?: string;
-  paidAmount: number;
-  income: Payment[];
+  status?: string;
   createdAt: string;
   organization_id?: string;
-  status?: string;
-  refundedAmount?: number;
-  secondaryIncomeNet?: number;
-}
-
-export interface Payment {
-  id: string;
-  amount: number;
-  date: string;
-  type: string;
-  description?: string;
-  payment_mode?: string;
+  /** Net rent receipt income from Transactions table */
+  paidAmount: number;
+  /** Net secondary income (Income - Refund tied to this booking) */
+  secondaryIncomeNet: number;
+  refundedAmount: number;
 }
 
 export const useBookings = () => {
@@ -37,368 +31,200 @@ export const useBookings = () => {
   const { toast } = useToast();
   const { profile } = useAuth();
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     if (!profile?.organization_id) return;
-    
+
     try {
       setLoading(true);
-      
-      // First fetch bookings
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('organization_id', profile.organization_id)
-        .order('start_datetime', { ascending: true });
 
-      if (bookingsError) throw bookingsError;
-
-      // Then fetch payments for each booking
-      const bookingIds = bookingsData?.map(booking => booking.id) || [];
-      let paymentsData: any[] = [];
-      let additionalIncomeData: any[] = [];
-      
-      if (bookingIds.length > 0) {
-        const { data: payments, error: paymentsError } = await (supabase
-          .from('income' as any)
+      const [bookingsRes, txRes, secRes, clientsRes] = await Promise.all([
+        supabase
+          .from('Bookings')
           .select('*')
-          .in('booking_id', bookingIds) as any);
-        
-        if (paymentsError) {
-          console.warn('Error fetching payments:', paymentsError);
-        } else {
-          paymentsData = payments || [];
-        }
+          .eq('organization_id', profile.organization_id)
+          .order('start_datetime', { ascending: true }),
+        supabase
+          .from('Transactions')
+          .select('booking_id, type, amount')
+          .eq('organization_id', profile.organization_id)
+          .neq('transaction_status', 'Void'),
+        supabase
+          .from('SecondaryIncome')
+          .select('booking_id, amount')
+          .eq('organization_id', profile.organization_id),
+        supabase
+          .from('Clients')
+          .select('client_id, name, phone_number, email')
+          .eq('organization_id', profile.organization_id),
+      ]);
 
-        // Fetch additional income for each booking
-        const { data: additionalIncome, error: additionalIncomeError } = await supabase
-          .from('secondary_income')
-          .select('*')
-          .in('booking_id', bookingIds);
-        
-        console.log('Additional income query result:', { additionalIncome, additionalIncomeError, bookingIds });
-        
-        if (additionalIncomeError) {
-          console.warn('Error fetching additional income:', additionalIncomeError);
-        } else {
-          additionalIncomeData = additionalIncome || [];
-        }
-      }
+      if (bookingsRes.error) throw bookingsRes.error;
+      if (txRes.error) throw txRes.error;
+      if (secRes.error) throw secRes.error;
+      if (clientsRes.error) throw clientsRes.error;
 
-      // Get all income categories to identify secondary income categories and subcategories
-      const { data: incomeCategories } = await supabase
-        .from('income_categories')
-        .select('id, name, parent_id');
+      const txs = txRes.data || [];
+      const secs = secRes.data || [];
+      const clientMap = new Map(
+        (clientsRes.data || []).map((c) => [c.client_id, c]),
+      );
 
-      const secondaryIncomeCategory = incomeCategories?.find(cat => cat.name === 'Secondary Income');
-      const secondaryIncomeSubcategories = incomeCategories?.filter(cat => cat.parent_id === secondaryIncomeCategory?.id) || [];
+      const transformed: Booking[] = (bookingsRes.data || []).map((b) => {
+        const bookingTxs = txs.filter((t) => t.booking_id === b.id);
+        const incomeTxs = bookingTxs.filter((t) => t.type === 'Income');
+        const refundTxs = bookingTxs.filter((t) => t.type === 'Refund');
+        const refundedAmount = refundTxs.reduce((s, t) => s + Number(t.amount), 0);
+        const paidAmount = incomeTxs.reduce((s, t) => s + Number(t.amount), 0);
 
-      // Transform the data to match the expected format
-      const transformedBookings: Booking[] = (bookingsData || []).map(booking => {
-        const bookingPayments = paymentsData.filter(payment => payment.booking_id === booking.id);
-        const bookingAdditionalIncome = additionalIncomeData.filter(income => income.booking_id === booking.id);
-        
-        // Filter refund payments (those with negative amounts or refund category)
-        const refundPayments = bookingPayments.filter(payment => payment.amount < 0);
-        const totalRefunded = Math.abs(refundPayments.reduce((total, payment) => total + payment.amount, 0));
-        
-        // Calculate net secondary income: Sum all payments from income table with Secondary Income category or its subcategories
-        const secondaryIncomeCategoryIds = [secondaryIncomeCategory?.id, ...secondaryIncomeSubcategories.map(cat => cat.id)].filter(Boolean);
-        
-        const secondaryIncomeNet = bookingPayments
-          .filter(payment => secondaryIncomeCategoryIds.includes(payment.category_id))
-          .reduce((total, payment) => total + payment.amount, 0);
-        
+        const secAmt = secs
+          .filter((s) => s.booking_id === b.id)
+          .reduce((sum, s) => sum + Number(s.amount), 0);
+
+        const client = b.client_id ? clientMap.get(b.client_id) : null;
+
         return {
-          id: booking.id,
-          eventName: booking.event_name,
-          clientName: booking.client_name,
-          phoneNumber: booking.phone_number,
-          startDate: booking.start_datetime,
-          endDate: booking.end_datetime,
-          rentFinalized: booking.rent_finalized,
-          rentReceived: booking.rent_received,
-          notes: booking.notes,
-          paidAmount: booking.rent_received,
-          status: booking.status || 'confirmed',
-          refundedAmount: totalRefunded,
-          secondaryIncomeNet, // Net secondary income (Advance - Refund)
-          income: bookingPayments.map((payment: any) => ({
-            id: payment.id,
-            amount: payment.amount,
-            date: payment.payment_date,
-            type: payment.category_id,
-            description: payment.description,
-            payment_mode: payment.payment_mode
-          })),
-          createdAt: booking.created_at,
-          organization_id: booking.organization_id
+          id: b.id,
+          eventName: b.event_name,
+          clientId: b.client_id,
+          clientName: client?.name || '',
+          phoneNumber: client?.phone_number || '',
+          email: client?.email || '',
+          startDate: b.start_datetime,
+          endDate: b.end_datetime,
+          rentFinalized: Number(b.rent_finalized),
+          rentReceived: Number(b.rent_received) || paidAmount,
+          notes: b.notes || '',
+          status: b.status || 'confirmed',
+          createdAt: b.created_at || '',
+          organization_id: b.organization_id || undefined,
+          paidAmount,
+          secondaryIncomeNet: secAmt - refundedAmount,
+          refundedAmount,
         };
       });
 
-      setBookings(transformedBookings);
+      setBookings(transformed);
     } catch (error) {
       console.error('Error fetching bookings:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch bookings",
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: 'Failed to fetch bookings', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [profile?.organization_id, toast]);
 
-  useEffect(() => {
-    if (profile?.organization_id) {
-      fetchBookings();
-    }
-  }, [profile?.organization_id]);
-
-  const addBooking = async (bookingData: Omit<Booking, 'id' | 'createdAt' | 'paidAmount' | 'income'>) => {
+  const addBooking = async (data: {
+    eventName: string;
+    clientId: string;
+    startDate: string;
+    endDate: string;
+    rentFinalized: number;
+    notes?: string;
+  }) => {
     if (!profile?.organization_id) return;
-
     try {
-      const { data, error } = await supabase
-        .from('bookings')
-        .insert({
-          event_name: bookingData.eventName,
-          client_name: bookingData.clientName,
-          phone_number: bookingData.phoneNumber,
-          start_datetime: bookingData.startDate,
-          end_datetime: bookingData.endDate,
-          rent_finalized: bookingData.rentFinalized,
+      const { error } = await supabase.from('Bookings').insert([
+        {
+          event_name: data.eventName,
+          client_id: data.clientId,
+          start_datetime: data.startDate,
+          end_datetime: data.endDate,
+          rent_finalized: data.rentFinalized,
           rent_received: 0,
-          notes: bookingData.notes,
+          notes: data.notes || null,
+          status: 'confirmed',
           organization_id: profile.organization_id,
-          status: 'confirmed'
-        })
-        .select()
-        .single();
-
+        },
+      ]);
       if (error) throw error;
-
       await fetchBookings();
-      toast({
-        title: "Success",
-        description: "Booking added successfully",
-      });
+      toast({ title: 'Success', description: 'Booking added successfully' });
     } catch (error) {
       console.error('Error adding booking:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add booking",
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: 'Failed to add booking', variant: 'destructive' });
     }
   };
 
-  const updateBooking = async (id: string, bookingData: Partial<Booking>) => {
+  const updateBooking = async (
+    id: string,
+    data: Partial<{
+      eventName: string;
+      clientId: string;
+      startDate: string;
+      endDate: string;
+      rentFinalized: number;
+      notes: string;
+    }>,
+  ) => {
     if (!profile?.organization_id) return;
-
     try {
-      const updateData: any = {};
-      
-      if (bookingData.eventName) updateData.event_name = bookingData.eventName;
-      if (bookingData.clientName) updateData.client_name = bookingData.clientName;
-      if (bookingData.phoneNumber !== undefined) updateData.phone_number = bookingData.phoneNumber;
-      if (bookingData.startDate) updateData.start_datetime = bookingData.startDate;
-      if (bookingData.endDate) updateData.end_datetime = bookingData.endDate;
-      if (bookingData.rentFinalized !== undefined) updateData.rent_finalized = bookingData.rentFinalized;
-      if (bookingData.notes !== undefined) updateData.notes = bookingData.notes;
+      const updateData: Record<string, unknown> = {};
+      if (data.eventName !== undefined) updateData.event_name = data.eventName;
+      if (data.clientId !== undefined) updateData.client_id = data.clientId;
+      if (data.startDate !== undefined) updateData.start_datetime = data.startDate;
+      if (data.endDate !== undefined) updateData.end_datetime = data.endDate;
+      if (data.rentFinalized !== undefined) updateData.rent_finalized = data.rentFinalized;
+      if (data.notes !== undefined) updateData.notes = data.notes;
 
       const { error } = await supabase
-        .from('bookings')
+        .from('Bookings')
         .update(updateData)
         .eq('id', id)
         .eq('organization_id', profile.organization_id);
 
       if (error) throw error;
-
       await fetchBookings();
-      toast({
-        title: "Success",
-        description: "Booking updated successfully",
-      });
+      toast({ title: 'Success', description: 'Booking updated' });
     } catch (error) {
       console.error('Error updating booking:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update booking",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteBooking = async (id: string) => {
-    if (!profile?.organization_id) return;
-
-    try {
-      const { error } = await supabase
-        .from('bookings')
-        .delete()
-        .eq('id', id)
-        .eq('organization_id', profile.organization_id);
-
-      if (error) throw error;
-
-      await fetchBookings();
-      toast({
-        title: "Success",
-        description: "Booking deleted successfully",
-      });
-    } catch (error) {
-      console.error('Error deleting booking:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete booking",
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: 'Failed to update booking', variant: 'destructive' });
     }
   };
 
   const cancelBooking = async (id: string) => {
     if (!profile?.organization_id) return;
-
     try {
       const { error } = await supabase
-        .from('bookings')
+        .from('Bookings')
         .update({ status: 'cancelled' })
         .eq('id', id)
         .eq('organization_id', profile.organization_id);
-
       if (error) throw error;
-
       await fetchBookings();
-      toast({
-        title: "Success",
-        description: "Booking cancelled successfully",
-      });
+      toast({ title: 'Success', description: 'Booking cancelled' });
     } catch (error) {
       console.error('Error cancelling booking:', error);
-      toast({
-        title: "Error",
-        description: "Failed to cancel booking",
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: 'Failed to cancel booking', variant: 'destructive' });
     }
   };
 
-  const processRefund = async (refundData: any) => {
+  const deleteBooking = async (id: string) => {
     if (!profile?.organization_id) return;
-
     try {
-      // Get "Refund - Cancellation" subcategory ID
-      const { data: bookingCancellationCategory } = await supabase
-        .from('income_categories')
-        .select('id')
-        .eq('name', 'Refund - Cancellation')
-        .maybeSingle();
-
-      // Add refund payment with negative amount
-      const { data: paymentData, error: paymentError } = await (supabase
-        .from('income' as any)
-        .insert({
-          booking_id: refundData.bookingId,
-          amount: -Math.abs(refundData.amount), // Store as negative for refunds
-          payment_date: refundData.date || new Date().toISOString().split('T')[0],
-          category_id: bookingCancellationCategory?.id,
-          description: refundData.description,
-          payment_mode: refundData.paymentMode,
-          organization_id: profile.organization_id
-        })
-        .select()
-        .single() as any);
-
-      if (paymentError) throw paymentError;
-
-      // TODO: Transaction recording temporarily disabled during schema migration
-
+      const { error } = await supabase
+        .from('Bookings')
+        .delete()
+        .eq('id', id)
+        .eq('organization_id', profile.organization_id);
+      if (error) throw error;
       await fetchBookings();
-      toast({
-        title: "Success",
-        description: "Refund processed successfully",
-      });
+      toast({ title: 'Success', description: 'Booking deleted' });
     } catch (error) {
-      console.error('Error processing refund:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process refund",
-        variant: "destructive",
-      });
+      console.error('Error deleting booking:', error);
+      toast({ title: 'Error', description: 'Failed to delete booking', variant: 'destructive' });
     }
   };
 
-  const addPayment = async (bookingId: string, amount: number, date: string, categoryId: string, description?: string, paymentMode?: string) => {
-    if (!profile?.organization_id) return;
-
-    try {
-      // Add the payment record
-      const { error: paymentError } = await (supabase
-        .from('income' as any)
-        .insert({
-          booking_id: bookingId,
-          amount: amount,
-          payment_date: date,
-          category_id: categoryId,
-          description: description,
-          payment_mode: paymentMode,
-          organization_id: profile.organization_id
-        }) as any);
-
-      if (paymentError) throw paymentError;
-
-      // Get current booking to calculate new rent_received amount
-      const { data: currentBooking, error: fetchError } = await supabase
-        .from('bookings')
-        .select('rent_received')
-        .eq('id', bookingId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Get category name to check if it's a rent payment
-      const { data: category } = await supabase
-        .from('income_categories')
-        .select('name')
-        .eq('id', categoryId)
-        .single();
-
-      // Only update rent_received for rent-related categories
-      if (category?.name === 'Rent') {
-        const newRentReceived = (currentBooking.rent_received || 0) + amount;
-        const { error: updateError } = await supabase
-          .from('bookings')
-          .update({ rent_received: newRentReceived })
-          .eq('id', bookingId);
-
-        if (updateError) throw updateError;
-      }
-
-
-      await fetchBookings();
-      toast({
-        title: "Success",
-        description: "Payment added successfully",
-      });
-    } catch (error) {
-      console.error('Error adding payment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add payment",
-        variant: "destructive",
-      });
-    }
-  };
+  useEffect(() => {
+    if (profile?.organization_id) fetchBookings();
+  }, [profile?.organization_id, fetchBookings]);
 
   return {
     bookings,
     loading,
     addBooking,
     updateBooking,
-    deleteBooking,
     cancelBooking,
-    processRefund,
-    addPayment,
+    deleteBooking,
     refetch: fetchBookings,
   };
 };
