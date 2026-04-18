@@ -14,50 +14,73 @@ export type Database = {
   }
   public: {
     Tables: {
-      accounts: {
+      AccountCategories: {
         Row: {
-          account_type: string
-          address: string | null
-          balance: number
           created_at: string
-          gstin: string | null
           id: string
           is_default: boolean
+          is_secondary_income: boolean
           name: string
-          opening_balance: number
+          organization_id: string | null
+          type: Database["public"]["Enums"]["account_category_type"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          is_secondary_income?: boolean
+          name: string
+          organization_id?: string | null
+          type: Database["public"]["Enums"]["account_category_type"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          is_secondary_income?: boolean
+          name?: string
+          organization_id?: string | null
+          type?: Database["public"]["Enums"]["account_category_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "AccountCategories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Accounts: {
+        Row: {
+          account_type: string
+          created_at: string
+          id: string
+          initial_balance: number
+          is_default: boolean
+          name: string
           organization_id: string
-          phone_number: string | null
-          sub_type: string | null
           updated_at: string
         }
         Insert: {
           account_type: string
-          address?: string | null
-          balance?: number
           created_at?: string
-          gstin?: string | null
           id?: string
+          initial_balance?: number
           is_default?: boolean
           name: string
-          opening_balance?: number
           organization_id: string
-          phone_number?: string | null
-          sub_type?: string | null
           updated_at?: string
         }
         Update: {
           account_type?: string
-          address?: string | null
-          balance?: number
           created_at?: string
-          gstin?: string | null
           id?: string
+          initial_balance?: number
           is_default?: boolean
           name?: string
-          opening_balance?: number
           organization_id?: string
-          phone_number?: string | null
-          sub_type?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -70,16 +93,125 @@ export type Database = {
           },
         ]
       }
-      bookings: {
+      BillAllocations: {
         Row: {
-          client_name: string
+          amount_applied: number
+          applied_at: string
+          bill_id: string
+          id: string
+          organization_id: string
+          transaction_id: string
+        }
+        Insert: {
+          amount_applied: number
+          applied_at?: string
+          bill_id: string
+          id?: string
+          organization_id: string
+          transaction_id: string
+        }
+        Update: {
+          amount_applied?: number
+          applied_at?: string
+          bill_id?: string
+          id?: string
+          organization_id?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "BillAllocations_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "Bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "BillAllocations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "BillAllocations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "Transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Bills: {
+        Row: {
+          amount: number
+          bill_number: string | null
+          category_id: string | null
+          created_at: string
+          date: string
+          id: string
+          organization_id: string
+          status: Database["public"]["Enums"]["bill_status"]
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          amount: number
+          bill_number?: string | null
+          category_id?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          organization_id: string
+          status?: Database["public"]["Enums"]["bill_status"]
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          amount?: number
+          bill_number?: string | null
+          category_id?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          organization_id?: string
+          status?: Database["public"]["Enums"]["bill_status"]
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Bills_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "AccountCategories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Bills_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Bills_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "Vendors"
+            referencedColumns: ["vendor_id"]
+          },
+        ]
+      }
+      Bookings: {
+        Row: {
+          client_id: string | null
           created_at: string | null
           end_datetime: string
           event_name: string
           id: string
           notes: string | null
           organization_id: string | null
-          phone_number: string | null
           rent_finalized: number
           rent_received: number
           secondary_income: number | null
@@ -88,14 +220,13 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          client_name: string
+          client_id?: string | null
           created_at?: string | null
           end_datetime: string
           event_name: string
           id?: string
           notes?: string | null
           organization_id?: string | null
-          phone_number?: string | null
           rent_finalized: number
           rent_received?: number
           secondary_income?: number | null
@@ -104,14 +235,13 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          client_name?: string
+          client_id?: string | null
           created_at?: string | null
           end_datetime?: string
           event_name?: string
           id?: string
           notes?: string | null
           organization_id?: string | null
-          phone_number?: string | null
           rent_finalized?: number
           rent_received?: number
           secondary_income?: number | null
@@ -121,6 +251,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "Bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "Clients"
+            referencedColumns: ["client_id"]
+          },
+          {
             foreignKeyName: "bookings_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -129,85 +266,92 @@ export type Database = {
           },
         ]
       }
-      expense_categories: {
+      Clients: {
         Row: {
+          address: string | null
+          client_id: string
           created_at: string
-          description: string | null
-          id: string
-          is_default: boolean | null
+          email: string | null
           name: string
-          organization_id: string | null
-          parent_id: string | null
+          organization_id: string
+          phone_number: string | null
+          updated_at: string
         }
         Insert: {
+          address?: string | null
+          client_id?: string
           created_at?: string
-          description?: string | null
-          id?: string
-          is_default?: boolean | null
+          email?: string | null
           name: string
-          organization_id?: string | null
-          parent_id?: string | null
+          organization_id: string
+          phone_number?: string | null
+          updated_at?: string
         }
         Update: {
+          address?: string | null
+          client_id?: string
           created_at?: string
-          description?: string | null
-          id?: string
-          is_default?: boolean | null
+          email?: string | null
           name?: string
-          organization_id?: string | null
-          parent_id?: string | null
+          organization_id?: string
+          phone_number?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "expense_categories_organization_id_fkey"
+            foreignKeyName: "Clients_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      IncomeAllocations: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          transaction_id: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          transaction_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "IncomeAllocations_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "AccountCategories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "IncomeAllocations_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "expense_categories_parent_id_fkey"
-            columns: ["parent_id"]
+            foreignKeyName: "IncomeAllocations_transaction_id_fkey"
+            columns: ["transaction_id"]
             isOneToOne: false
-            referencedRelation: "expense_categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      income_categories: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          is_default: boolean | null
-          name: string
-          organization_id: string | null
-          parent_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_default?: boolean | null
-          name: string
-          organization_id?: string | null
-          parent_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_default?: boolean | null
-          name?: string
-          organization_id?: string | null
-          parent_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "income_categories_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "income_categories"
+            referencedRelation: "Transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -286,7 +430,7 @@ export type Database = {
           },
         ]
       }
-      secondary_income: {
+      SecondaryIncome: {
         Row: {
           amount: number
           booking_id: string | null
@@ -316,7 +460,7 @@ export type Database = {
             foreignKeyName: "additional_income_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: false
-            referencedRelation: "bookings"
+            referencedRelation: "Bookings"
             referencedColumns: ["id"]
           },
           {
@@ -330,120 +474,118 @@ export type Database = {
             foreignKeyName: "secondary_income_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "income_categories"
+            referencedRelation: "AccountCategories"
             referencedColumns: ["id"]
           },
         ]
       }
-      transactions: {
+      Transactions: {
         Row: {
           amount: number
+          booking_id: string | null
           created_at: string
           description: string | null
+          entity_id: string | null
           from_account_id: string | null
           id: string
-          is_financial_transaction: boolean
           organization_id: string
-          party_id: string | null
-          party_type: Database["public"]["Enums"]["party_type"] | null
-          payment_method:
-            | Database["public"]["Enums"]["payment_method_type"]
-            | null
-          reference_voucher_id: string | null
           to_account_id: string | null
-          voucher_date: string
-          voucher_type: Database["public"]["Enums"]["voucher_type"]
+          transaction_date: string
+          transaction_status: Database["public"]["Enums"]["transaction_status"]
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at: string
         }
         Insert: {
           amount: number
+          booking_id?: string | null
           created_at?: string
           description?: string | null
+          entity_id?: string | null
           from_account_id?: string | null
           id?: string
-          is_financial_transaction?: boolean
           organization_id: string
-          party_id?: string | null
-          party_type?: Database["public"]["Enums"]["party_type"] | null
-          payment_method?:
-            | Database["public"]["Enums"]["payment_method_type"]
-            | null
-          reference_voucher_id?: string | null
           to_account_id?: string | null
-          voucher_date: string
-          voucher_type: Database["public"]["Enums"]["voucher_type"]
+          transaction_date: string
+          transaction_status?: Database["public"]["Enums"]["transaction_status"]
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
         }
         Update: {
           amount?: number
+          booking_id?: string | null
           created_at?: string
           description?: string | null
+          entity_id?: string | null
           from_account_id?: string | null
           id?: string
-          is_financial_transaction?: boolean
           organization_id?: string
-          party_id?: string | null
-          party_type?: Database["public"]["Enums"]["party_type"] | null
-          payment_method?:
-            | Database["public"]["Enums"]["payment_method_type"]
-            | null
-          reference_voucher_id?: string | null
           to_account_id?: string | null
-          voucher_date?: string
-          voucher_type?: Database["public"]["Enums"]["voucher_type"]
+          transaction_date?: string
+          transaction_status?: Database["public"]["Enums"]["transaction_status"]
+          type?: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "transactions_from_account_id_fkey"
+            foreignKeyName: "Transactions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "Bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Transactions_from_account_id_fkey"
             columns: ["from_account_id"]
             isOneToOne: false
-            referencedRelation: "accounts"
+            referencedRelation: "Accounts"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "transactions_reference_voucher_id_fkey"
-            columns: ["reference_voucher_id"]
+            foreignKeyName: "Transactions_organization_id_fkey"
+            columns: ["organization_id"]
             isOneToOne: false
-            referencedRelation: "transactions"
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "transactions_to_account_id_fkey"
+            foreignKeyName: "Transactions_to_account_id_fkey"
             columns: ["to_account_id"]
             isOneToOne: false
-            referencedRelation: "accounts"
+            referencedRelation: "Accounts"
             referencedColumns: ["id"]
           },
         ]
       }
-      vendors: {
+      Vendors: {
         Row: {
           address: string | null
-          business_name: string
-          contact_person: string | null
           created_at: string
+          current_balance: number
           gstin: string | null
-          id: string
+          name: string
           organization_id: string | null
           phone_number: string | null
+          vendor_id: string
         }
         Insert: {
           address?: string | null
-          business_name: string
-          contact_person?: string | null
           created_at?: string
+          current_balance?: number
           gstin?: string | null
-          id?: string
+          name: string
           organization_id?: string | null
           phone_number?: string | null
+          vendor_id?: string
         }
         Update: {
           address?: string | null
-          business_name?: string
-          contact_person?: string | null
           created_at?: string
+          current_balance?: number
           gstin?: string | null
-          id?: string
+          name?: string
           organization_id?: string | null
           phone_number?: string | null
+          vendor_id?: string
         }
         Relationships: [
           {
@@ -463,14 +605,23 @@ export type Database = {
       cleanup_deleted_records: { Args: never; Returns: undefined }
       is_super_admin: { Args: never; Returns: boolean }
       migrate_advance_to_payments: { Args: never; Returns: undefined }
-      recalculate_account_balance: {
-        Args: { account_id: string }
-        Returns: undefined
-      }
     }
     Enums: {
+      account_category_type: "income" | "expense"
+      bill_status: "unpaid" | "partial" | "paid"
       party_type: "customer" | "vendor"
       payment_method_type: "cash" | "bank"
+      transaction_status:
+        | "Available"
+        | "Partially Allocated"
+        | "Fully Allocated"
+        | "Void"
+      transaction_type:
+        | "Income"
+        | "Expense"
+        | "Refund"
+        | "Advance Paid"
+        | "Transfer"
       user_role: "admin" | "manager"
       voucher_type:
         | "purchase"
@@ -605,8 +756,23 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_category_type: ["income", "expense"],
+      bill_status: ["unpaid", "partial", "paid"],
       party_type: ["customer", "vendor"],
       payment_method_type: ["cash", "bank"],
+      transaction_status: [
+        "Available",
+        "Partially Allocated",
+        "Fully Allocated",
+        "Void",
+      ],
+      transaction_type: [
+        "Income",
+        "Expense",
+        "Refund",
+        "Advance Paid",
+        "Transfer",
+      ],
       user_role: ["admin", "manager"],
       voucher_type: [
         "purchase",
