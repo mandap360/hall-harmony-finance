@@ -1,77 +1,54 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AddAccountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (account: any) => void;
+  onSubmit: (data: {
+    name: string;
+    account_type: 'cash_bank' | 'owners_capital' | 'party';
+    initial_balance?: number;
+    is_default?: boolean;
+  }) => void;
 }
 
 export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDialogProps) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    account_type: "cash_bank" as "cash_bank" | "owners_capital" | "party",
-    opening_balance: "",
-    gstin: "",
-    phone_number: "",
-    address: "",
-    is_default: false
-  });
+  const [name, setName] = useState('');
+  const [accountType, setAccountType] = useState<'cash_bank' | 'owners_capital' | 'party'>('cash_bank');
+  const [initialBalance, setInitialBalance] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
-      ...formData,
-      opening_balance: formData.opening_balance ? parseFloat(formData.opening_balance) : 0,
+      name,
+      account_type: accountType,
+      initial_balance: initialBalance ? parseFloat(initialBalance) : 0,
     });
-    
-    // Reset form
-    setFormData({
-      name: "",
-      account_type: "cash_bank",
-      opening_balance: "",
-      gstin: "",
-      phone_number: "",
-      address: "",
-      is_default: false
-    });
+    setName('');
+    setAccountType('cash_bank');
+    setInitialBalance('');
   };
-
-  const handleChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const isPartyType = formData.account_type === "party";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Account</DialogTitle>
+          <DialogTitle>Add Account</DialogTitle>
         </DialogHeader>
-        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">{isPartyType ? "Party Name" : "Account Name"} *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              placeholder={isPartyType ? "e.g., ABC Traders" : "e.g., HDFC Bank, Petty Cash"}
-              required
-            />
+            <Label>Account Name *</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="account_type">Account Type *</Label>
-            <Select value={formData.account_type} onValueChange={(value) => handleChange("account_type", value)}>
+            <Label>Account Type *</Label>
+            <Select value={accountType} onValueChange={(v) => setAccountType(v as typeof accountType)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select account type" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cash_bank">Cash/Bank</SelectItem>
@@ -80,55 +57,17 @@ export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDia
               </SelectContent>
             </Select>
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="opening_balance">Opening Balance</Label>
+            <Label>Initial Balance</Label>
             <Input
-              id="opening_balance"
               type="number"
               step="0.01"
-              value={formData.opening_balance}
-              onChange={(e) => handleChange("opening_balance", e.target.value)}
+              value={initialBalance}
+              onChange={(e) => setInitialBalance(e.target.value)}
               placeholder="0.00"
             />
           </div>
-
-          {isPartyType && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="phone_number">Phone Number (Optional)</Label>
-                <Input
-                  id="phone_number"
-                  value={formData.phone_number}
-                  onChange={(e) => handleChange("phone_number", e.target.value)}
-                  placeholder="e.g., 9876543210"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="gstin">GSTIN (Optional)</Label>
-                <Input
-                  id="gstin"
-                  value={formData.gstin}
-                  onChange={(e) => handleChange("gstin", e.target.value)}
-                  placeholder="e.g., 27AABCU9603R1ZM"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address">Address (Optional)</Label>
-                <Textarea
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => handleChange("address", e.target.value)}
-                  placeholder="Enter party address"
-                  rows={2}
-                />
-              </div>
-            </>
-          )}
-
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

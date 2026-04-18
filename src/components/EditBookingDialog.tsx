@@ -1,244 +1,144 @@
-
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { BookingDetailsTab } from "@/components/booking/BookingDetailsTab";
-import { PaymentsTab } from "@/components/booking/PaymentsTab";
-import { SecondaryIncomeTab } from "@/components/booking/SecondaryIncomeTab";
-import { useTransactions } from "@/hooks/useTransactions";
-import { useAccounts } from "@/hooks/useAccounts";
-import { useBookings } from "@/hooks/useBookings";
-import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO } from "date-fns";
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useClients } from '@/hooks/useClients';
+import type { Booking } from '@/hooks/useBookings';
 
 interface EditBookingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  booking: any;
-  onSubmit: (booking: any) => void;
-  onAddPayment?: (bookingId: string, amount: number, date: string, type: string, description?: string, paymentMode?: string) => Promise<void>;
+  booking: Booking;
+  onSubmit: (id: string, data: {
+    eventName: string;
+    clientId: string;
+    startDate: string;
+    endDate: string;
+    rentFinalized: number;
+    notes?: string;
+  }) => void;
 }
 
-// Helper function to format transaction descriptions
-const formatTransactionDescription = (
-  paymentType: string,
-  startDate: string,
-  endDate: string,
-  eventName: string,
-  isRefund: boolean = false
-): string => {
-  // Extract just the date part (YYYY-MM-DD) to compare dates without time
-  const startDateOnly = startDate.split('T')[0];
-  const endDateOnly = endDate.split('T')[0];
-  
-  // Use date-fns for safe local formatting
-  const startDateFormatted = format(parseISO(startDateOnly), "dd MMM yyyy");
-  const endDateFormatted = format(parseISO(endDateOnly), "dd MMM yyyy");
-
-  const isSameDate = startDateOnly === endDateOnly;
-  const dateRange = isSameDate ? startDateFormatted : `${startDateFormatted} - ${endDateFormatted}`;
-
-  return `${paymentType} for ${dateRange}`;
+const splitDateTime = (dt: string) => {
+  const [date, timePart = '10:00:00'] = dt.split('T');
+  return { date, time: timePart.substring(0, 5) };
 };
 
-export const EditBookingDialog = ({ open, onOpenChange, booking: initialBooking, onSubmit, onAddPayment }: EditBookingDialogProps) => {
-  const [activeTab, setActiveTab] = useState("details");
-  const [currentBooking, setCurrentBooking] = useState(initialBooking);
-  const { addTransaction } = useTransactions();
-  const { refreshAccounts } = useAccounts();
-  const { refetch: refreshBookings, bookings } = useBookings();
+export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: EditBookingDialogProps) => {
+  const { clients } = useClients();
 
-  // Refresh data when tab changes
-  const handleTabChange = async (tab: string) => {
-    setActiveTab(tab);
-    await refreshBookings();
-  };
+  const [eventName, setEventName] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [rentFinalized, setRentFinalized] = useState('');
+  const [notes, setNotes] = useState('');
 
-  // Update current booking when initial booking changes or when bookings are refreshed
   useEffect(() => {
-    if (initialBooking) {
-      // Find the updated booking from the bookings list
-      const updatedBooking = bookings.find(b => b.id === initialBooking.id);
-      setCurrentBooking(updatedBooking || initialBooking);
+    if (booking) {
+      const start = splitDateTime(booking.startDate);
+      const end = splitDateTime(booking.endDate);
+      setEventName(booking.eventName);
+      setClientId(booking.clientId || '');
+      setStartDate(start.date);
+      setStartTime(start.time);
+      setEndDate(end.date);
+      setEndTime(end.time);
+      setRentFinalized(String(booking.rentFinalized));
+      setNotes(booking.notes || '');
     }
-  }, [initialBooking, bookings]);
+  }, [booking]);
 
-  // Listen for booking updates
-  useEffect(() => {
-    const handleBookingUpdate = () => {
-      refreshBookings();
-    };
-
-    window.addEventListener('booking-updated', handleBookingUpdate);
-    return () => {
-      window.removeEventListener('booking-updated', handleBookingUpdate);
-    };
-  }, [refreshBookings]);
-
-  const handleAddPayment = async (paymentData: { 
-    amount: string; 
-    date: string; 
-    categoryId: string; 
-    description: string; 
-    accountId: string; 
-  }) => {
-    if (!paymentData.amount || !paymentData.date || !paymentData.accountId || !paymentData.categoryId) return;
-
-    const amount = parseInt(paymentData.amount);
-    
-    try {
-      // Get category name and parent category name from categoryId for description
-      const { data: category } = await supabase
-        .from('income_categories')
-        .select(`
-          name,
-          parent_id,
-          parent:income_categories!parent_id(name)
-        `)
-        .eq('id', paymentData.categoryId)
-        .single();
-
-      const parentName = category?.parent?.name;
-      const categoryName = category?.name || 'Unknown';
-      const formattedCategoryName = parentName ? `${parentName} - ${categoryName}` : categoryName;
-
-      // Create standardized description
-      const transactionDescription = formatTransactionDescription(
-        formattedCategoryName, 
-        currentBooking.startDate, 
-        currentBooking.endDate,
-        currentBooking.eventName
-      );
-
-      // Store payments with "Secondary Income" category as "Secondary Income"
-      let finalCategoryId = paymentData.categoryId;
-      
-      // If "Secondary Income" category is selected, keep it as Secondary Income
-      // and create an entry in secondary_income table with "Advance" category
-      if (categoryName === 'Secondary Income') {
-        // Keep the payment as Secondary Income in the income table
-        finalCategoryId = paymentData.categoryId;
-        
-        // Create or update entry in secondary_income table with Advance category
-        const { data: advanceCategory } = await supabase
-          .from('income_categories')
-          .select('id')
-          .eq('name', 'Advance')
-          .eq('is_default', true)
-          .single();
-          
-        if (advanceCategory) {
-          // Check if advance entry already exists for this booking
-          const { data: existingAdvance } = await supabase
-            .from('secondary_income')
-            .select('*')
-            .eq('booking_id', currentBooking.id)
-            .eq('category_id', advanceCategory.id)
-            .single();
-            
-          if (existingAdvance) {
-            // Update existing advance entry
-            await supabase
-              .from('secondary_income')
-              .update({ amount: existingAdvance.amount + amount })
-              .eq('id', existingAdvance.id);
-          } else {
-            // Create new advance entry
-            await supabase
-              .from('secondary_income')
-              .insert({
-                booking_id: currentBooking.id,
-                amount: amount,
-                category_id: advanceCategory.id,
-                organization_id: (await supabase.auth.getUser()).data.user?.id ? 
-                  (await supabase.from('profiles').select('organization_id').eq('id', (await supabase.auth.getUser()).data.user?.id).single()).data?.organization_id : null
-              });
-          }
-        }
-      }
-
-      // Add payment to database with category_id
-      if (onAddPayment) {
-        await onAddPayment(currentBooking.id, amount, paymentData.date, finalCategoryId, transactionDescription, paymentData.accountId);
-      }
-
-      // TODO: Transaction recording temporarily disabled during schema migration
-      // Will be re-enabled once new transaction schema is fully integrated
-
-      // Refresh accounts to show updated balances
-      await refreshAccounts();
-      
-      // Refresh bookings to update payment history immediately
-      await refreshBookings();
-    } catch (error) {
-      console.error('Error adding payment and transaction:', error);
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(booking.id, {
+      eventName,
+      clientId,
+      startDate: `${startDate}T${startTime}:00`,
+      endDate: `${endDate}T${endTime}:00`,
+      rentFinalized: parseFloat(rentFinalized) || 0,
+      notes: notes || undefined,
+    });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] h-[80.5vh] flex flex-col">
+      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-primary">Edit Booking</DialogTitle>
+          <DialogTitle>Edit Booking</DialogTitle>
         </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Event Name *</Label>
+            <Input value={eventName} onChange={(e) => setEventName(e.target.value)} required />
+          </div>
 
-        {/* Tabs */}
-        <div className="flex space-x-1 border-b border-border flex-shrink-0">
-          <button
-            onClick={() => handleTabChange("details")}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-              activeTab === "details"
-                ? "text-primary border-b-2 border-primary bg-primary/5"
-                : "text-muted-foreground hover:text-primary"
-            }`}
-          >
-            Details
-          </button>
-          <button
-            onClick={() => handleTabChange("payments")}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-              activeTab === "payments"
-                ? "text-primary border-b-2 border-primary bg-primary/5"
-                : "text-muted-foreground hover:text-primary"
-            }`}
-          >
-            Payments
-          </button>
-          <button
-            onClick={() => handleTabChange("secondary-income")}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-              activeTab === "secondary-income"
-                ? "text-primary border-b-2 border-primary bg-primary/5"
-                : "text-muted-foreground hover:text-primary"
-            }`}
-          >
-            Secondary Income
-          </button>
-        </div>
+          <div className="space-y-2">
+            <Label>Client *</Label>
+            <Select value={clientId} onValueChange={setClientId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map((c) => (
+                  <SelectItem key={c.client_id} value={c.client_id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <ScrollArea className="flex-1">
-          {activeTab === "details" && (
-            <BookingDetailsTab
-              booking={currentBooking}
-              onSubmit={onSubmit}
-              onCancel={() => onOpenChange(false)}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Start Date *</Label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Start Time *</Label>
+              <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>End Date *</Label>
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>End Time *</Label>
+              <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Rent Finalized *</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={rentFinalized}
+              onChange={(e) => setRentFinalized(e.target.value)}
+              required
             />
-          )}
+          </div>
 
-          {activeTab === "payments" && (
-            <PaymentsTab
-              booking={currentBooking}
-              onAddPayment={handleAddPayment}
-            />
-          )}
+          <div className="space-y-2">
+            <Label>Notes</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+          </div>
 
-          {activeTab === "secondary-income" && (
-            <SecondaryIncomeTab
-              booking={currentBooking}
-            />
-          )}
-        </ScrollArea>
-
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">Update Booking</Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

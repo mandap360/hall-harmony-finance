@@ -1,80 +1,44 @@
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAccounts } from '@/hooks/useAccounts';
 
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useAccounts } from "@/hooks/useAccounts";
-import { useToast } from "@/hooks/use-toast";
-
-interface SetOpeningBalanceDialogProps {
+interface Props {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: (o: boolean) => void;
   accountId: string;
   currentOpeningBalance: number;
   onSuccess?: () => void;
 }
 
-export const SetOpeningBalanceDialog = ({ 
-  open, 
-  onOpenChange, 
-  accountId, 
-  currentOpeningBalance,
-  onSuccess
-}: SetOpeningBalanceDialogProps) => {
-  const [openingBalance, setOpeningBalance] = useState(currentOpeningBalance.toString());
+export const SetOpeningBalanceDialog = ({ open, onOpenChange, accountId, currentOpeningBalance, onSuccess }: Props) => {
+  const [value, setValue] = useState(String(currentOpeningBalance));
   const { updateAccount } = useAccounts();
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    try {
-      await updateAccount(accountId, { 
-        opening_balance: parseFloat(openingBalance) || 0 
-      });
-      
-      toast({
-        title: "Success",
-        description: "Opening balance updated successfully",
-      });
-      
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        onOpenChange(false);
-      }
-    } catch (error) {
-      console.error('Error updating opening balance:', error);
-    }
+    await updateAccount(accountId, { initial_balance: parseFloat(value) || 0 });
+    onSuccess ? onSuccess() : onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Set Opening Balance</DialogTitle>
+          <DialogTitle>Set Initial Balance</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="openingBalance">Opening Balance (₹)</Label>
-            <Input
-              id="openingBalance"
-              type="text"
-              inputMode="decimal"
-              value={openingBalance}
-              onChange={(e) => setOpeningBalance(e.target.value)}
-              placeholder="Enter opening balance"
-              required
-            />
+            <Label>Initial Balance (₹)</Label>
+            <Input type="number" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} required />
           </div>
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">
-              Update Balance
-            </Button>
+            <Button type="submit">Update</Button>
           </div>
         </form>
       </DialogContent>

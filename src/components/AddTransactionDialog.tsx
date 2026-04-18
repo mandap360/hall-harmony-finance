@@ -1,109 +1,232 @@
-
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useAccounts } from '@/hooks/useAccounts';
+import { useClients } from '@/hooks/useClients';
+import { useVendors } from '@/hooks/useVendors';
+import { useBookings } from '@/hooks/useBookings';
+import { useTransactions, type TransactionType } from '@/hooks/useTransactions';
 
 interface AddTransactionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (transaction: any) => void;
+  defaultAccountId?: string;
+  onSuccess?: () => void;
 }
 
-export const AddTransactionDialog = ({ open, onOpenChange, onSubmit }: AddTransactionDialogProps) => {
-  const [formData, setFormData] = useState({
-    transaction_type: "credit" as "credit" | "debit",
-    amount: "",
-    description: "",
-    transaction_date: new Date().toISOString().split('T')[0],
-  });
+const TYPE_OPTIONS: TransactionType[] = ['Income', 'Expense', 'Refund', 'Advance Paid', 'Transfer'];
 
-  const handleSubmit = (e: React.FormEvent) => {
+export const AddTransactionDialog = ({
+  open,
+  onOpenChange,
+  defaultAccountId,
+  onSuccess,
+}: AddTransactionDialogProps) => {
+  const { accounts } = useAccounts();
+  const { clients } = useClients();
+  const { vendors } = useVendors();
+  const { bookings } = useBookings();
+  const { addTransaction } = useTransactions();
+
+  const cashBankAccounts = accounts.filter((a) => a.account_type === 'cash_bank');
+
+  const [type, setType] = useState<TransactionType>('Income');
+  const [amount, setAmount] = useState('');
+  const [fromAccountId, setFromAccountId] = useState<string>('');
+  const [toAccountId, setToAccountId] = useState<string>(defaultAccountId || '');
+  const [bookingId, setBookingId] = useState<string>('');
+  const [entityId, setEntityId] = useState<string>('');
+  const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
+  const [description, setDescription] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const reset = () => {
+    setType('Income');
+    setAmount('');
+    setFromAccountId('');
+    setToAccountId(defaultAccountId || '');
+    setBookingId('');
+    setEntityId('');
+    setTransactionDate(new Date().toISOString().split('T')[0]);
+    setDescription('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    onSubmit({
-      ...formData,
-      amount: parseFloat(formData.amount),
-      reference_type: 'manual',
-    });
-    
-    // Reset form
-    setFormData({
-      transaction_type: "credit",
-      amount: "",
-      description: "",
-      transaction_date: new Date().toISOString().split('T')[0],
-    });
+    const parsedAmount = parseFloat(amount);
+    if (!parsedAmount || parsedAmount <= 0) return;
+
+    setSubmitting(true);
+    try {
+      await addTransaction({
+        type,
+        amount: parsedAmount,
+        from_account_id: fromAccountId || null,
+        to_account_id: toAccountId || null,
+        booking_id: bookingId || null,
+        entity_id: entityId || null,
+        transaction_date: transactionDate,
+        description: description || null,
+      });
+      reset();
+      onOpenChange(false);
+      onSuccess?.();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  // Field visibility based on type
+  const showFromAccount = ['Expense', 'Refund', 'Advance Paid', 'Transfer'].includes(type);
+  const showToAccount = ['Income', 'Transfer'].includes(type);
+  const showBooking = ['Income', 'Refund'].includes(type);
+  const entityOptions =
+    type === 'Income' || type === 'Refund'
+      ? clients.map((c) => ({ id: c.client_id, name: c.name, label: 'Client' }))
+      : type === 'Expense' || type === 'Advance Paid'
+        ? vendors.map((v) => ({ id: v.vendor_id, name: v.name, label: 'Vendor' }))
+        : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Transaction</DialogTitle>
         </DialogHeader>
-        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="transaction_type">Transaction Type *</Label>
-            <Select value={formData.transaction_type} onValueChange={(value) => handleChange("transaction_type", value)}>
+            <Label>Type *</Label>
+            <Select value={type} onValueChange={(v) => setType(v as TransactionType)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select transaction type" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="credit">Money In (Credit)</SelectItem>
-                <SelectItem value="debit">Money Out (Debit)</SelectItem>
+                {TYPE_OPTIONS.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount *</Label>
+            <Label>Amount *</Label>
             <Input
-              id="amount"
-              type="text"
-              inputMode="decimal"
-              value={formData.amount}
-              onChange={(e) => handleChange("amount", e.target.value)}
+              type="number"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="transaction_date">Date *</Label>
+            <Label>Date *</Label>
             <Input
-              id="transaction_date"
               type="date"
-              value={formData.transaction_date}
-              onChange={(e) => handleChange("transaction_date", e.target.value)}
+              value={transactionDate}
+              onChange={(e) => setTransactionDate(e.target.value)}
               required
             />
           </div>
 
+          {showFromAccount && (
+            <div className="space-y-2">
+              <Label>From Account {type === 'Transfer' ? '*' : ''}</Label>
+              <Select value={fromAccountId} onValueChange={setFromAccountId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cashBankAccounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {showToAccount && (
+            <div className="space-y-2">
+              <Label>To Account {type === 'Income' || type === 'Transfer' ? '*' : ''}</Label>
+              <Select value={toAccountId} onValueChange={setToAccountId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cashBankAccounts
+                    .filter((a) => a.id !== fromAccountId)
+                    .map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {entityOptions.length > 0 && (
+            <div className="space-y-2">
+              <Label>{entityOptions[0].label} (optional)</Label>
+              <Select value={entityId} onValueChange={setEntityId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={`Select ${entityOptions[0].label.toLowerCase()}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {entityOptions.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {showBooking && bookings.length > 0 && (
+            <div className="space-y-2">
+              <Label>Booking (optional)</Label>
+              <Select value={bookingId} onValueChange={setBookingId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select booking" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bookings.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.eventName} — {b.clientName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
+            <Label>Description (optional)</Label>
             <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              placeholder="Enter transaction description..."
-              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              placeholder="Notes…"
             />
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Add Transaction</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? 'Saving…' : 'Add Transaction'}
+            </Button>
           </div>
         </form>
       </DialogContent>
