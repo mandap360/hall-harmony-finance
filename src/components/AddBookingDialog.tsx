@@ -23,7 +23,7 @@ interface AddBookingDialogProps {
 }
 
 export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDialogProps) => {
-  const { clients } = useClients();
+  const { clients, refetch: refetchClients } = useClients();
   const [showAddClient, setShowAddClient] = useState(false);
 
   const [eventName, setEventName] = useState('');
@@ -145,7 +145,8 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
       <AddClientDialog
         open={showAddClient}
         onOpenChange={setShowAddClient}
-        onCreated={(c) => {
+        onCreated={async (c) => {
+          await refetchClients();
           setClientId(c.client_id);
           setShowAddClient(false);
         }}

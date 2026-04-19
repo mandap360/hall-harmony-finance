@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import {
   useAccountCategories,
@@ -70,9 +70,15 @@ const CategoryDialog = ({
             </Select>
           </div>
           {type === 'income' && (
-            <div className="flex items-center justify-between">
-              <Label>Is Secondary Income</Label>
-              <Switch checked={isSecondary} onCheckedChange={setIsSecondary} />
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="is-secondary-income"
+                checked={isSecondary}
+                onCheckedChange={(v) => setIsSecondary(v === true)}
+              />
+              <Label htmlFor="is-secondary-income" className="cursor-pointer">
+                Is Secondary Income
+              </Label>
             </div>
           )}
           <div className="flex justify-end gap-2 pt-2">
