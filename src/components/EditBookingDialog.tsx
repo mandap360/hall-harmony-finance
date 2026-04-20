@@ -7,7 +7,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Trash2, Plus } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -42,7 +41,8 @@ const fmtINR = (n: number) =>
   `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const SEC_PREFIX = '[SEC] ';
-const SEC_REFUND_TAG = (txId: string) => `[SEC-REFUND] for receipt ${txId}`;
+const SEC_REFUND_TAG_PREFIX = '[SEC-REFUND]';
+const SEC_REFUND_DESC = (bookingId: string) => `${SEC_REFUND_TAG_PREFIX} for booking ${bookingId}`;
 
 interface PaymentRow {
   id: string;
@@ -54,22 +54,19 @@ interface PaymentRow {
   category_name: string | null;
 }
 
-interface SecReceiptAllocation {
-  id: string;
-  category_id: string | null;
-  category_name: string | null;
-  amount: number;
-}
-
 interface SecReceipt {
   id: string;
   amount: number;
   date: string;
   to_account_id: string | null;
-  description: string | null; // displayed without prefix
-  status: string;
-  allocations: SecReceiptAllocation[];
-  refundedAmount: number;
+  description: string | null;
+}
+
+interface PoolAllocation {
+  id: string;
+  category_id: string | null;
+  category_name: string | null;
+  amount: number;
 }
 
 export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: EditBookingDialogProps) => {
@@ -104,16 +101,24 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const [payCategoryId, setPayCategoryId] = useState('');
   const [payDescription, setPayDescription] = useState('');
 
-  // Secondary receipts
+  // Secondary receipts (pool model)
   const [secReceipts, setSecReceipts] = useState<SecReceipt[]>([]);
+  const [poolAllocations, setPoolAllocations] = useState<PoolAllocation[]>([]);
+  const [poolRefundedAmount, setPoolRefundedAmount] = useState(0);
+  const [poolRefundTxs, setPoolRefundTxs] = useState<{ id: string; amount: number; date: string; from_account_id: string | null }[]>([]);
+
+  // Receipt form
   const [secRecAmount, setSecRecAmount] = useState('');
   const [secRecDate, setSecRecDate] = useState(new Date().toISOString().split('T')[0]);
   const [secRecAccountId, setSecRecAccountId] = useState('');
   const [secRecDescription, setSecRecDescription] = useState('');
 
-  // Per-receipt allocation/refund draft state
-  const [allocDraft, setAllocDraft] = useState<Record<string, { categoryId: string; amount: string }>>({});
-  const [refundDraft, setRefundDraft] = useState<Record<string, { accountId: string }>>({});
+  // Allocation form
+  const [allocCategoryId, setAllocCategoryId] = useState('');
+  const [allocAmount, setAllocAmount] = useState('');
+
+  // Refund form
+  const [refundAccountId, setRefundAccountId] = useState('');
 
   useEffect(() => {
     if (booking && open) {
@@ -129,6 +134,10 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       setNotes(booking.notes || '');
     }
   }, [booking, open]);
+
+  // Resolve client name even if client is missing from current org list (orphan)
+  const selectedClient = clients.find((c) => c.client_id === clientId);
+  const displayClientName = selectedClient?.name || booking.clientName || '';
 
   const loadPayments = useCallback(async () => {
     if (!booking?.id || !profile?.organization_id) return;
@@ -146,7 +155,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       return;
     }
 
-    // Filter out secondary receipts from primary payments tab
+    // Primary payments = NOT [SEC] tagged
     const primaryTxs = (txs || []).filter((t) => !(t.description || '').startsWith(SEC_PREFIX));
     const txIds = primaryTxs.map((t) => t.id);
 
@@ -182,15 +191,15 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
     );
   }, [booking?.id, profile?.organization_id]);
 
-  const loadSecondaryReceipts = useCallback(async () => {
+  const loadSecondaryPool = useCallback(async () => {
     if (!booking?.id || !profile?.organization_id) return;
 
+    // 1. All Income txs for this booking
     const { data: txs, error } = await supabase
       .from('Transactions')
-      .select('id, amount, transaction_date, to_account_id, description, transaction_status')
+      .select('id, amount, transaction_date, to_account_id, description, transaction_status, type')
       .eq('booking_id', booking.id)
       .eq('organization_id', profile.organization_id)
-      .eq('type', 'Income')
       .neq('transaction_status', 'Void')
       .order('transaction_date', { ascending: false });
 
@@ -199,50 +208,11 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       return;
     }
 
-    const secTxs = (txs || []).filter((t) => (t.description || '').startsWith(SEC_PREFIX));
-    const txIds = secTxs.map((t) => t.id);
-
-    // Allocations
-    const allocsByTx = new Map<string, SecReceiptAllocation[]>();
-    if (txIds.length > 0) {
-      const { data: allocs } = await supabase
-        .from('IncomeAllocations')
-        .select('id, transaction_id, category_id, amount, AccountCategories(name)')
-        .in('transaction_id', txIds);
-      type AllocRow = {
-        id: string;
-        transaction_id: string;
-        category_id: string | null;
-        amount: number;
-        AccountCategories: { name: string } | null;
-      };
-      (allocs as AllocRow[] | null)?.forEach((a) => {
-        const list = allocsByTx.get(a.transaction_id) || [];
-        list.push({
-          id: a.id,
-          category_id: a.category_id,
-          category_name: a.AccountCategories?.name || null,
-          amount: Number(a.amount),
-        });
-        allocsByTx.set(a.transaction_id, list);
-      });
-    }
-
-    // Refunds tagged per receipt
-    const { data: refunds } = await supabase
-      .from('Transactions')
-      .select('amount, description')
-      .eq('booking_id', booking.id)
-      .eq('organization_id', profile.organization_id)
-      .eq('type', 'Refund');
-
-    const refundByTx = new Map<string, number>();
-    (refunds || []).forEach((r) => {
-      const m = (r.description || '').match(/\[SEC-REFUND\] for receipt ([0-9a-f-]+)/);
-      if (m) {
-        refundByTx.set(m[1], (refundByTx.get(m[1]) || 0) + Number(r.amount));
-      }
-    });
+    const all = txs || [];
+    const secTxs = all.filter((t) => t.type === 'Income' && (t.description || '').startsWith(SEC_PREFIX));
+    const refundTxs = all.filter(
+      (t) => t.type === 'Refund' && (t.description || '').startsWith(SEC_REFUND_TAG_PREFIX),
+    );
 
     setSecReceipts(
       secTxs.map((t) => ({
@@ -251,19 +221,80 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
         date: t.transaction_date,
         to_account_id: t.to_account_id,
         description: (t.description || '').replace(SEC_PREFIX, ''),
-        status: t.transaction_status,
-        allocations: allocsByTx.get(t.id) || [],
-        refundedAmount: refundByTx.get(t.id) || 0,
       })),
     );
+
+    setPoolRefundTxs(
+      refundTxs.map((t) => ({
+        id: t.id,
+        amount: Number(t.amount),
+        date: t.transaction_date,
+        from_account_id: t.to_account_id, // refunds use from_account, but we re-select via separate query below
+      })),
+    );
+
+    // Re-fetch refund details with from_account_id
+    if (refundTxs.length > 0) {
+      const { data: rd } = await supabase
+        .from('Transactions')
+        .select('id, amount, transaction_date, from_account_id')
+        .in('id', refundTxs.map((t) => t.id));
+      setPoolRefundTxs(
+        (rd || []).map((t) => ({
+          id: t.id,
+          amount: Number(t.amount),
+          date: t.transaction_date,
+          from_account_id: t.from_account_id,
+        })),
+      );
+    } else {
+      setPoolRefundTxs([]);
+    }
+
+    setPoolRefundedAmount(refundTxs.reduce((s, t) => s + Number(t.amount), 0));
+
+    // 2. Allocations across all secondary receipts
+    const secTxIds = secTxs.map((t) => t.id);
+    if (secTxIds.length > 0) {
+      const { data: allocs } = await supabase
+        .from('IncomeAllocations')
+        .select('id, category_id, amount, AccountCategories(name)')
+        .in('transaction_id', secTxIds);
+      type AllocRow = {
+        id: string;
+        category_id: string | null;
+        amount: number;
+        AccountCategories: { name: string } | null;
+      };
+      // Aggregate per category (in case same category was allocated across multiple receipts)
+      const byCategory = new Map<string, PoolAllocation>();
+      (allocs as AllocRow[] | null)?.forEach((a) => {
+        const key = a.category_id || 'uncategorized';
+        const existing = byCategory.get(key);
+        if (existing) {
+          existing.amount += Number(a.amount);
+          // keep first id; we treat as one logical row per category
+        } else {
+          byCategory.set(key, {
+            id: a.id,
+            category_id: a.category_id,
+            category_name: a.AccountCategories?.name || null,
+            amount: Number(a.amount),
+          });
+        }
+      });
+      setPoolAllocations(Array.from(byCategory.values()));
+    } else {
+      setPoolAllocations([]);
+    }
   }, [booking?.id, profile?.organization_id]);
 
   useEffect(() => {
     if (open) {
       loadPayments();
-      loadSecondaryReceipts();
+      loadSecondaryPool();
     }
-  }, [open, loadPayments, loadSecondaryReceipts]);
+  }, [open, loadPayments, loadSecondaryPool]);
 
   const handleDetailsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -317,7 +348,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
     }
   };
 
-  // ── Secondary receipt handlers ──
+  // ── Secondary pool handlers ──
   const handleAddSecondaryReceipt = async () => {
     const amt = parseFloat(secRecAmount);
     if (!amt || amt <= 0 || !secRecAccountId) {
@@ -336,7 +367,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       });
       setSecRecAmount('');
       setSecRecDescription('');
-      await loadSecondaryReceipts();
+      await loadSecondaryPool();
       await refetchBookings();
     } catch (e) {
       console.error(e);
@@ -344,88 +375,111 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   };
 
   const handleDeleteSecondaryReceipt = async (id: string) => {
-    if (!confirm('Delete this secondary receipt and its allocations/refunds?')) return;
+    if (!confirm('Delete this secondary receipt?')) return;
     try {
       await supabase.from('IncomeAllocations').delete().eq('transaction_id', id);
-      // Delete tagged refunds
-      const { data: refunds } = await supabase
-        .from('Transactions')
-        .select('id')
-        .like('description', `%${SEC_REFUND_TAG(id)}%`);
-      for (const r of refunds || []) {
-        await supabase.from('Transactions').delete().eq('id', r.id);
-      }
       await deleteTransaction(id);
-      await loadSecondaryReceipts();
+      await loadSecondaryPool();
       await refetchBookings();
     } catch (e) {
       console.error(e);
     }
   };
 
-  const handleAllocateSec = async (receipt: SecReceipt) => {
-    const draft = allocDraft[receipt.id];
-    const amt = parseFloat(draft?.amount || '');
-    if (!draft?.categoryId || !amt || amt <= 0) {
+  const secTotalReceived = secReceipts.reduce((s, r) => s + r.amount, 0);
+  const secTotalAllocated = poolAllocations.reduce((s, a) => s + a.amount, 0);
+  const secUnallocated = secTotalReceived - secTotalAllocated - poolRefundedAmount;
+
+  // Categories already used (each can only be allocated once)
+  const usedCategoryIds = new Set(poolAllocations.map((a) => a.category_id).filter(Boolean) as string[]);
+  const availableCategories = secondaryCategories.filter((c) => !usedCategoryIds.has(c.id));
+
+  const handleAllocatePool = async () => {
+    const amt = parseFloat(allocAmount);
+    if (!allocCategoryId || !amt || amt <= 0) {
       toast({ title: 'Missing fields', description: 'Category and amount required', variant: 'destructive' });
       return;
     }
-    const allocated = receipt.allocations.reduce((s, a) => s + a.amount, 0);
-    const remaining = receipt.amount - allocated - receipt.refundedAmount;
-    if (amt > remaining + 0.001) {
-      toast({ title: 'Exceeds balance', description: `Max allocatable: ${fmtINR(remaining)}`, variant: 'destructive' });
+    if (amt > secUnallocated + 0.001) {
+      toast({ title: 'Exceeds pool', description: `Max allocatable: ${fmtINR(secUnallocated)}`, variant: 'destructive' });
       return;
     }
+    if (usedCategoryIds.has(allocCategoryId)) {
+      toast({ title: 'Already allocated', description: 'This category is already allocated', variant: 'destructive' });
+      return;
+    }
+    if (secReceipts.length === 0) {
+      toast({ title: 'No receipts', description: 'Record a secondary receipt first', variant: 'destructive' });
+      return;
+    }
+    // Pool model: attach allocation to the most recent receipt with capacity
+    // Simpler: attach to the first receipt (any). All allocations share the pool.
+    const targetReceipt = secReceipts[0];
     try {
-      await allocate({ transaction_id: receipt.id, category_id: draft.categoryId, amount: amt });
-      setAllocDraft((prev) => ({ ...prev, [receipt.id]: { categoryId: '', amount: '' } }));
-      await loadSecondaryReceipts();
+      await allocate({ transaction_id: targetReceipt.id, category_id: allocCategoryId, amount: amt });
+      setAllocCategoryId('');
+      setAllocAmount('');
+      await loadSecondaryPool();
       await refetchBookings();
     } catch (e) {
       console.error(e);
     }
   };
 
-  const handleRemoveAllocation = async (receiptId: string, allocId: string) => {
-    if (!confirm('Remove this allocation?')) return;
+  const handleRemoveAllocation = async (alloc: PoolAllocation) => {
+    if (!confirm(`Remove allocation for ${alloc.category_name}?`)) return;
     try {
-      await removeAllocation(allocId, receiptId);
-      await loadSecondaryReceipts();
+      // Remove ALL allocations matching this category across receipts (since pool model aggregates them)
+      const txIds = secReceipts.map((r) => r.id);
+      if (txIds.length > 0) {
+        const { data: allocsToRemove } = await supabase
+          .from('IncomeAllocations')
+          .select('id, transaction_id')
+          .in('transaction_id', txIds)
+          .eq('category_id', alloc.category_id || '');
+        for (const a of allocsToRemove || []) {
+          await removeAllocation(a.id, a.transaction_id);
+        }
+      }
+      await loadSecondaryPool();
       await refetchBookings();
     } catch (e) {
       console.error(e);
     }
   };
 
-  const handleRefundSec = async (receipt: SecReceipt) => {
-    const allocated = receipt.allocations.reduce((s, a) => s + a.amount, 0);
-    const remaining = receipt.amount - allocated - receipt.refundedAmount;
-    if (remaining <= 0) {
+  const handleRefundPool = async () => {
+    if (secUnallocated <= 0) {
       toast({ title: 'Nothing to refund', variant: 'destructive' });
       return;
     }
-    const fromAccount = refundDraft[receipt.id]?.accountId;
-    if (!fromAccount) {
-      toast({ title: 'Select account', description: 'Choose source account for refund', variant: 'destructive' });
+    if (!refundAccountId) {
+      toast({ title: 'Select account', description: 'Choose source account', variant: 'destructive' });
       return;
     }
     try {
       await addTransaction({
         type: 'Refund',
-        amount: remaining,
-        from_account_id: fromAccount,
+        amount: secUnallocated,
+        from_account_id: refundAccountId,
         booking_id: booking.id,
         entity_id: booking.clientId,
         transaction_date: new Date().toISOString().split('T')[0],
-        description: SEC_REFUND_TAG(receipt.id),
+        description: SEC_REFUND_DESC(booking.id),
       });
-      // Recompute status: after refund + allocations, receipt is fully covered
-      await supabase
-        .from('Transactions')
-        .update({ transaction_status: 'Fully Allocated' })
-        .eq('id', receipt.id);
-      setRefundDraft((prev) => ({ ...prev, [receipt.id]: { accountId: '' } }));
-      await loadSecondaryReceipts();
+      setRefundAccountId('');
+      await loadSecondaryPool();
+      await refetchBookings();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteRefund = async (id: string) => {
+    if (!confirm('Delete this refund?')) return;
+    try {
+      await deleteTransaction(id);
+      await loadSecondaryPool();
       await refetchBookings();
     } catch (e) {
       console.error(e);
@@ -435,14 +489,6 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   // ── Summary calcs ──
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
   const balance = (parseFloat(rentFinalized) || 0) - totalPaid;
-
-  const secTotalReceived = secReceipts.reduce((s, r) => s + r.amount, 0);
-  const secTotalAllocated = secReceipts.reduce(
-    (s, r) => s + r.allocations.reduce((x, a) => x + a.amount, 0),
-    0,
-  );
-  const secTotalRefunded = secReceipts.reduce((s, r) => s + r.refundedAmount, 0);
-  const secUnallocated = secTotalReceived - secTotalAllocated - secTotalRefunded;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -470,7 +516,9 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                 <Label>Client *</Label>
                 <Select value={clientId} onValueChange={setClientId}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder={displayClientName || 'Select client'}>
+                      {displayClientName || 'Select client'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {clients.map((c) => (
@@ -634,7 +682,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
             </div>
           </TabsContent>
 
-          {/* SECONDARY INCOME */}
+          {/* SECONDARY INCOME — pool model */}
           <TabsContent value="secondary" className="space-y-4">
             <div className="grid grid-cols-4 gap-2 text-sm">
               <Card className="p-3">
@@ -647,7 +695,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
               </Card>
               <Card className="p-3">
                 <div className="text-xs text-muted-foreground">Refunded</div>
-                <div className="font-semibold text-orange-600">{fmtINR(secTotalRefunded)}</div>
+                <div className="font-semibold text-orange-600">{fmtINR(poolRefundedAmount)}</div>
               </Card>
               <Card className="p-3">
                 <div className="text-xs text-muted-foreground">Unallocated</div>
@@ -655,6 +703,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
               </Card>
             </div>
 
+            {/* Record receipt */}
             <Card className="p-4 space-y-3">
               <h4 className="font-semibold text-sm">Record Secondary Receipt</h4>
               <div className="grid grid-cols-2 gap-2">
@@ -693,7 +742,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                 <Input
                   value={secRecDescription}
                   onChange={(e) => setSecRecDescription(e.target.value)}
-                  placeholder="e.g. Decoration advance"
+                  placeholder="optional"
                 />
               </div>
               <Button type="button" onClick={handleAddSecondaryReceipt} className="w-full" size="sm">
@@ -701,140 +750,164 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
               </Button>
             </Card>
 
-            <div className="space-y-3">
+            {/* Receipts list */}
+            <div className="space-y-2">
               <h4 className="font-semibold text-sm">Receipts</h4>
               {secReceipts.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No secondary receipts yet</p>
               ) : (
                 secReceipts.map((r) => {
                   const acc = accounts.find((a) => a.id === r.to_account_id);
-                  const allocated = r.allocations.reduce((s, a) => s + a.amount, 0);
-                  const remaining = r.amount - allocated - r.refundedAmount;
-                  const draft = allocDraft[r.id] || { categoryId: '', amount: '' };
-                  const refDraft = refundDraft[r.id] || { accountId: '' };
                   return (
-                    <Card key={r.id} className="p-3 space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="font-semibold text-green-600">{fmtINR(r.amount)}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {r.date} · {acc?.name || '—'}
-                          </div>
-                          {r.description && <div className="text-xs">{r.description}</div>}
+                    <Card key={r.id} className="p-3 flex justify-between items-center">
+                      <div className="flex-1">
+                        <div className="font-semibold text-green-600">{fmtINR(r.amount)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {r.date} · {acc?.name || '—'}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">{r.status}</Badge>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive"
-                            onClick={() => handleDeleteSecondaryReceipt(r.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        {r.description && <div className="text-xs">{r.description}</div>}
                       </div>
-
-                      {/* Allocations */}
-                      <div className="space-y-1 border-t pt-2">
-                        <div className="text-xs font-semibold text-muted-foreground">Allocations</div>
-                        {r.allocations.length === 0 ? (
-                          <div className="text-xs text-muted-foreground">None yet</div>
-                        ) : (
-                          r.allocations.map((a) => (
-                            <div key={a.id} className="flex justify-between items-center text-sm">
-                              <span>{a.category_name || 'Uncategorized'}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{fmtINR(a.amount)}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 text-destructive"
-                                  onClick={() => handleRemoveAllocation(r.id, a.id)}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-
-                      {/* Add allocation */}
-                      {remaining > 0 && (
-                        <div className="border-t pt-2 space-y-2">
-                          <div className="text-xs">
-                            Unallocated: <span className="font-semibold text-blue-600">{fmtINR(remaining)}</span>
-                          </div>
-                          <div className="grid grid-cols-[1fr_100px_auto] gap-2 items-end">
-                            <Select
-                              value={draft.categoryId}
-                              onValueChange={(v) =>
-                                setAllocDraft((prev) => ({ ...prev, [r.id]: { ...draft, categoryId: v } }))
-                              }
-                            >
-                              <SelectTrigger className="h-9">
-                                <SelectValue placeholder="Category" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {secondaryCategories.length === 0 ? (
-                                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                                    No secondary categories
-                                  </div>
-                                ) : (
-                                  secondaryCategories.map((c) => (
-                                    <SelectItem key={c.id} value={c.id}>
-                                      {c.name}
-                                    </SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="Amount"
-                              value={draft.amount}
-                              onChange={(e) =>
-                                setAllocDraft((prev) => ({ ...prev, [r.id]: { ...draft, amount: e.target.value } }))
-                              }
-                              className="h-9"
-                            />
-                            <Button size="sm" onClick={() => handleAllocateSec(r)}>
-                              Allocate
-                            </Button>
-                          </div>
-
-                          {/* Refund */}
-                          <div className="grid grid-cols-[1fr_auto] gap-2 items-end pt-1">
-                            <Select
-                              value={refDraft.accountId}
-                              onValueChange={(v) =>
-                                setRefundDraft((prev) => ({ ...prev, [r.id]: { accountId: v } }))
-                              }
-                            >
-                              <SelectTrigger className="h-9">
-                                <SelectValue placeholder="Refund from account" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {cashBankAccounts.map((a) => (
-                                  <SelectItem key={a.id} value={a.id}>
-                                    {a.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button size="sm" variant="outline" onClick={() => handleRefundSec(r)}>
-                              Refund {fmtINR(remaining)}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                        onClick={() => handleDeleteSecondaryReceipt(r.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </Card>
                   );
                 })
               )}
             </div>
+
+            {/* Allocate pool */}
+            {secTotalReceived > 0 && (
+              <Card className="p-4 space-y-3">
+                <h4 className="font-semibold text-sm">Allocate to Categories</h4>
+                <p className="text-xs text-muted-foreground">
+                  Pool available: <span className="font-semibold text-blue-600">{fmtINR(secUnallocated)}</span>
+                  {' · '}Each category can be allocated only once.
+                </p>
+
+                {/* Existing allocations */}
+                {poolAllocations.length > 0 && (
+                  <div className="space-y-1 border-t pt-2">
+                    {poolAllocations.map((a) => (
+                      <div key={a.id} className="flex justify-between items-center text-sm">
+                        <span>{a.category_name || 'Uncategorized'}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{fmtINR(a.amount)}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-destructive"
+                            onClick={() => handleRemoveAllocation(a)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add allocation */}
+                {secUnallocated > 0 && availableCategories.length > 0 && (
+                  <div className="border-t pt-2 space-y-2">
+                    <div className="grid grid-cols-[1fr_120px_auto] gap-2 items-end">
+                      <Select value={allocCategoryId} onValueChange={setAllocCategoryId}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableCategories.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Amount"
+                        value={allocAmount}
+                        onChange={(e) => setAllocAmount(e.target.value)}
+                        className="h-9"
+                      />
+                      <Button size="sm" onClick={handleAllocatePool}>
+                        Allocate
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {availableCategories.length === 0 && secondaryCategories.length > 0 && secUnallocated > 0 && (
+                  <p className="text-xs text-muted-foreground border-t pt-2">
+                    All secondary categories already allocated.
+                  </p>
+                )}
+
+                {secondaryCategories.length === 0 && (
+                  <p className="text-xs text-muted-foreground border-t pt-2">
+                    No secondary income categories defined. Create one in Settings → Categories.
+                  </p>
+                )}
+              </Card>
+            )}
+
+            {/* Refund pool */}
+            {secUnallocated > 0 && (
+              <Card className="p-4 space-y-3">
+                <h4 className="font-semibold text-sm">Refund Unallocated</h4>
+                <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+                  <Select value={refundAccountId} onValueChange={setRefundAccountId}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Refund from account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cashBankAccounts.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" variant="outline" onClick={handleRefundPool}>
+                    Refund {fmtINR(secUnallocated)}
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {/* Refund history */}
+            {poolRefundTxs.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm">Refunds</h4>
+                {poolRefundTxs.map((r) => {
+                  const acc = accounts.find((a) => a.id === r.from_account_id);
+                  return (
+                    <Card key={r.id} className="p-3 flex justify-between items-center">
+                      <div className="flex-1">
+                        <div className="font-semibold text-orange-600">{fmtINR(r.amount)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {r.date} · from {acc?.name || '—'}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                        onClick={() => handleDeleteRefund(r.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>

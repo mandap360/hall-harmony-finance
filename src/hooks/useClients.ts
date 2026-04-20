@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
 
 export interface Client {
   client_id: string;
@@ -14,29 +15,44 @@ export interface Client {
   updated_at: string;
 }
 
+interface State {
+  clients: Client[];
+  loading: boolean;
+  orgId: string | null;
+}
+
+const store = createSharedStore<State>({ clients: [], loading: true, orgId: null });
+const singleFlight = createSingleFlight<void>();
+
+const fetchAll = async (orgId: string) => {
+  const { data, error } = await supabase
+    .from('Clients')
+    .select('*')
+    .eq('organization_id', orgId)
+    .order('name');
+  if (error) throw error;
+  store.set({ clients: (data || []) as Client[], loading: false, orgId });
+};
+
 export const useClients = () => {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const state = store.useStore();
 
-  const fetchClients = useCallback(async () => {
-    if (!profile?.organization_id) return;
-    try {
-      const { data, error } = await supabase
-        .from('Clients')
-        .select('*')
-        .eq('organization_id', profile.organization_id)
-        .order('name');
-      if (error) throw error;
-      setClients((data || []) as Client[]);
-    } catch (error) {
-      console.error('Error fetching clients:', error);
+  useEffect(() => {
+    const orgId = profile?.organization_id;
+    if (!orgId) return;
+    if (state.orgId === orgId && state.clients.length > 0) return;
+    singleFlight(() => fetchAll(orgId)).catch((err) => {
+      console.error('Error fetching clients:', err);
       toast({ title: 'Error', description: 'Failed to fetch clients', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  }, [profile?.organization_id, toast]);
+    });
+  }, [profile?.organization_id, state.orgId, state.clients.length, toast]);
+
+  const refetch = async () => {
+    if (!profile?.organization_id) return;
+    await fetchAll(profile.organization_id);
+  };
 
   const addClient = async (data: {
     name: string;
@@ -52,7 +68,7 @@ export const useClients = () => {
         .select()
         .single();
       if (error) throw error;
-      await fetchClients();
+      await refetch();
       toast({ title: 'Success', description: 'Client added successfully' });
       return inserted as Client;
     } catch (error) {
@@ -69,7 +85,7 @@ export const useClients = () => {
     try {
       const { error } = await supabase.from('Clients').update(data).eq('client_id', client_id);
       if (error) throw error;
-      await fetchClients();
+      await refetch();
       toast({ title: 'Success', description: 'Client updated' });
     } catch (error) {
       console.error('Error updating client:', error);
@@ -81,7 +97,7 @@ export const useClients = () => {
     try {
       const { error } = await supabase.from('Clients').delete().eq('client_id', client_id);
       if (error) throw error;
-      await fetchClients();
+      await refetch();
       toast({ title: 'Success', description: 'Client deleted' });
     } catch (error) {
       console.error('Error deleting client:', error);
@@ -89,9 +105,12 @@ export const useClients = () => {
     }
   };
 
-  useEffect(() => {
-    if (profile?.organization_id) fetchClients();
-  }, [profile?.organization_id, fetchClients]);
-
-  return { clients, loading, addClient, updateClient, deleteClient, refetch: fetchClients };
+  return {
+    clients: state.clients,
+    loading: state.loading,
+    addClient,
+    updateClient,
+    deleteClient,
+    refetch,
+  };
 };

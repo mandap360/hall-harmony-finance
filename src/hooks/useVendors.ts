@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
 
 export interface Vendor {
   vendor_id: string;
@@ -14,29 +15,44 @@ export interface Vendor {
   created_at: string;
 }
 
+interface State {
+  vendors: Vendor[];
+  loading: boolean;
+  orgId: string | null;
+}
+
+const store = createSharedStore<State>({ vendors: [], loading: true, orgId: null });
+const singleFlight = createSingleFlight<void>();
+
+const fetchAll = async (orgId: string) => {
+  const { data, error } = await supabase
+    .from('Vendors')
+    .select('*')
+    .eq('organization_id', orgId)
+    .order('name');
+  if (error) throw error;
+  store.set({ vendors: (data || []) as Vendor[], loading: false, orgId });
+};
+
 export const useVendors = () => {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const state = store.useStore();
 
-  const fetchVendors = useCallback(async () => {
-    if (!profile?.organization_id) return;
-    try {
-      const { data, error } = await supabase
-        .from('Vendors')
-        .select('*')
-        .eq('organization_id', profile.organization_id)
-        .order('name');
-      if (error) throw error;
-      setVendors((data || []) as Vendor[]);
-    } catch (error) {
-      console.error('Error fetching vendors:', error);
+  useEffect(() => {
+    const orgId = profile?.organization_id;
+    if (!orgId) return;
+    if (state.orgId === orgId && state.vendors.length > 0) return;
+    singleFlight(() => fetchAll(orgId)).catch((err) => {
+      console.error('Error fetching vendors:', err);
       toast({ title: 'Error', description: 'Failed to fetch vendors', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  }, [profile?.organization_id, toast]);
+    });
+  }, [profile?.organization_id, state.orgId, state.vendors.length, toast]);
+
+  const refetch = async () => {
+    if (!profile?.organization_id) return;
+    await fetchAll(profile.organization_id);
+  };
 
   const addVendor = async (data: {
     name: string;
@@ -52,7 +68,7 @@ export const useVendors = () => {
         .select()
         .single();
       if (error) throw error;
-      await fetchVendors();
+      await refetch();
       toast({ title: 'Success', description: 'Vendor added successfully' });
       return inserted as Vendor;
     } catch (error) {
@@ -69,7 +85,7 @@ export const useVendors = () => {
     try {
       const { error } = await supabase.from('Vendors').update(data).eq('vendor_id', vendor_id);
       if (error) throw error;
-      await fetchVendors();
+      await refetch();
       toast({ title: 'Success', description: 'Vendor updated' });
     } catch (error) {
       console.error('Error updating vendor:', error);
@@ -81,7 +97,7 @@ export const useVendors = () => {
     try {
       const { error } = await supabase.from('Vendors').delete().eq('vendor_id', vendor_id);
       if (error) throw error;
-      await fetchVendors();
+      await refetch();
       toast({ title: 'Success', description: 'Vendor deleted' });
     } catch (error) {
       console.error('Error deleting vendor:', error);
@@ -89,9 +105,5 @@ export const useVendors = () => {
     }
   };
 
-  useEffect(() => {
-    if (profile?.organization_id) fetchVendors();
-  }, [profile?.organization_id, fetchVendors]);
-
-  return { vendors, loading, addVendor, updateVendor, deleteVendor, refetch: fetchVendors };
+  return { vendors: state.vendors, loading: state.loading, addVendor, updateVendor, deleteVendor, refetch };
 };

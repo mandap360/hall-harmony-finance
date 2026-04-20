@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
 
 export interface IncomeAllocation {
   id: string;
@@ -12,10 +13,28 @@ export interface IncomeAllocation {
   created_at: string;
 }
 
+interface State {
+  allocations: IncomeAllocation[];
+  loading: boolean;
+  orgId: string | null;
+}
+
+const store = createSharedStore<State>({ allocations: [], loading: true, orgId: null });
+const singleFlight = createSingleFlight<void>();
+
+const fetchAll = async (orgId: string) => {
+  const { data, error } = await supabase
+    .from('IncomeAllocations')
+    .select('*')
+    .eq('organization_id', orgId);
+  if (error) throw error;
+  store.set({ allocations: (data || []) as IncomeAllocation[], loading: false, orgId });
+};
+
 const recomputeStatus = async (transactionId: string) => {
   const { data: tx } = await supabase
     .from('Transactions')
-    .select('amount, booking_id')
+    .select('amount')
     .eq('id', transactionId)
     .maybeSingle();
   if (!tx) return;
@@ -25,7 +44,6 @@ const recomputeStatus = async (transactionId: string) => {
     .select('amount')
     .eq('transaction_id', transactionId);
 
-  // Find any refund tied to this receipt (description tag)
   const { data: refunds } = await supabase
     .from('Transactions')
     .select('amount')
@@ -41,33 +59,27 @@ const recomputeStatus = async (transactionId: string) => {
   if (total >= txAmount && txAmount > 0) status = 'Fully Allocated';
   else if (total > 0) status = 'Partially Allocated';
 
-  await supabase
-    .from('Transactions')
-    .update({ transaction_status: status })
-    .eq('id', transactionId);
+  await supabase.from('Transactions').update({ transaction_status: status }).eq('id', transactionId);
 };
 
 export const useIncomeAllocations = () => {
-  const [allocations, setAllocations] = useState<IncomeAllocation[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const state = store.useStore();
 
-  const fetch = useCallback(async () => {
+  useEffect(() => {
+    const orgId = profile?.organization_id;
+    if (!orgId) return;
+    if (state.orgId === orgId) return;
+    singleFlight(() => fetchAll(orgId)).catch((err) =>
+      console.error('Error fetching income allocations:', err),
+    );
+  }, [profile?.organization_id, state.orgId]);
+
+  const refetch = async () => {
     if (!profile?.organization_id) return;
-    try {
-      const { data, error } = await supabase
-        .from('IncomeAllocations')
-        .select('*')
-        .eq('organization_id', profile.organization_id);
-      if (error) throw error;
-      setAllocations((data || []) as IncomeAllocation[]);
-    } catch (error) {
-      console.error('Error fetching income allocations:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [profile?.organization_id]);
+    await fetchAll(profile.organization_id);
+  };
 
   const allocate = async (data: {
     transaction_id: string;
@@ -85,9 +97,8 @@ export const useIncomeAllocations = () => {
         },
       ]);
       if (error) throw error;
-
       await recomputeStatus(data.transaction_id);
-      await fetch();
+      await refetch();
       toast({ title: 'Success', description: 'Income allocated' });
     } catch (error) {
       console.error('Error allocating income:', error);
@@ -101,7 +112,7 @@ export const useIncomeAllocations = () => {
       const { error } = await supabase.from('IncomeAllocations').delete().eq('id', id);
       if (error) throw error;
       await recomputeStatus(transactionId);
-      await fetch();
+      await refetch();
       toast({ title: 'Allocation removed' });
     } catch (error) {
       console.error('Error removing allocation:', error);
@@ -111,20 +122,16 @@ export const useIncomeAllocations = () => {
   };
 
   const getAllocationsForTransaction = useCallback(
-    (transactionId: string) => allocations.filter((a) => a.transaction_id === transactionId),
-    [allocations],
+    (transactionId: string) => state.allocations.filter((a) => a.transaction_id === transactionId),
+    [state.allocations],
   );
 
-  useEffect(() => {
-    if (profile?.organization_id) fetch();
-  }, [profile?.organization_id, fetch]);
-
   return {
-    allocations,
-    loading,
+    allocations: state.allocations,
+    loading: state.loading,
     allocate,
     removeAllocation,
     getAllocationsForTransaction,
-    refetch: fetch,
+    refetch,
   };
 };

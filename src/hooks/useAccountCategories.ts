@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
 
 export type AccountCategoryType = 'income' | 'expense';
 
@@ -15,32 +16,45 @@ export interface AccountCategory {
   created_at: string;
 }
 
+interface State {
+  categories: AccountCategory[];
+  loading: boolean;
+  orgId: string | null;
+}
+
+const store = createSharedStore<State>({ categories: [], loading: true, orgId: null });
+const singleFlight = createSingleFlight<void>();
+
+const fetchAll = async (orgId: string) => {
+  const { data, error } = await supabase
+    .from('AccountCategories')
+    .select('*')
+    .or(`organization_id.is.null,organization_id.eq.${orgId}`)
+    .order('type', { ascending: true })
+    .order('name', { ascending: true });
+  if (error) throw error;
+  store.set({ categories: (data || []) as AccountCategory[], loading: false, orgId });
+};
+
 export const useAccountCategories = () => {
-  const [categories, setCategories] = useState<AccountCategory[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const state = store.useStore();
 
-  const fetchCategories = useCallback(async () => {
-    if (!profile?.organization_id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('AccountCategories')
-        .select('*')
-        .or(`organization_id.is.null,organization_id.eq.${profile.organization_id}`)
-        .order('type', { ascending: true })
-        .order('name', { ascending: true });
-
-      if (error) throw error;
-      setCategories((data || []) as AccountCategory[]);
-    } catch (error) {
-      console.error('Error fetching account categories:', error);
+  useEffect(() => {
+    const orgId = profile?.organization_id;
+    if (!orgId) return;
+    if (state.orgId === orgId && state.categories.length > 0) return;
+    singleFlight(() => fetchAll(orgId)).catch((err) => {
+      console.error('Error fetching account categories:', err);
       toast({ title: 'Error', description: 'Failed to fetch categories', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  }, [profile?.organization_id, toast]);
+    });
+  }, [profile?.organization_id, state.orgId, state.categories.length, toast]);
+
+  const refetch = async () => {
+    if (!profile?.organization_id) return;
+    await fetchAll(profile.organization_id);
+  };
 
   const addCategory = async (data: {
     name: string;
@@ -48,7 +62,6 @@ export const useAccountCategories = () => {
     is_secondary_income?: boolean;
   }) => {
     if (!profile?.organization_id) return;
-
     try {
       const { error } = await supabase.from('AccountCategories').insert([
         {
@@ -59,9 +72,8 @@ export const useAccountCategories = () => {
           is_default: false,
         },
       ]);
-
       if (error) throw error;
-      await fetchCategories();
+      await refetch();
       toast({ title: 'Success', description: 'Category added successfully' });
     } catch (error) {
       console.error('Error adding category:', error);
@@ -73,16 +85,15 @@ export const useAccountCategories = () => {
     id: string,
     data: Partial<Pick<AccountCategory, 'name' | 'type' | 'is_secondary_income'>>,
   ) => {
-    const cat = categories.find((c) => c.id === id);
+    const cat = state.categories.find((c) => c.id === id);
     if (cat && !cat.organization_id) {
       toast({ title: 'Cannot edit default category', variant: 'destructive' });
       return;
     }
-
     try {
       const { error } = await supabase.from('AccountCategories').update(data).eq('id', id);
       if (error) throw error;
-      await fetchCategories();
+      await refetch();
       toast({ title: 'Success', description: 'Category updated' });
     } catch (error) {
       console.error('Error updating category:', error);
@@ -91,16 +102,15 @@ export const useAccountCategories = () => {
   };
 
   const deleteCategory = async (id: string) => {
-    const cat = categories.find((c) => c.id === id);
+    const cat = state.categories.find((c) => c.id === id);
     if (cat && !cat.organization_id) {
       toast({ title: 'Cannot delete default category', variant: 'destructive' });
       return;
     }
-
     try {
       const { error } = await supabase.from('AccountCategories').delete().eq('id', id);
       if (error) throw error;
-      await fetchCategories();
+      await refetch();
       toast({ title: 'Success', description: 'Category deleted' });
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -108,19 +118,15 @@ export const useAccountCategories = () => {
     }
   };
 
-  useEffect(() => {
-    if (profile?.organization_id) fetchCategories();
-  }, [profile?.organization_id, fetchCategories]);
-
   return {
-    categories,
-    incomeCategories: categories.filter((c) => c.type === 'income'),
-    expenseCategories: categories.filter((c) => c.type === 'expense'),
-    secondaryIncomeCategories: categories.filter((c) => c.is_secondary_income),
-    loading,
+    categories: state.categories,
+    incomeCategories: state.categories.filter((c) => c.type === 'income'),
+    expenseCategories: state.categories.filter((c) => c.type === 'expense'),
+    secondaryIncomeCategories: state.categories.filter((c) => c.is_secondary_income),
+    loading: state.loading,
     addCategory,
     updateCategory,
     deleteCategory,
-    refetch: fetchCategories,
+    refetch,
   };
 };

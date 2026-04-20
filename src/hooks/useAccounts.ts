@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
 
 export interface Account {
   id: string;
@@ -43,55 +44,64 @@ const computeBalance = (accountId: string, initial: number, txs: RawTransaction[
   return bal;
 };
 
+interface State {
+  accounts: Account[];
+  loading: boolean;
+  orgId: string | null;
+}
+
+const store = createSharedStore<State>({ accounts: [], loading: true, orgId: null });
+const singleFlight = createSingleFlight<void>();
+
+const fetchAll = async (orgId: string) => {
+  const [accRes, txRes] = await Promise.all([
+    supabase
+      .from('Accounts')
+      .select('*')
+      .eq('organization_id', orgId)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('Transactions')
+      .select('from_account_id, to_account_id, amount')
+      .eq('organization_id', orgId)
+      .neq('transaction_status', 'Void'),
+  ]);
+  if (accRes.error) throw accRes.error;
+  if (txRes.error) throw txRes.error;
+
+  const rawAccounts = (accRes.data || []) as RawAccount[];
+  const txs = (txRes.data || []) as RawTransaction[];
+
+  const enriched: Account[] = rawAccounts.map((a) => ({
+    ...a,
+    account_type: a.account_type as Account['account_type'],
+    initial_balance: Number(a.initial_balance) || 0,
+    balance: computeBalance(a.id, Number(a.initial_balance) || 0, txs),
+  }));
+
+  store.set({ accounts: enriched, loading: false, orgId });
+};
+
 export const useAccounts = () => {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const state = store.useStore();
 
-  const fetchAccounts = useCallback(async () => {
+  useEffect(() => {
+    const orgId = profile?.organization_id;
+    if (!orgId) return;
+    if (state.orgId === orgId && state.accounts.length > 0) return;
+    singleFlight(() => fetchAll(orgId)).catch((err) => {
+      console.error('Error fetching accounts:', err);
+      toast({ title: 'Error', description: 'Failed to fetch accounts', variant: 'destructive' });
+    });
+  }, [profile?.organization_id, state.orgId, state.accounts.length, toast]);
+
+  const refreshAccounts = async () => {
     if (!profile?.organization_id) return;
-
-    try {
-      const [accRes, txRes] = await Promise.all([
-        supabase
-          .from('Accounts')
-          .select('*')
-          .eq('organization_id', profile.organization_id)
-          .order('is_default', { ascending: false })
-          .order('created_at', { ascending: true }),
-        supabase
-          .from('Transactions')
-          .select('from_account_id, to_account_id, amount')
-          .eq('organization_id', profile.organization_id)
-          .neq('transaction_status', 'Void'),
-      ]);
-
-      if (accRes.error) throw accRes.error;
-      if (txRes.error) throw txRes.error;
-
-      const rawAccounts = (accRes.data || []) as RawAccount[];
-      const txs = (txRes.data || []) as RawTransaction[];
-
-      const enriched: Account[] = rawAccounts.map((a) => ({
-        ...a,
-        account_type: a.account_type as Account['account_type'],
-        initial_balance: Number(a.initial_balance) || 0,
-        balance: computeBalance(a.id, Number(a.initial_balance) || 0, txs),
-      }));
-
-      setAccounts(enriched);
-    } catch (error) {
-      console.error('Error fetching accounts:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch accounts',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [profile?.organization_id, toast]);
+    await fetchAll(profile.organization_id);
+  };
 
   const addAccount = async (data: {
     name: string;
@@ -100,7 +110,6 @@ export const useAccounts = () => {
     is_default?: boolean;
   }) => {
     if (!profile?.organization_id) return;
-
     try {
       const { error } = await supabase.from('Accounts').insert([
         {
@@ -111,9 +120,8 @@ export const useAccounts = () => {
           organization_id: profile.organization_id,
         },
       ]);
-
       if (error) throw error;
-      await fetchAccounts();
+      await refreshAccounts();
       toast({ title: 'Success', description: 'Account added successfully' });
     } catch (error) {
       console.error('Error adding account:', error);
@@ -131,9 +139,8 @@ export const useAccounts = () => {
         .from('Accounts')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id);
-
       if (error) throw error;
-      await fetchAccounts();
+      await refreshAccounts();
       toast({ title: 'Success', description: 'Account updated successfully' });
     } catch (error) {
       console.error('Error updating account:', error);
@@ -146,7 +153,7 @@ export const useAccounts = () => {
     try {
       const { error } = await supabase.from('Accounts').delete().eq('id', id);
       if (error) throw error;
-      await fetchAccounts();
+      await refreshAccounts();
       toast({ title: 'Success', description: 'Account deleted successfully' });
     } catch (error) {
       console.error('Error deleting account:', error);
@@ -155,16 +162,12 @@ export const useAccounts = () => {
     }
   };
 
-  useEffect(() => {
-    if (profile?.organization_id) fetchAccounts();
-  }, [profile?.organization_id, fetchAccounts]);
-
   return {
-    accounts,
-    loading,
+    accounts: state.accounts,
+    loading: state.loading,
     addAccount,
     updateAccount,
     deleteAccount,
-    refreshAccounts: fetchAccounts,
+    refreshAccounts,
   };
 };

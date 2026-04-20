@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
 
 export interface Booking {
   id: string;
@@ -18,109 +19,119 @@ export interface Booking {
   status?: string;
   createdAt: string;
   organization_id?: string;
-  /** Net rent receipt income from Transactions table */
+  /** Net rent receipt income from Transactions (excludes [SEC] tagged) */
   paidAmount: number;
-  /** Net secondary income (Income - Refund tied to this booking) */
+  /** Net secondary income (Income tagged [SEC] - Refund tagged [SEC-REFUND]) */
   secondaryIncomeNet: number;
   refundedAmount: number;
 }
 
+interface State {
+  bookings: Booking[];
+  loading: boolean;
+  orgId: string | null;
+}
+
+const store = createSharedStore<State>({ bookings: [], loading: false, orgId: null });
+const singleFlight = createSingleFlight<void>();
+
+const isSecIncome = (t: { description: string | null }) =>
+  (t.description || '').startsWith('[SEC] ');
+const isSecRefund = (t: { description: string | null }) =>
+  (t.description || '').includes('[SEC-REFUND]');
+
+const fetchAll = async (orgId: string) => {
+  store.set((s) => ({ ...s, loading: true }));
+  const [bookingsRes, txRes, clientsRes] = await Promise.all([
+    supabase
+      .from('Bookings')
+      .select('*')
+      .eq('organization_id', orgId)
+      .order('start_datetime', { ascending: true }),
+    supabase
+      .from('Transactions')
+      .select('booking_id, type, amount, description')
+      .eq('organization_id', orgId)
+      .neq('transaction_status', 'Void'),
+    supabase
+      .from('Clients')
+      .select('client_id, name, phone_number, email')
+      .eq('organization_id', orgId),
+  ]);
+
+  if (bookingsRes.error) throw bookingsRes.error;
+  if (txRes.error) throw txRes.error;
+  if (clientsRes.error) throw clientsRes.error;
+
+  const txs = txRes.data || [];
+  const clientMap = new Map((clientsRes.data || []).map((c) => [c.client_id, c]));
+
+  const transformed: Booking[] = (bookingsRes.data || []).map((b) => {
+    const bookingTxs = txs.filter((t) => t.booking_id === b.id);
+    const incomeTxs = bookingTxs.filter((t) => t.type === 'Income');
+    const refundTxs = bookingTxs.filter((t) => t.type === 'Refund');
+
+    const primaryIncome = incomeTxs
+      .filter((t) => !isSecIncome(t))
+      .reduce((s, t) => s + Number(t.amount), 0);
+    const secondaryIncome = incomeTxs
+      .filter((t) => isSecIncome(t))
+      .reduce((s, t) => s + Number(t.amount), 0);
+
+    const primaryRefunds = refundTxs
+      .filter((t) => !isSecRefund(t))
+      .reduce((s, t) => s + Number(t.amount), 0);
+    const secondaryRefunds = refundTxs
+      .filter((t) => isSecRefund(t))
+      .reduce((s, t) => s + Number(t.amount), 0);
+
+    const paidAmount = primaryIncome - primaryRefunds;
+    const refundedAmount = primaryRefunds + secondaryRefunds;
+    const client = b.client_id ? clientMap.get(b.client_id) : null;
+
+    return {
+      id: b.id,
+      eventName: b.event_name,
+      clientId: b.client_id,
+      clientName: client?.name || '',
+      phoneNumber: client?.phone_number || '',
+      email: client?.email || '',
+      startDate: b.start_datetime,
+      endDate: b.end_datetime,
+      rentFinalized: Number(b.rent_finalized),
+      rentReceived: paidAmount,
+      notes: b.notes || '',
+      status: b.status || 'confirmed',
+      createdAt: b.created_at || '',
+      organization_id: b.organization_id || undefined,
+      paidAmount,
+      secondaryIncomeNet: secondaryIncome - secondaryRefunds,
+      refundedAmount,
+    };
+  });
+
+  store.set({ bookings: transformed, loading: false, orgId });
+};
+
 export const useBookings = () => {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const state = store.useStore();
 
-  const fetchBookings = useCallback(async () => {
-    if (!profile?.organization_id) return;
-
-    try {
-      setLoading(true);
-
-      const [bookingsRes, txRes, clientsRes] = await Promise.all([
-        supabase
-          .from('Bookings')
-          .select('*')
-          .eq('organization_id', profile.organization_id)
-          .order('start_datetime', { ascending: true }),
-        supabase
-          .from('Transactions')
-          .select('booking_id, type, amount, description')
-          .eq('organization_id', profile.organization_id)
-          .neq('transaction_status', 'Void'),
-        supabase
-          .from('Clients')
-          .select('client_id, name, phone_number, email')
-          .eq('organization_id', profile.organization_id),
-      ]);
-
-      if (bookingsRes.error) throw bookingsRes.error;
-      if (txRes.error) throw txRes.error;
-      if (clientsRes.error) throw clientsRes.error;
-
-      const txs = txRes.data || [];
-      const clientMap = new Map(
-        (clientsRes.data || []).map((c) => [c.client_id, c]),
-      );
-
-      const isSecIncome = (t: { description: string | null }) =>
-        (t.description || '').startsWith('[SEC] ');
-      const isSecRefund = (t: { description: string | null }) =>
-        (t.description || '').includes('[SEC-REFUND]');
-
-      const transformed: Booking[] = (bookingsRes.data || []).map((b) => {
-        const bookingTxs = txs.filter((t) => t.booking_id === b.id);
-        const incomeTxs = bookingTxs.filter((t) => t.type === 'Income');
-        const refundTxs = bookingTxs.filter((t) => t.type === 'Refund');
-
-        const primaryIncome = incomeTxs
-          .filter((t) => !isSecIncome(t))
-          .reduce((s, t) => s + Number(t.amount), 0);
-        const secondaryIncome = incomeTxs
-          .filter((t) => isSecIncome(t))
-          .reduce((s, t) => s + Number(t.amount), 0);
-
-        const primaryRefunds = refundTxs
-          .filter((t) => !isSecRefund(t))
-          .reduce((s, t) => s + Number(t.amount), 0);
-        const secondaryRefunds = refundTxs
-          .filter((t) => isSecRefund(t))
-          .reduce((s, t) => s + Number(t.amount), 0);
-
-        const paidAmount = primaryIncome - primaryRefunds;
-        const refundedAmount = primaryRefunds + secondaryRefunds;
-
-        const client = b.client_id ? clientMap.get(b.client_id) : null;
-
-        return {
-          id: b.id,
-          eventName: b.event_name,
-          clientId: b.client_id,
-          clientName: client?.name || '',
-          phoneNumber: client?.phone_number || '',
-          email: client?.email || '',
-          startDate: b.start_datetime,
-          endDate: b.end_datetime,
-          rentFinalized: Number(b.rent_finalized),
-          rentReceived: Number(b.rent_received) || paidAmount,
-          notes: b.notes || '',
-          status: b.status || 'confirmed',
-          createdAt: b.created_at || '',
-          organization_id: b.organization_id || undefined,
-          paidAmount,
-          secondaryIncomeNet: secondaryIncome - secondaryRefunds,
-          refundedAmount,
-        };
-      });
-
-      setBookings(transformed);
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
+  useEffect(() => {
+    const orgId = profile?.organization_id;
+    if (!orgId) return;
+    if (state.orgId === orgId && state.bookings.length > 0) return;
+    singleFlight(() => fetchAll(orgId)).catch((err) => {
+      console.error('Error fetching bookings:', err);
       toast({ title: 'Error', description: 'Failed to fetch bookings', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  }, [profile?.organization_id, toast]);
+    });
+  }, [profile?.organization_id, state.orgId, state.bookings.length, toast]);
+
+  const refetch = async () => {
+    if (!profile?.organization_id) return;
+    await fetchAll(profile.organization_id);
+  };
 
   const addBooking = async (data: {
     eventName: string;
@@ -146,7 +157,7 @@ export const useBookings = () => {
         },
       ]);
       if (error) throw error;
-      await fetchBookings();
+      await refetch();
       toast({ title: 'Success', description: 'Booking added successfully' });
     } catch (error) {
       console.error('Error adding booking:', error);
@@ -182,7 +193,7 @@ export const useBookings = () => {
         .eq('organization_id', profile.organization_id);
 
       if (error) throw error;
-      await fetchBookings();
+      await refetch();
       toast({ title: 'Success', description: 'Booking updated' });
     } catch (error) {
       console.error('Error updating booking:', error);
@@ -199,7 +210,7 @@ export const useBookings = () => {
         .eq('id', id)
         .eq('organization_id', profile.organization_id);
       if (error) throw error;
-      await fetchBookings();
+      await refetch();
       toast({ title: 'Success', description: 'Booking cancelled' });
     } catch (error) {
       console.error('Error cancelling booking:', error);
@@ -216,7 +227,7 @@ export const useBookings = () => {
         .eq('id', id)
         .eq('organization_id', profile.organization_id);
       if (error) throw error;
-      await fetchBookings();
+      await refetch();
       toast({ title: 'Success', description: 'Booking deleted' });
     } catch (error) {
       console.error('Error deleting booking:', error);
@@ -224,17 +235,13 @@ export const useBookings = () => {
     }
   };
 
-  useEffect(() => {
-    if (profile?.organization_id) fetchBookings();
-  }, [profile?.organization_id, fetchBookings]);
-
   return {
-    bookings,
-    loading,
+    bookings: state.bookings,
+    loading: state.loading,
     addBooking,
     updateBooking,
     cancelBooking,
     deleteBooking,
-    refetch: fetchBookings,
+    refetch,
   };
 };
