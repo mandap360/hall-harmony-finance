@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
 
 export type BillStatus = 'unpaid' | 'partial' | 'paid';
 
@@ -27,40 +28,54 @@ export interface BillAllocation {
   organization_id: string;
 }
 
+interface State {
+  bills: Bill[];
+  allocations: BillAllocation[];
+  loading: boolean;
+  orgId: string | null;
+}
+
+const store = createSharedStore<State>({ bills: [], allocations: [], loading: true, orgId: null });
+const singleFlight = createSingleFlight<void>();
+
+const fetchAll = async (orgId: string) => {
+  const [billRes, allocRes] = await Promise.all([
+    supabase
+      .from('Bills')
+      .select('*')
+      .eq('organization_id', orgId)
+      .order('date', { ascending: false }),
+    supabase.from('BillAllocations').select('*').eq('organization_id', orgId),
+  ]);
+  if (billRes.error) throw billRes.error;
+  if (allocRes.error) throw allocRes.error;
+  store.set({
+    bills: (billRes.data || []) as Bill[],
+    allocations: (allocRes.data || []) as BillAllocation[],
+    loading: false,
+    orgId,
+  });
+};
+
 export const useBills = () => {
-  const [bills, setBills] = useState<Bill[]>([]);
-  const [allocations, setAllocations] = useState<BillAllocation[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const state = store.useStore();
 
-  const fetchBills = useCallback(async () => {
-    if (!profile?.organization_id) return;
-    try {
-      const [billRes, allocRes] = await Promise.all([
-        supabase
-          .from('Bills')
-          .select('*')
-          .eq('organization_id', profile.organization_id)
-          .order('date', { ascending: false }),
-        supabase
-          .from('BillAllocations')
-          .select('*')
-          .eq('organization_id', profile.organization_id),
-      ]);
-
-      if (billRes.error) throw billRes.error;
-      if (allocRes.error) throw allocRes.error;
-
-      setBills((billRes.data || []) as Bill[]);
-      setAllocations((allocRes.data || []) as BillAllocation[]);
-    } catch (error) {
-      console.error('Error fetching bills:', error);
+  useEffect(() => {
+    const orgId = profile?.organization_id;
+    if (!orgId) return;
+    if (state.orgId === orgId && (state.bills.length > 0 || state.allocations.length > 0)) return;
+    singleFlight(() => fetchAll(orgId)).catch((err) => {
+      console.error('Error fetching bills:', err);
       toast({ title: 'Error', description: 'Failed to fetch bills', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  }, [profile?.organization_id, toast]);
+    });
+  }, [profile?.organization_id, state.orgId, state.bills.length, state.allocations.length, toast]);
+
+  const refetch = async () => {
+    if (!profile?.organization_id) return;
+    await fetchAll(profile.organization_id);
+  };
 
   const addBill = async (data: {
     vendor_id: string;
@@ -83,7 +98,7 @@ export const useBills = () => {
         },
       ]);
       if (error) throw error;
-      await fetchBills();
+      await refetch();
       toast({ title: 'Success', description: 'Bill created' });
     } catch (error) {
       console.error('Error adding bill:', error);
@@ -109,11 +124,10 @@ export const useBills = () => {
       ]);
       if (error) throw error;
 
-      // Recompute bill status based on total allocations
-      const bill = bills.find((b) => b.id === data.bill_id);
+      const bill = state.bills.find((b) => b.id === data.bill_id);
       if (bill) {
         const totalApplied =
-          allocations
+          state.allocations
             .filter((a) => a.bill_id === data.bill_id)
             .reduce((sum, a) => sum + Number(a.amount_applied), 0) + data.amount_applied;
 
@@ -124,7 +138,7 @@ export const useBills = () => {
         await supabase.from('Bills').update({ status }).eq('id', data.bill_id);
       }
 
-      await fetchBills();
+      await refetch();
       toast({ title: 'Success', description: 'Allocation recorded' });
     } catch (error) {
       console.error('Error allocating to bill:', error);
@@ -137,7 +151,7 @@ export const useBills = () => {
     try {
       const { error } = await supabase.from('Bills').delete().eq('id', id);
       if (error) throw error;
-      await fetchBills();
+      await refetch();
       toast({ title: 'Success', description: 'Bill deleted' });
     } catch (error) {
       console.error('Error deleting bill:', error);
@@ -145,17 +159,13 @@ export const useBills = () => {
     }
   };
 
-  useEffect(() => {
-    if (profile?.organization_id) fetchBills();
-  }, [profile?.organization_id, fetchBills]);
-
   return {
-    bills,
-    allocations,
-    loading,
+    bills: state.bills,
+    allocations: state.allocations,
+    loading: state.loading,
     addBill,
     allocateToBill,
     deleteBill,
-    refetch: fetchBills,
+    refetch,
   };
 };

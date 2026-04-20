@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
 
 export type TransactionType = 'Income' | 'Expense' | 'Refund' | 'Advance Paid' | 'Transfer';
 export type TransactionStatus = 'Available' | 'Partially Allocated' | 'Fully Allocated' | 'Void';
@@ -34,42 +35,48 @@ export interface TransactionInsert {
   transaction_status?: TransactionStatus;
 }
 
+interface State {
+  transactions: Transaction[];
+  loading: boolean;
+  orgId: string | null;
+}
+
+const store = createSharedStore<State>({ transactions: [], loading: true, orgId: null });
+const singleFlight = createSingleFlight<void>();
+
+const fetchAll = async (orgId: string) => {
+  const { data, error } = await supabase
+    .from('Transactions')
+    .select('*')
+    .eq('organization_id', orgId)
+    .order('transaction_date', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  store.set({ transactions: (data || []) as Transaction[], loading: false, orgId });
+};
+
 export const useTransactions = (accountId?: string) => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const state = store.useStore();
 
-  const fetchTransactions = useCallback(async () => {
-    if (!profile?.organization_id) return;
-
-    try {
-      let query = supabase
-        .from('Transactions')
-        .select('*')
-        .eq('organization_id', profile.organization_id)
-        .order('transaction_date', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      if (accountId) {
-        query = query.or(`from_account_id.eq.${accountId},to_account_id.eq.${accountId},entity_id.eq.${accountId}`);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      setTransactions((data || []) as Transaction[]);
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
+  useEffect(() => {
+    const orgId = profile?.organization_id;
+    if (!orgId) return;
+    if (state.orgId === orgId && state.transactions.length > 0) return;
+    singleFlight(() => fetchAll(orgId)).catch((err) => {
+      console.error('Error fetching transactions:', err);
       toast({ title: 'Error', description: 'Failed to fetch transactions', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  }, [profile?.organization_id, accountId, toast]);
+    });
+  }, [profile?.organization_id, state.orgId, state.transactions.length, toast]);
+
+  const refreshTransactions = async () => {
+    if (!profile?.organization_id) return;
+    await fetchAll(profile.organization_id);
+  };
 
   const addTransaction = async (data: TransactionInsert) => {
     if (!profile?.organization_id) throw new Error('No organization');
-
     try {
       const { data: inserted, error } = await supabase
         .from('Transactions')
@@ -89,10 +96,8 @@ export const useTransactions = (accountId?: string) => {
         ])
         .select()
         .single();
-
       if (error) throw error;
-
-      setTransactions((prev) => [inserted as Transaction, ...prev]);
+      await refreshTransactions();
       toast({ title: 'Success', description: 'Transaction added successfully' });
       return inserted as Transaction;
     } catch (error) {
@@ -106,7 +111,7 @@ export const useTransactions = (accountId?: string) => {
     try {
       const { error } = await supabase.from('Transactions').delete().eq('id', id);
       if (error) throw error;
-      setTransactions((prev) => prev.filter((t) => t.id !== id));
+      await refreshTransactions();
       toast({ title: 'Success', description: 'Transaction deleted successfully' });
     } catch (error) {
       console.error('Error deleting transaction:', error);
@@ -115,15 +120,19 @@ export const useTransactions = (accountId?: string) => {
     }
   };
 
-  useEffect(() => {
-    if (profile?.organization_id) fetchTransactions();
-  }, [profile?.organization_id, fetchTransactions]);
+  // If accountId passed, scope the result locally (no extra fetch).
+  const filtered = useMemo(() => {
+    if (!accountId) return state.transactions;
+    return state.transactions.filter(
+      (t) => t.from_account_id === accountId || t.to_account_id === accountId || t.entity_id === accountId,
+    );
+  }, [state.transactions, accountId]);
 
   return {
-    transactions,
-    loading,
+    transactions: filtered,
+    loading: state.loading,
     addTransaction,
     deleteTransaction,
-    refreshTransactions: fetchTransactions,
+    refreshTransactions,
   };
 };
