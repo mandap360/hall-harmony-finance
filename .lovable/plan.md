@@ -1,52 +1,70 @@
 
 
-## Problem
+## Goal
 
-The auth logs reveal a **token refresh storm** -- dozens of simultaneous `token_revoked` and login events within the same second, eventually hitting Supabase's 429 rate limit. When a token refresh fails with 429, `onAuthStateChange` fires with a `null` session. This sets `user = null`, which makes `ProtectedRoute` redirect to `/auth`. Then `Auth.tsx` detects `user` again (from a successful refresh) and redirects back to `/` -- creating a redirect loop.
+Refactor the Secondary Income tab in Edit Booking so the user can: (1) **receive** lump-sum secondary income for a booking without allocating it, (2) **allocate** any received amount across secondary-income categories later, and (3) **refund** any unallocated balance back to the client per receipt.
 
-Additionally, the console shows `"JSON object requested, multiple (or no) rows returned"` from the profile fetch, meaning the `profiles` query returns 0 rows for this user. This doesn't cause the redirect but indicates a missing profile record.
+## Approach: reuse existing tables, no DB changes
 
-## Root Cause
+- Secondary receipts → rows in `Transactions` (`type='Income'`, `booking_id`, `to_account_id`, description prefixed with `[SEC] ` so we can classify untagged/unallocated receipts).
+- Allocations → rows in `IncomeAllocations` pointing to categories where `is_secondary_income = true`.
+- Refunds → rows in `Transactions` (`type='Refund'`, `from_account_id`, `booking_id`).
+- Stop writing to `SecondaryIncome` table (kept for legacy reads only).
 
-The `onAuthStateChange` callback unconditionally sets `user` to `session?.user ?? null` on every event, including `TOKEN_REFRESHED`. When rate-limited, the session becomes null momentarily, triggering the redirect chain.
+Receipt status drives via `transaction_status`:
+- `Available` (nothing allocated/refunded)
+- `Partially Allocated` (some allocated, balance remaining)
+- `Fully Allocated` (allocations + refund = received amount)
 
-## Plan
+## Changes
 
-### 1. Fix useAuth.tsx to handle auth events properly
+### 1. `src/hooks/useIncomeAllocations.ts`
+- Add `removeAllocation(id, transactionId)` that deletes an allocation row and recomputes `transaction_status` of the parent transaction (sum of remaining allocations + any refund tied to same booking → set Available / Partially / Fully).
+- Fix the existing `allocate` race: recompute total from a fresh DB read of allocations for the transaction (current code uses stale local state).
+- Expose helper `getAllocationsForTransaction(transactionId)` selector.
 
-- Only set `user = null` on explicit `SIGNED_OUT` events, not on every callback
-- Ignore transient token refresh failures
-- Set up `onAuthStateChange` BEFORE `getSession` (already correct) but avoid double-setting loading state
-- Add event-type filtering:
-  - `SIGNED_IN`, `TOKEN_REFRESHED`, `USER_UPDATED`: update user/session if session exists
-  - `SIGNED_OUT`: clear user/session/profile
-  - Other events with null session: ignore (don't clear user)
+### 2. `src/components/EditBookingDialog.tsx` — Secondary Income tab rewrite
 
-### 2. Fix Auth.tsx redirect timing
+**Layout:**
+```text
+[Summary strip]
+  Total Received | Total Allocated | Total Refunded | Unallocated
 
-- Only navigate to `/` after confirming both `user` exists and `loading` is false, preventing premature redirects during the auth state settling period
+[+ Record Secondary Receipt]   ← form: amount, date, to_account, description
 
-### Technical Details
-
-**useAuth.tsx changes:**
-```typescript
-onAuthStateChange(async (event, session) => {
-  if (event === 'SIGNED_OUT') {
-    setSession(null);
-    setUser(null);
-    setProfile(null);
-    setLoading(false);
-    return;
-  }
-  
-  if (session) {
-    setSession(session);
-    setUser(session.user);
-    setTimeout(() => fetchProfile(session.user.id), 0);
-  }
-  setLoading(false);
-});
+[Receipts list]
+  Each receipt card:
+    ₹10,000 · 15 Apr · Bank A · "[SEC] Decoration advance"   [Status badge]
+    ─ Allocations ─
+      Decoration  ₹4,000  [×]
+      Catering    ₹3,000  [×]
+      [+ Allocate]  category▾  amount  [Add]
+    Unallocated: ₹3,000
+      [Refund unallocated to client]  from account▾  [Refund]
 ```
 
-This prevents null-session token refresh failures from clearing the user state and triggering the redirect to /auth.
+**Behavior:**
+- "Record Secondary Receipt" → `addTransaction({ type:'Income', booking_id, entity_id: clientId, to_account_id, amount, transaction_date, description: '[SEC] '+desc, transaction_status:'Available' })`. No allocation created.
+- Receipts list = `Transactions` for booking with `type='Income'` AND (description starts with `[SEC] ` OR has at least one allocation on a secondary-income category). Strip the `[SEC] ` prefix in display.
+- Allocate row → `useIncomeAllocations.allocate({ transaction_id, category_id, amount })`. Cap input at remaining unallocated. Category dropdown = `secondaryIncomeCategories` from `useAccountCategories`.
+- Remove allocation → `removeAllocation` from the hook.
+- Refund → `addTransaction({ type:'Refund', from_account_id, booking_id, entity_id: clientId, amount: unallocated, description:'[SEC-REFUND] for receipt <id>' })`, then update parent receipt's `transaction_status` to `Fully Allocated`. Track refund-per-receipt by storing `[SEC-REFUND] for receipt <uuid>` in description (parsed back when computing per-receipt unallocated balance).
+
+### 3. `src/components/EditBookingDialog.tsx` — Payments tab
+- Filter out receipts whose description starts with `[SEC] ` so each receipt appears in exactly one tab.
+
+### 4. `src/hooks/useBookings.ts`
+- `paidAmount` = sum of `Income` transactions where description does NOT start with `[SEC] ` minus primary refunds.
+- `secondaryIncomeNet` = sum of `Income` transactions where description starts with `[SEC] ` minus refunds tagged `[SEC-REFUND]`.
+- Stop reading from `SecondaryIncome` table.
+
+### 5. Delete unused `SecondaryIncome` writes
+- Remove any remaining `supabase.from('SecondaryIncome').insert/update/delete` calls (search & strip).
+
+## Out of scope (follow-ups available)
+
+- Refund flow on the Payments (rent) tab — same pattern.
+- Migrating legacy `SecondaryIncome` rows into the new model.
+- Replacing the `[SEC]` description prefix with a proper boolean column on `Transactions`.
+- Editing an existing allocation amount in place (current plan: delete + re-add).
 
