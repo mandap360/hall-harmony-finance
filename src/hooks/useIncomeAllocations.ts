@@ -12,6 +12,41 @@ export interface IncomeAllocation {
   created_at: string;
 }
 
+const recomputeStatus = async (transactionId: string) => {
+  const { data: tx } = await supabase
+    .from('Transactions')
+    .select('amount, booking_id')
+    .eq('id', transactionId)
+    .maybeSingle();
+  if (!tx) return;
+
+  const { data: allocs } = await supabase
+    .from('IncomeAllocations')
+    .select('amount')
+    .eq('transaction_id', transactionId);
+
+  // Find any refund tied to this receipt (description tag)
+  const { data: refunds } = await supabase
+    .from('Transactions')
+    .select('amount')
+    .eq('type', 'Refund')
+    .like('description', `%[SEC-REFUND] for receipt ${transactionId}%`);
+
+  const allocSum = (allocs || []).reduce((s, a) => s + Number(a.amount), 0);
+  const refundSum = (refunds || []).reduce((s, r) => s + Number(r.amount), 0);
+  const total = allocSum + refundSum;
+  const txAmount = Number(tx.amount);
+
+  let status: 'Available' | 'Partially Allocated' | 'Fully Allocated' = 'Available';
+  if (total >= txAmount && txAmount > 0) status = 'Fully Allocated';
+  else if (total > 0) status = 'Partially Allocated';
+
+  await supabase
+    .from('Transactions')
+    .update({ transaction_status: status })
+    .eq('id', transactionId);
+};
+
 export const useIncomeAllocations = () => {
   const [allocations, setAllocations] = useState<IncomeAllocation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,24 +86,7 @@ export const useIncomeAllocations = () => {
       ]);
       if (error) throw error;
 
-      // Update transaction status based on allocations
-      const txAllocs = allocations.filter((a) => a.transaction_id === data.transaction_id);
-      const totalAlloc = txAllocs.reduce((s, a) => s + Number(a.amount), 0) + data.amount;
-
-      const { data: tx } = await supabase
-        .from('Transactions')
-        .select('amount')
-        .eq('id', data.transaction_id)
-        .maybeSingle();
-
-      if (tx) {
-        const txAmount = Number(tx.amount);
-        let status: 'Available' | 'Partially Allocated' | 'Fully Allocated' = 'Available';
-        if (totalAlloc >= txAmount) status = 'Fully Allocated';
-        else if (totalAlloc > 0) status = 'Partially Allocated';
-        await supabase.from('Transactions').update({ transaction_status: status }).eq('id', data.transaction_id);
-      }
-
+      await recomputeStatus(data.transaction_id);
       await fetch();
       toast({ title: 'Success', description: 'Income allocated' });
     } catch (error) {
@@ -78,9 +96,35 @@ export const useIncomeAllocations = () => {
     }
   };
 
+  const removeAllocation = async (id: string, transactionId: string) => {
+    try {
+      const { error } = await supabase.from('IncomeAllocations').delete().eq('id', id);
+      if (error) throw error;
+      await recomputeStatus(transactionId);
+      await fetch();
+      toast({ title: 'Allocation removed' });
+    } catch (error) {
+      console.error('Error removing allocation:', error);
+      toast({ title: 'Error', description: 'Failed to remove allocation', variant: 'destructive' });
+      throw error;
+    }
+  };
+
+  const getAllocationsForTransaction = useCallback(
+    (transactionId: string) => allocations.filter((a) => a.transaction_id === transactionId),
+    [allocations],
+  );
+
   useEffect(() => {
     if (profile?.organization_id) fetch();
   }, [profile?.organization_id, fetch]);
 
-  return { allocations, loading, allocate, refetch: fetch };
+  return {
+    allocations,
+    loading,
+    allocate,
+    removeAllocation,
+    getAllocationsForTransaction,
+    refetch: fetch,
+  };
 };
