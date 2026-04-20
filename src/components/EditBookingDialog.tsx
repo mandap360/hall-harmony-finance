@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Trash2, Plus } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -40,6 +41,9 @@ const splitDateTime = (dt: string) => {
 const fmtINR = (n: number) =>
   `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const SEC_PREFIX = '[SEC] ';
+const SEC_REFUND_TAG = (txId: string) => `[SEC-REFUND] for receipt ${txId}`;
+
 interface PaymentRow {
   id: string;
   amount: number;
@@ -50,12 +54,22 @@ interface PaymentRow {
   category_name: string | null;
 }
 
-interface SecondaryIncomeRow {
+interface SecReceiptAllocation {
   id: string;
-  amount: number;
   category_id: string | null;
   category_name: string | null;
-  created_at: string;
+  amount: number;
+}
+
+interface SecReceipt {
+  id: string;
+  amount: number;
+  date: string;
+  to_account_id: string | null;
+  description: string | null; // displayed without prefix
+  status: string;
+  allocations: SecReceiptAllocation[];
+  refundedAmount: number;
 }
 
 export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: EditBookingDialogProps) => {
@@ -63,7 +77,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const { accounts } = useAccounts();
   const { categories } = useAccountCategories();
   const { addTransaction, deleteTransaction } = useTransactions();
-  const { allocate } = useIncomeAllocations();
+  const { allocate, removeAllocation } = useIncomeAllocations();
   const { refetch: refetchBookings } = useBookings();
   const { profile } = useAuth();
   const { toast } = useToast();
@@ -72,7 +86,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const paymentCategories = categories.filter((c) => c.type === 'income' && !c.is_secondary_income);
   const secondaryCategories = categories.filter((c) => c.type === 'income' && c.is_secondary_income);
 
-  // Details tab state
+  // Details
   const [eventName, setEventName] = useState('');
   const [clientId, setClientId] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -90,10 +104,16 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const [payCategoryId, setPayCategoryId] = useState('');
   const [payDescription, setPayDescription] = useState('');
 
-  // Secondary income
-  const [secIncomes, setSecIncomes] = useState<SecondaryIncomeRow[]>([]);
-  const [secAmount, setSecAmount] = useState('');
-  const [secCategoryId, setSecCategoryId] = useState('');
+  // Secondary receipts
+  const [secReceipts, setSecReceipts] = useState<SecReceipt[]>([]);
+  const [secRecAmount, setSecRecAmount] = useState('');
+  const [secRecDate, setSecRecDate] = useState(new Date().toISOString().split('T')[0]);
+  const [secRecAccountId, setSecRecAccountId] = useState('');
+  const [secRecDescription, setSecRecDescription] = useState('');
+
+  // Per-receipt allocation/refund draft state
+  const [allocDraft, setAllocDraft] = useState<Record<string, { categoryId: string; amount: string }>>({});
+  const [refundDraft, setRefundDraft] = useState<Record<string, { accountId: string }>>({});
 
   useEffect(() => {
     if (booking && open) {
@@ -126,8 +146,11 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       return;
     }
 
-    const txIds = (txs || []).map((t) => t.id);
-    let allocMap = new Map<string, { category_id: string | null; category_name: string | null }>();
+    // Filter out secondary receipts from primary payments tab
+    const primaryTxs = (txs || []).filter((t) => !(t.description || '').startsWith(SEC_PREFIX));
+    const txIds = primaryTxs.map((t) => t.id);
+
+    const allocMap = new Map<string, { category_id: string | null; category_name: string | null }>();
     if (txIds.length > 0) {
       const { data: allocs } = await supabase
         .from('IncomeAllocations')
@@ -147,7 +170,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
     }
 
     setPayments(
-      (txs || []).map((t) => ({
+      primaryTxs.map((t) => ({
         id: t.id,
         amount: Number(t.amount),
         date: t.transaction_date,
@@ -159,33 +182,78 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
     );
   }, [booking?.id, profile?.organization_id]);
 
-  const loadSecondaryIncome = useCallback(async () => {
+  const loadSecondaryReceipts = useCallback(async () => {
     if (!booking?.id || !profile?.organization_id) return;
-    const { data, error } = await supabase
-      .from('SecondaryIncome')
-      .select('id, amount, category_id, created_at, AccountCategories(name)')
+
+    const { data: txs, error } = await supabase
+      .from('Transactions')
+      .select('id, amount, transaction_date, to_account_id, description, transaction_status')
       .eq('booking_id', booking.id)
       .eq('organization_id', profile.organization_id)
-      .order('created_at', { ascending: false });
+      .eq('type', 'Income')
+      .neq('transaction_status', 'Void')
+      .order('transaction_date', { ascending: false });
 
     if (error) {
       console.error(error);
       return;
     }
-    type SecRow = {
-      id: string;
-      amount: number;
-      category_id: string | null;
-      created_at: string;
-      AccountCategories: { name: string } | null;
-    };
-    setSecIncomes(
-      ((data as SecRow[] | null) || []).map((s) => ({
-        id: s.id,
-        amount: Number(s.amount),
-        category_id: s.category_id,
-        category_name: s.AccountCategories?.name || null,
-        created_at: s.created_at,
+
+    const secTxs = (txs || []).filter((t) => (t.description || '').startsWith(SEC_PREFIX));
+    const txIds = secTxs.map((t) => t.id);
+
+    // Allocations
+    const allocsByTx = new Map<string, SecReceiptAllocation[]>();
+    if (txIds.length > 0) {
+      const { data: allocs } = await supabase
+        .from('IncomeAllocations')
+        .select('id, transaction_id, category_id, amount, AccountCategories(name)')
+        .in('transaction_id', txIds);
+      type AllocRow = {
+        id: string;
+        transaction_id: string;
+        category_id: string | null;
+        amount: number;
+        AccountCategories: { name: string } | null;
+      };
+      (allocs as AllocRow[] | null)?.forEach((a) => {
+        const list = allocsByTx.get(a.transaction_id) || [];
+        list.push({
+          id: a.id,
+          category_id: a.category_id,
+          category_name: a.AccountCategories?.name || null,
+          amount: Number(a.amount),
+        });
+        allocsByTx.set(a.transaction_id, list);
+      });
+    }
+
+    // Refunds tagged per receipt
+    const { data: refunds } = await supabase
+      .from('Transactions')
+      .select('amount, description')
+      .eq('booking_id', booking.id)
+      .eq('organization_id', profile.organization_id)
+      .eq('type', 'Refund');
+
+    const refundByTx = new Map<string, number>();
+    (refunds || []).forEach((r) => {
+      const m = (r.description || '').match(/\[SEC-REFUND\] for receipt ([0-9a-f-]+)/);
+      if (m) {
+        refundByTx.set(m[1], (refundByTx.get(m[1]) || 0) + Number(r.amount));
+      }
+    });
+
+    setSecReceipts(
+      secTxs.map((t) => ({
+        id: t.id,
+        amount: Number(t.amount),
+        date: t.transaction_date,
+        to_account_id: t.to_account_id,
+        description: (t.description || '').replace(SEC_PREFIX, ''),
+        status: t.transaction_status,
+        allocations: allocsByTx.get(t.id) || [],
+        refundedAmount: refundByTx.get(t.id) || 0,
       })),
     );
   }, [booking?.id, profile?.organization_id]);
@@ -193,9 +261,9 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   useEffect(() => {
     if (open) {
       loadPayments();
-      loadSecondaryIncome();
+      loadSecondaryReceipts();
     }
-  }, [open, loadPayments, loadSecondaryIncome]);
+  }, [open, loadPayments, loadSecondaryReceipts]);
 
   const handleDetailsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,6 +277,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
     });
   };
 
+  // ── Primary payments handlers ──
   const handleAddPayment = async () => {
     const amt = parseFloat(payAmount);
     if (!amt || amt <= 0 || !payAccountId || !payCategoryId) {
@@ -239,7 +308,6 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const handleDeletePayment = async (id: string) => {
     if (!confirm('Delete this payment?')) return;
     try {
-      // Delete allocations first (no cascade)
       await supabase.from('IncomeAllocations').delete().eq('transaction_id', id);
       await deleteTransaction(id);
       await loadPayments();
@@ -249,53 +317,136 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
     }
   };
 
-  const handleAddSecondaryIncome = async () => {
-    const amt = parseFloat(secAmount);
-    if (!amt || amt <= 0 || !secCategoryId || !profile?.organization_id) {
-      toast({ title: 'Missing fields', description: 'Amount and category are required', variant: 'destructive' });
+  // ── Secondary receipt handlers ──
+  const handleAddSecondaryReceipt = async () => {
+    const amt = parseFloat(secRecAmount);
+    if (!amt || amt <= 0 || !secRecAccountId) {
+      toast({ title: 'Missing fields', description: 'Amount and account are required', variant: 'destructive' });
       return;
     }
     try {
-      const { error } = await supabase.from('SecondaryIncome').insert([
-        {
-          booking_id: booking.id,
-          amount: amt,
-          category_id: secCategoryId,
-          organization_id: profile.organization_id,
-        },
-      ]);
-      if (error) throw error;
-      setSecAmount('');
-      setSecCategoryId('');
-      toast({ title: 'Success', description: 'Secondary income added' });
-      await loadSecondaryIncome();
+      await addTransaction({
+        type: 'Income',
+        amount: amt,
+        to_account_id: secRecAccountId,
+        booking_id: booking.id,
+        entity_id: booking.clientId,
+        transaction_date: secRecDate,
+        description: SEC_PREFIX + (secRecDescription || ''),
+      });
+      setSecRecAmount('');
+      setSecRecDescription('');
+      await loadSecondaryReceipts();
       await refetchBookings();
     } catch (e) {
       console.error(e);
-      toast({ title: 'Error', description: 'Failed to add secondary income', variant: 'destructive' });
     }
   };
 
-  const handleDeleteSecondaryIncome = async (id: string) => {
-    if (!confirm('Delete this secondary income?')) return;
+  const handleDeleteSecondaryReceipt = async (id: string) => {
+    if (!confirm('Delete this secondary receipt and its allocations/refunds?')) return;
     try {
-      const { error } = await supabase.from('SecondaryIncome').delete().eq('id', id);
-      if (error) throw error;
-      toast({ title: 'Deleted' });
-      await loadSecondaryIncome();
+      await supabase.from('IncomeAllocations').delete().eq('transaction_id', id);
+      // Delete tagged refunds
+      const { data: refunds } = await supabase
+        .from('Transactions')
+        .select('id')
+        .like('description', `%${SEC_REFUND_TAG(id)}%`);
+      for (const r of refunds || []) {
+        await supabase.from('Transactions').delete().eq('id', r.id);
+      }
+      await deleteTransaction(id);
+      await loadSecondaryReceipts();
       await refetchBookings();
     } catch (e) {
       console.error(e);
     }
   };
 
+  const handleAllocateSec = async (receipt: SecReceipt) => {
+    const draft = allocDraft[receipt.id];
+    const amt = parseFloat(draft?.amount || '');
+    if (!draft?.categoryId || !amt || amt <= 0) {
+      toast({ title: 'Missing fields', description: 'Category and amount required', variant: 'destructive' });
+      return;
+    }
+    const allocated = receipt.allocations.reduce((s, a) => s + a.amount, 0);
+    const remaining = receipt.amount - allocated - receipt.refundedAmount;
+    if (amt > remaining + 0.001) {
+      toast({ title: 'Exceeds balance', description: `Max allocatable: ${fmtINR(remaining)}`, variant: 'destructive' });
+      return;
+    }
+    try {
+      await allocate({ transaction_id: receipt.id, category_id: draft.categoryId, amount: amt });
+      setAllocDraft((prev) => ({ ...prev, [receipt.id]: { categoryId: '', amount: '' } }));
+      await loadSecondaryReceipts();
+      await refetchBookings();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleRemoveAllocation = async (receiptId: string, allocId: string) => {
+    if (!confirm('Remove this allocation?')) return;
+    try {
+      await removeAllocation(allocId, receiptId);
+      await loadSecondaryReceipts();
+      await refetchBookings();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleRefundSec = async (receipt: SecReceipt) => {
+    const allocated = receipt.allocations.reduce((s, a) => s + a.amount, 0);
+    const remaining = receipt.amount - allocated - receipt.refundedAmount;
+    if (remaining <= 0) {
+      toast({ title: 'Nothing to refund', variant: 'destructive' });
+      return;
+    }
+    const fromAccount = refundDraft[receipt.id]?.accountId;
+    if (!fromAccount) {
+      toast({ title: 'Select account', description: 'Choose source account for refund', variant: 'destructive' });
+      return;
+    }
+    try {
+      await addTransaction({
+        type: 'Refund',
+        amount: remaining,
+        from_account_id: fromAccount,
+        booking_id: booking.id,
+        entity_id: booking.clientId,
+        transaction_date: new Date().toISOString().split('T')[0],
+        description: SEC_REFUND_TAG(receipt.id),
+      });
+      // Recompute status: after refund + allocations, receipt is fully covered
+      await supabase
+        .from('Transactions')
+        .update({ transaction_status: 'Fully Allocated' })
+        .eq('id', receipt.id);
+      setRefundDraft((prev) => ({ ...prev, [receipt.id]: { accountId: '' } }));
+      await loadSecondaryReceipts();
+      await refetchBookings();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // ── Summary calcs ──
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
-  const totalSecondary = secIncomes.reduce((s, p) => s + p.amount, 0);
   const balance = (parseFloat(rentFinalized) || 0) - totalPaid;
+
+  const secTotalReceived = secReceipts.reduce((s, r) => s + r.amount, 0);
+  const secTotalAllocated = secReceipts.reduce(
+    (s, r) => s + r.allocations.reduce((x, a) => x + a.amount, 0),
+    0,
+  );
+  const secTotalRefunded = secReceipts.reduce((s, r) => s + r.refundedAmount, 0);
+  const secUnallocated = secTotalReceived - secTotalAllocated - secTotalRefunded;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Booking</DialogTitle>
         </DialogHeader>
@@ -485,72 +636,203 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
 
           {/* SECONDARY INCOME */}
           <TabsContent value="secondary" className="space-y-4">
-            <Card className="p-3">
-              <div className="text-xs text-muted-foreground">Total Secondary Income</div>
-              <div className="font-semibold">{fmtINR(totalSecondary)}</div>
-            </Card>
+            <div className="grid grid-cols-4 gap-2 text-sm">
+              <Card className="p-3">
+                <div className="text-xs text-muted-foreground">Received</div>
+                <div className="font-semibold text-green-600">{fmtINR(secTotalReceived)}</div>
+              </Card>
+              <Card className="p-3">
+                <div className="text-xs text-muted-foreground">Allocated</div>
+                <div className="font-semibold">{fmtINR(secTotalAllocated)}</div>
+              </Card>
+              <Card className="p-3">
+                <div className="text-xs text-muted-foreground">Refunded</div>
+                <div className="font-semibold text-orange-600">{fmtINR(secTotalRefunded)}</div>
+              </Card>
+              <Card className="p-3">
+                <div className="text-xs text-muted-foreground">Unallocated</div>
+                <div className="font-semibold text-blue-600">{fmtINR(secUnallocated)}</div>
+              </Card>
+            </div>
 
             <Card className="p-4 space-y-3">
-              <h4 className="font-semibold text-sm">Add Secondary Income</h4>
-              <div className="space-y-1">
-                <Label className="text-xs">Amount *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={secAmount}
-                  onChange={(e) => setSecAmount(e.target.value)}
-                  placeholder="0.00"
-                />
+              <h4 className="font-semibold text-sm">Record Secondary Receipt</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Amount *</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={secRecAmount}
+                    onChange={(e) => setSecRecAmount(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Date *</Label>
+                  <Input type="date" value={secRecDate} onChange={(e) => setSecRecDate(e.target.value)} />
+                </div>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Category *</Label>
-                <Select value={secCategoryId} onValueChange={setSecCategoryId}>
+                <Label className="text-xs">To Account *</Label>
+                <Select value={secRecAccountId} onValueChange={setSecRecAccountId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select secondary income category" />
+                    <SelectValue placeholder="Select account" />
                   </SelectTrigger>
                   <SelectContent>
-                    {secondaryCategories.length === 0 ? (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                        No secondary income categories. Add one in Settings → Categories.
-                      </div>
-                    ) : (
-                      secondaryCategories.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))
-                    )}
+                    {cashBankAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="button" onClick={handleAddSecondaryIncome} className="w-full" size="sm">
-                <Plus className="h-4 w-4 mr-1" /> Add
+              <div className="space-y-1">
+                <Label className="text-xs">Description</Label>
+                <Input
+                  value={secRecDescription}
+                  onChange={(e) => setSecRecDescription(e.target.value)}
+                  placeholder="e.g. Decoration advance"
+                />
+              </div>
+              <Button type="button" onClick={handleAddSecondaryReceipt} className="w-full" size="sm">
+                <Plus className="h-4 w-4 mr-1" /> Record Receipt
               </Button>
             </Card>
 
-            <div className="space-y-2">
-              <h4 className="font-semibold text-sm">History</h4>
-              {secIncomes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No secondary income yet</p>
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm">Receipts</h4>
+              {secReceipts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No secondary receipts yet</p>
               ) : (
-                secIncomes.map((s) => (
-                  <Card key={s.id} className="p-3 flex justify-between items-center">
-                    <div className="flex-1">
-                      <div className="font-semibold">{fmtINR(s.amount)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {s.category_name || 'Uncategorized'} · {s.created_at.split('T')[0]}
+                secReceipts.map((r) => {
+                  const acc = accounts.find((a) => a.id === r.to_account_id);
+                  const allocated = r.allocations.reduce((s, a) => s + a.amount, 0);
+                  const remaining = r.amount - allocated - r.refundedAmount;
+                  const draft = allocDraft[r.id] || { categoryId: '', amount: '' };
+                  const refDraft = refundDraft[r.id] || { accountId: '' };
+                  return (
+                    <Card key={r.id} className="p-3 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="font-semibold text-green-600">{fmtINR(r.amount)}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {r.date} · {acc?.name || '—'}
+                          </div>
+                          {r.description && <div className="text-xs">{r.description}</div>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">{r.status}</Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => handleDeleteSecondaryReceipt(r.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive"
-                      onClick={() => handleDeleteSecondaryIncome(s.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </Card>
-                ))
+
+                      {/* Allocations */}
+                      <div className="space-y-1 border-t pt-2">
+                        <div className="text-xs font-semibold text-muted-foreground">Allocations</div>
+                        {r.allocations.length === 0 ? (
+                          <div className="text-xs text-muted-foreground">None yet</div>
+                        ) : (
+                          r.allocations.map((a) => (
+                            <div key={a.id} className="flex justify-between items-center text-sm">
+                              <span>{a.category_name || 'Uncategorized'}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{fmtINR(a.amount)}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-destructive"
+                                  onClick={() => handleRemoveAllocation(r.id, a.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Add allocation */}
+                      {remaining > 0 && (
+                        <div className="border-t pt-2 space-y-2">
+                          <div className="text-xs">
+                            Unallocated: <span className="font-semibold text-blue-600">{fmtINR(remaining)}</span>
+                          </div>
+                          <div className="grid grid-cols-[1fr_100px_auto] gap-2 items-end">
+                            <Select
+                              value={draft.categoryId}
+                              onValueChange={(v) =>
+                                setAllocDraft((prev) => ({ ...prev, [r.id]: { ...draft, categoryId: v } }))
+                              }
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {secondaryCategories.length === 0 ? (
+                                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                                    No secondary categories
+                                  </div>
+                                ) : (
+                                  secondaryCategories.map((c) => (
+                                    <SelectItem key={c.id} value={c.id}>
+                                      {c.name}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="Amount"
+                              value={draft.amount}
+                              onChange={(e) =>
+                                setAllocDraft((prev) => ({ ...prev, [r.id]: { ...draft, amount: e.target.value } }))
+                              }
+                              className="h-9"
+                            />
+                            <Button size="sm" onClick={() => handleAllocateSec(r)}>
+                              Allocate
+                            </Button>
+                          </div>
+
+                          {/* Refund */}
+                          <div className="grid grid-cols-[1fr_auto] gap-2 items-end pt-1">
+                            <Select
+                              value={refDraft.accountId}
+                              onValueChange={(v) =>
+                                setRefundDraft((prev) => ({ ...prev, [r.id]: { accountId: v } }))
+                              }
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Refund from account" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {cashBankAccounts.map((a) => (
+                                  <SelectItem key={a.id} value={a.id}>
+                                    {a.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button size="sm" variant="outline" onClick={() => handleRefundSec(r)}>
+                              Refund {fmtINR(remaining)}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })
               )}
             </div>
           </TabsContent>
