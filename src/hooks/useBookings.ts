@@ -37,7 +37,7 @@ export const useBookings = () => {
     try {
       setLoading(true);
 
-      const [bookingsRes, txRes, secRes, clientsRes] = await Promise.all([
+      const [bookingsRes, txRes, clientsRes] = await Promise.all([
         supabase
           .from('Bookings')
           .select('*')
@@ -45,13 +45,9 @@ export const useBookings = () => {
           .order('start_datetime', { ascending: true }),
         supabase
           .from('Transactions')
-          .select('booking_id, type, amount')
+          .select('booking_id, type, amount, description')
           .eq('organization_id', profile.organization_id)
           .neq('transaction_status', 'Void'),
-        supabase
-          .from('SecondaryIncome')
-          .select('booking_id, amount')
-          .eq('organization_id', profile.organization_id),
         supabase
           .from('Clients')
           .select('client_id, name, phone_number, email')
@@ -60,25 +56,39 @@ export const useBookings = () => {
 
       if (bookingsRes.error) throw bookingsRes.error;
       if (txRes.error) throw txRes.error;
-      if (secRes.error) throw secRes.error;
       if (clientsRes.error) throw clientsRes.error;
 
       const txs = txRes.data || [];
-      const secs = secRes.data || [];
       const clientMap = new Map(
         (clientsRes.data || []).map((c) => [c.client_id, c]),
       );
+
+      const isSecIncome = (t: { description: string | null }) =>
+        (t.description || '').startsWith('[SEC] ');
+      const isSecRefund = (t: { description: string | null }) =>
+        (t.description || '').includes('[SEC-REFUND]');
 
       const transformed: Booking[] = (bookingsRes.data || []).map((b) => {
         const bookingTxs = txs.filter((t) => t.booking_id === b.id);
         const incomeTxs = bookingTxs.filter((t) => t.type === 'Income');
         const refundTxs = bookingTxs.filter((t) => t.type === 'Refund');
-        const refundedAmount = refundTxs.reduce((s, t) => s + Number(t.amount), 0);
-        const paidAmount = incomeTxs.reduce((s, t) => s + Number(t.amount), 0);
 
-        const secAmt = secs
-          .filter((s) => s.booking_id === b.id)
-          .reduce((sum, s) => sum + Number(s.amount), 0);
+        const primaryIncome = incomeTxs
+          .filter((t) => !isSecIncome(t))
+          .reduce((s, t) => s + Number(t.amount), 0);
+        const secondaryIncome = incomeTxs
+          .filter((t) => isSecIncome(t))
+          .reduce((s, t) => s + Number(t.amount), 0);
+
+        const primaryRefunds = refundTxs
+          .filter((t) => !isSecRefund(t))
+          .reduce((s, t) => s + Number(t.amount), 0);
+        const secondaryRefunds = refundTxs
+          .filter((t) => isSecRefund(t))
+          .reduce((s, t) => s + Number(t.amount), 0);
+
+        const paidAmount = primaryIncome - primaryRefunds;
+        const refundedAmount = primaryRefunds + secondaryRefunds;
 
         const client = b.client_id ? clientMap.get(b.client_id) : null;
 
@@ -98,7 +108,7 @@ export const useBookings = () => {
           createdAt: b.created_at || '',
           organization_id: b.organization_id || undefined,
           paidAmount,
-          secondaryIncomeNet: secAmt - refundedAmount,
+          secondaryIncomeNet: secondaryIncome - secondaryRefunds,
           refundedAmount,
         };
       });
