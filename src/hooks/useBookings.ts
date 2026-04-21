@@ -19,9 +19,9 @@ export interface Booking {
   status?: string;
   createdAt: string;
   organization_id?: string;
-  /** Net rent receipt income from Transactions (excludes [SEC] tagged) */
+  /** Sum of allocations to "Rent" category for this booking */
   paidAmount: number;
-  /** Net secondary income (Income tagged [SEC] - Refund tagged [SEC-REFUND]) */
+  /** Sum of allocations to "Secondary Deposit" minus secondary refunds */
   secondaryIncomeNet: number;
   refundedAmount: number;
 }
