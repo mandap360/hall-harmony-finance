@@ -361,6 +361,38 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const usedCategoryIds = new Set(poolAllocations.map((a) => a.category_id).filter(Boolean) as string[]);
   const availableCategories = secondaryCategories.filter((c) => !usedCategoryIds.has(c.id));
 
+  const handleAddSecReceipt = async () => {
+    const amt = parseFloat(secReceiptAmount);
+    if (!amt || amt <= 0 || !secReceiptAccountId) {
+      toast({ title: 'Missing fields', description: 'Amount and account are required', variant: 'destructive' });
+      return;
+    }
+    if (!secondaryIncomeCategoryId) {
+      toast({ title: 'Missing category', description: '"Secondary Income" category not found', variant: 'destructive' });
+      return;
+    }
+    try {
+      const tx = await addTransaction({
+        type: 'Income',
+        amount: amt,
+        to_account_id: secReceiptAccountId,
+        booking_id: booking.id,
+        entity_id: booking.clientId,
+        transaction_date: secReceiptDate,
+        description: secReceiptDescription || null,
+      });
+      await allocate({ transaction_id: tx.id, category_id: secondaryIncomeCategoryId, amount: amt });
+      setSecReceiptAmount('');
+      setSecReceiptDescription('');
+      setSecReceiptAccountId('');
+      await loadSecondaryPool();
+      await loadPayments();
+      await refetchBookings();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleAllocatePool = async () => {
     const amt = parseFloat(allocAmount);
     if (!allocCategoryId || !amt || amt <= 0) {
