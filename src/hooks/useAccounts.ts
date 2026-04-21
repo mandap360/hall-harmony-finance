@@ -7,7 +7,7 @@ import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
 export interface Account {
   id: string;
   name: string;
-  account_type: 'cash_bank' | 'owners_capital' | 'party';
+  account_type: 'cash_bank' | 'owners_capital';
   initial_balance: number;
   is_default: boolean;
   organization_id: string;

@@ -30,13 +30,11 @@ export const AccountsPage = () => {
 
   const getAccountTypeDisplay = (account: Account) => {
     if (account.account_type === 'cash_bank') return 'Cash/Bank';
-    if (account.account_type === 'owners_capital') return "Owner's Capital";
-    return 'Party';
+    return "Owner's Capital";
   };
 
   const cashBankAccounts = accounts.filter((a) => a.account_type === 'cash_bank');
   const capitalAccounts = accounts.filter((a) => a.account_type === 'owners_capital');
-  const partyAccounts = accounts.filter((a) => a.account_type === 'party');
 
   if (selectedAccount) {
     return (
@@ -81,13 +79,6 @@ export const AccountsPage = () => {
         <AccountSection
           title="Owner's Capital"
           accounts={capitalAccounts}
-          onAccountClick={setSelectedAccount}
-          formatBalance={formatBalance}
-          getAccountTypeDisplay={getAccountTypeDisplay}
-        />
-        <AccountSection
-          title="Parties"
-          accounts={partyAccounts}
           onAccountClick={setSelectedAccount}
           formatBalance={formatBalance}
           getAccountTypeDisplay={getAccountTypeDisplay}

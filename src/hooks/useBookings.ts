@@ -19,9 +19,9 @@ export interface Booking {
   status?: string;
   createdAt: string;
   organization_id?: string;
-  /** Net rent receipt income from Transactions (excludes [SEC] tagged) */
+  /** Sum of allocations to "Rent" category for this booking */
   paidAmount: number;
-  /** Net secondary income (Income tagged [SEC] - Refund tagged [SEC-REFUND]) */
+  /** Sum of allocations to "Secondary Deposit" minus secondary refunds */
   secondaryIncomeNet: number;
   refundedAmount: number;
 }
@@ -35,8 +35,6 @@ interface State {
 const store = createSharedStore<State>({ bookings: [], loading: false, orgId: null });
 const singleFlight = createSingleFlight<void>();
 
-const isSecIncome = (t: { description: string | null }) =>
-  (t.description || '').startsWith('[SEC] ');
 const isSecRefund = (t: { description: string | null }) =>
   (t.description || '').includes('[SEC-REFUND]');
 
@@ -68,23 +66,25 @@ const fetchAll = async (orgId: string) => {
 
     const allocRes = await supabase
       .from('IncomeAllocations')
-      .select('transaction_id, amount, category_id, AccountCategories(name)')
+      .select('transaction_id, amount, category_id, AccountCategories(name, is_secondary_income)')
       .eq('organization_id', orgId);
     if (allocRes.error) throw allocRes.error;
     const allocs = allocRes.data || [];
 
     const transformed: Booking[] = (bookingsRes.data || []).map((b) => {
       const bookingTxs = txs.filter((t) => t.booking_id === b.id);
-      const incomeTxs = bookingTxs.filter((t) => t.type === 'Income');
+      const bookingTxIds = new Set(bookingTxs.map((t) => t.id));
       const refundTxs = bookingTxs.filter((t) => t.type === 'Refund');
 
+      // Rent received = sum of allocations to "Rent" category for this booking's transactions
       const rentReceived = allocs
-        .filter((a) => a.AccountCategories?.name === 'Rent' && bookingTxs.some((t) => t.id === a.transaction_id))
+        .filter((a) => a.AccountCategories?.name === 'Rent' && bookingTxIds.has(a.transaction_id))
         .reduce((s, a) => s + Number(a.amount), 0);
 
-      const secondaryIncome = incomeTxs
-        .filter((t) => isSecIncome(t))
-        .reduce((s, t) => s + Number(t.amount), 0);
+      // Secondary pool received = sum of allocations to "Secondary Deposit" anchor category
+      const secondaryReceived = allocs
+        .filter((a) => a.AccountCategories?.name === 'Secondary Deposit' && bookingTxIds.has(a.transaction_id))
+        .reduce((s, a) => s + Number(a.amount), 0);
 
       const primaryRefunds = refundTxs
         .filter((t) => !isSecRefund(t))
@@ -113,7 +113,7 @@ const fetchAll = async (orgId: string) => {
       createdAt: b.created_at || '',
       organization_id: b.organization_id || undefined,
       paidAmount,
-      secondaryIncomeNet: secondaryIncome - secondaryRefunds,
+      secondaryIncomeNet: secondaryReceived - secondaryRefunds,
       refundedAmount,
     };
   });
