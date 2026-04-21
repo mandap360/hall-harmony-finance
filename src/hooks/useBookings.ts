@@ -50,7 +50,7 @@ const fetchAll = async (orgId: string) => {
       .order('start_datetime', { ascending: true }),
     supabase
       .from('Transactions')
-      .select('booking_id, type, amount, description')
+      .select('id, booking_id, type, amount, description')
       .eq('organization_id', orgId)
       .neq('transaction_status', 'Void'),
     supabase
@@ -66,30 +66,38 @@ const fetchAll = async (orgId: string) => {
   const txs = txRes.data || [];
   const clientMap = new Map((clientsRes.data || []).map((c) => [c.client_id, c]));
 
-  const transformed: Booking[] = (bookingsRes.data || []).map((b) => {
-    const bookingTxs = txs.filter((t) => t.booking_id === b.id);
-    const incomeTxs = bookingTxs.filter((t) => t.type === 'Income');
-    const refundTxs = bookingTxs.filter((t) => t.type === 'Refund');
+    const allocRes = await supabase
+      .from('IncomeAllocations')
+      .select('transaction_id, amount, category_id, AccountCategories(name)')
+      .eq('organization_id', orgId);
+    if (allocRes.error) throw allocRes.error;
+    const allocs = allocRes.data || [];
 
-    const primaryIncome = incomeTxs
-      .filter((t) => !isSecIncome(t))
-      .reduce((s, t) => s + Number(t.amount), 0);
-    const secondaryIncome = incomeTxs
-      .filter((t) => isSecIncome(t))
-      .reduce((s, t) => s + Number(t.amount), 0);
+    const transformed: Booking[] = (bookingsRes.data || []).map((b) => {
+      const bookingTxs = txs.filter((t) => t.booking_id === b.id);
+      const incomeTxs = bookingTxs.filter((t) => t.type === 'Income');
+      const refundTxs = bookingTxs.filter((t) => t.type === 'Refund');
 
-    const primaryRefunds = refundTxs
-      .filter((t) => !isSecRefund(t))
-      .reduce((s, t) => s + Number(t.amount), 0);
-    const secondaryRefunds = refundTxs
-      .filter((t) => isSecRefund(t))
-      .reduce((s, t) => s + Number(t.amount), 0);
+      const rentReceived = allocs
+        .filter((a) => a.AccountCategories?.name === 'Rent' && bookingTxs.some((t) => t.id === a.transaction_id))
+        .reduce((s, a) => s + Number(a.amount), 0);
 
-    const paidAmount = primaryIncome - primaryRefunds;
-    const refundedAmount = primaryRefunds + secondaryRefunds;
-    const client = b.client_id ? clientMap.get(b.client_id) : null;
+      const secondaryIncome = incomeTxs
+        .filter((t) => isSecIncome(t))
+        .reduce((s, t) => s + Number(t.amount), 0);
 
-    return {
+      const primaryRefunds = refundTxs
+        .filter((t) => !isSecRefund(t))
+        .reduce((s, t) => s + Number(t.amount), 0);
+      const secondaryRefunds = refundTxs
+        .filter((t) => isSecRefund(t))
+        .reduce((s, t) => s + Number(t.amount), 0);
+
+      const paidAmount = rentReceived;
+      const refundedAmount = primaryRefunds + secondaryRefunds;
+      const client = b.client_id ? clientMap.get(b.client_id) : null;
+
+      return {
       id: b.id,
       eventName: b.event_name,
       clientId: b.client_id,
