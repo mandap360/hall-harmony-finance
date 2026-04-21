@@ -701,105 +701,134 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
               </Card>
             </div>
 
-            {/* Allocate pool */}
-            {secTotalReceived > 0 && (
-              <Card className="p-4 space-y-3">
-                <h4 className="font-semibold text-sm">Allocate to Categories</h4>
-                <p className="text-xs text-muted-foreground">
-                  Pool available: <span className="font-semibold text-blue-600">{fmtINR(secUnallocated)}</span>
-                  {' · '}Each category can be allocated only once.
-                </p>
-
-                {/* Existing allocations */}
-                {poolAllocations.length > 0 && (
-                  <div className="space-y-1 border-t pt-2">
-                    {poolAllocations.map((a) => (
-                      <div key={a.id} className="flex justify-between items-center text-sm">
-                        <span>{a.category_name || 'Uncategorized'}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{fmtINR(a.amount)}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 text-destructive"
-                            onClick={() => handleRemoveAllocation(a)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
+            {/* Add secondary receipt */}
+            <Card className="p-4 space-y-3">
+              <h4 className="font-semibold text-sm">Record Secondary Income Receipt</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Amount *</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={secReceiptAmount}
+                    onChange={(e) => setSecReceiptAmount(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Date *</Label>
+                  <Input type="date" value={secReceiptDate} onChange={(e) => setSecReceiptDate(e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">To Account *</Label>
+                <Select value={secReceiptAccountId} onValueChange={setSecReceiptAccountId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cashBankAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                     ))}
-                  </div>
-                )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Description</Label>
+                <Input value={secReceiptDescription} onChange={(e) => setSecReceiptDescription(e.target.value)} />
+              </div>
+              <Button type="button" onClick={handleAddSecReceipt} className="w-full" size="sm">
+                <Plus className="h-4 w-4 mr-1" /> Add Receipt
+              </Button>
+            </Card>
 
-                {/* Add allocation */}
-                {secUnallocated > 0 && availableCategories.length > 0 && (
-                  <div className="border-t pt-2 space-y-2">
-                    <div className="grid grid-cols-[1fr_120px_auto] gap-2 items-end">
-                      <Select value={allocCategoryId} onValueChange={setAllocCategoryId}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableCategories.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="Amount"
-                        value={allocAmount}
-                        onChange={(e) => setAllocAmount(e.target.value)}
-                        className="h-9"
-                      />
-                      <Button size="sm" onClick={handleAllocatePool}>
-                        Allocate
-                      </Button>
+            {/* Allocate pool */}
+            <Card className="p-4 space-y-3">
+              <h4 className="font-semibold text-sm">Allocate to Categories</h4>
+              <p className="text-xs text-muted-foreground">
+                Pool available: <span className="font-semibold text-blue-600">{fmtINR(secUnallocated)}</span>
+                {' · '}Each category can be allocated only once.
+              </p>
+
+              {/* Existing allocations */}
+              {poolAllocations.length > 0 && (
+                <div className="space-y-1 border-t pt-2">
+                  {poolAllocations.map((a) => (
+                    <div key={a.id} className="flex justify-between items-center text-sm">
+                      <span>{a.category_name || 'Uncategorized'}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{fmtINR(a.amount)}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-destructive"
+                          onClick={() => handleRemoveAllocation(a)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add allocation */}
+              {availableCategories.length > 0 ? (
+                <div className="border-t pt-2 space-y-2">
+                  <div className="grid grid-cols-[1fr_120px_auto] gap-2 items-end">
+                    <Select value={allocCategoryId} onValueChange={setAllocCategoryId}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCategories.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Amount"
+                      value={allocAmount}
+                      onChange={(e) => setAllocAmount(e.target.value)}
+                      className="h-9"
+                    />
+                    <Button size="sm" onClick={handleAllocatePool} disabled={secUnallocated <= 0}>
+                      Allocate
+                    </Button>
                   </div>
-                )}
-
-                {availableCategories.length === 0 && secondaryCategories.length > 0 && secUnallocated > 0 && (
-                  <p className="text-xs text-muted-foreground border-t pt-2">
-                    All secondary categories already allocated.
-                  </p>
-                )}
-
-                {secondaryCategories.length === 0 && (
-                  <p className="text-xs text-muted-foreground border-t pt-2">
-                    No secondary income categories defined. Create one in Settings → Categories.
-                  </p>
-                )}
-              </Card>
-            )}
+                </div>
+              ) : secondaryCategories.length > 0 ? (
+                <p className="text-xs text-muted-foreground border-t pt-2">
+                  All secondary categories already allocated.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground border-t pt-2">
+                  No secondary income categories defined. Create one in Settings → Categories.
+                </p>
+              )}
+            </Card>
 
             {/* Refund pool */}
-            {secUnallocated > 0 && (
-              <Card className="p-4 space-y-3">
-                <h4 className="font-semibold text-sm">Refund Unallocated</h4>
-                <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
-                  <Select value={refundAccountId} onValueChange={setRefundAccountId}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Refund from account" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cashBankAccounts.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>
-                          {a.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button size="sm" variant="outline" onClick={handleRefundPool}>
-                    Refund {fmtINR(secUnallocated)}
-                  </Button>
-                </div>
-              </Card>
-            )}
+            <Card className="p-4 space-y-3">
+              <h4 className="font-semibold text-sm">Refund Unallocated</h4>
+              <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+                <Select value={refundAccountId} onValueChange={setRefundAccountId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Refund from account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cashBankAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" variant="outline" onClick={handleRefundPool} disabled={secUnallocated <= 0}>
+                  Refund {fmtINR(Math.max(secUnallocated, 0))}
+                </Button>
+              </div>
+            </Card>
 
             {/* Refund history */}
             {poolRefundTxs.length > 0 && (
