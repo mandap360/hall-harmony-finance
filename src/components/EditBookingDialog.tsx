@@ -110,6 +110,12 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   // Refund form
   const [refundAccountId, setRefundAccountId] = useState('');
 
+  // Secondary receipt form
+  const [secReceiptAmount, setSecReceiptAmount] = useState('');
+  const [secReceiptDate, setSecReceiptDate] = useState(new Date().toISOString().split('T')[0]);
+  const [secReceiptAccountId, setSecReceiptAccountId] = useState('');
+  const [secReceiptDescription, setSecReceiptDescription] = useState('');
+
   useEffect(() => {
     if (booking && open) {
       const start = splitDateTime(booking.startDate);
