@@ -647,46 +647,11 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
               </Card>
             </div>
 
-            {/* Add secondary receipt */}
-            <Card className="p-4 space-y-3">
-              <h4 className="font-semibold text-sm">Record Secondary Income Receipt</h4>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">Amount *</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={secReceiptAmount}
-                    onChange={(e) => setSecReceiptAmount(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Date *</Label>
-                  <Input type="date" value={secReceiptDate} onChange={(e) => setSecReceiptDate(e.target.value)} />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">To Account *</Label>
-                <Select value={secReceiptAccountId} onValueChange={setSecReceiptAccountId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cashBankAccounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Description</Label>
-                <Input value={secReceiptDescription} onChange={(e) => setSecReceiptDescription(e.target.value)} />
-              </div>
-              <Button type="button" onClick={handleAddSecReceipt} className="w-full" size="sm">
-                <Plus className="h-4 w-4 mr-1" /> Add Receipt
-              </Button>
-            </Card>
+            <p className="text-xs text-muted-foreground">
+              Receipts come from the <span className="font-semibold">Payments</span> tab using the
+              {' '}<span className="font-semibold">Secondary Deposit</span> category. Allocate that pool to
+              specific income categories below, or refund any unallocated balance.
+            </p>
 
             {/* Allocate pool */}
             <Card className="p-4 space-y-3">
