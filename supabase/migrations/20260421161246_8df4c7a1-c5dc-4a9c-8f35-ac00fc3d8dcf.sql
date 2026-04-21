@@ -1,0 +1,1 @@
+DELETE FROM "Accounts" WHERE account_type = 'party';

@@ -10,7 +10,7 @@ interface AddAccountDialogProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: {
     name: string;
-    account_type: 'cash_bank' | 'owners_capital' | 'party';
+    account_type: 'cash_bank' | 'owners_capital';
     initial_balance?: number;
     is_default?: boolean;
   }) => void;
@@ -18,7 +18,7 @@ interface AddAccountDialogProps {
 
 export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDialogProps) => {
   const [name, setName] = useState('');
-  const [accountType, setAccountType] = useState<'cash_bank' | 'owners_capital' | 'party'>('cash_bank');
+  const [accountType, setAccountType] = useState<'cash_bank' | 'owners_capital'>('cash_bank');
   const [initialBalance, setInitialBalance] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -53,7 +53,6 @@ export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDia
               <SelectContent>
                 <SelectItem value="cash_bank">Cash/Bank</SelectItem>
                 <SelectItem value="owners_capital">Owner's Capital</SelectItem>
-                <SelectItem value="party">Party</SelectItem>
               </SelectContent>
             </Select>
           </div>
