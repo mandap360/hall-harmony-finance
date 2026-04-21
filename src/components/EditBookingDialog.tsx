@@ -101,11 +101,11 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const [payCategoryId, setPayCategoryId] = useState('');
   const [payDescription, setPayDescription] = useState('');
 
-  // Secondary receipts (pool model)
+  // Secondary pool (anchored to "Secondary Deposit" category receipts on this booking)
   const [poolAllocations, setPoolAllocations] = useState<PoolAllocation[]>([]);
   const [poolRefundedAmount, setPoolRefundedAmount] = useState(0);
   const [poolRefundTxs, setPoolRefundTxs] = useState<{ id: string; amount: number; date: string; from_account_id: string | null }[]>([]);
-  const [poolTxs, setPoolTxs] = useState<any[]>([]);
+  const [poolDepositTxs, setPoolDepositTxs] = useState<{ id: string; amount: number }[]>([]);
 
   // Allocation form
   const [allocCategoryId, setAllocCategoryId] = useState('');
@@ -113,12 +113,6 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
 
   // Refund form
   const [refundAccountId, setRefundAccountId] = useState('');
-
-  // Secondary receipt form
-  const [secReceiptAmount, setSecReceiptAmount] = useState('');
-  const [secReceiptDate, setSecReceiptDate] = useState(new Date().toISOString().split('T')[0]);
-  const [secReceiptAccountId, setSecReceiptAccountId] = useState('');
-  const [secReceiptDescription, setSecReceiptDescription] = useState('');
 
   useEffect(() => {
     if (booking && open) {
@@ -169,10 +163,13 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
         AccountCategories: { name: string } | null;
       };
       (allocs as AllocRow[] | null)?.forEach((a) => {
-        allocMap.set(a.transaction_id, {
-          category_id: a.category_id,
-          category_name: a.AccountCategories?.name || null,
-        });
+        // First allocation wins for display purposes (the primary category for this receipt)
+        if (!allocMap.has(a.transaction_id)) {
+          allocMap.set(a.transaction_id, {
+            category_id: a.category_id,
+            category_name: a.AccountCategories?.name || null,
+          });
+        }
       });
     }
 
@@ -187,100 +184,65 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
         category_name: allocMap.get(t.id)?.category_name || null,
       })),
     );
-  }, [booking?.id, profile?.organization_id, secondaryIncomeCategoryId]);
+  }, [booking?.id, profile?.organization_id]);
 
   const loadSecondaryPool = useCallback(async () => {
-    if (!booking?.id || !profile?.organization_id || !secondaryIncomeCategoryId) return;
+    if (!booking?.id || !profile?.organization_id) return;
 
-    // 1. All Income txs for this booking
+    // 1. Fetch all non-void transactions for this booking
     const { data: txs, error } = await supabase
       .from('Transactions')
-      .select('id, amount, transaction_date, to_account_id, from_account_id, description, transaction_status, type')
+      .select('id, amount, transaction_date, to_account_id, from_account_id, description, type')
       .eq('booking_id', booking.id)
       .eq('organization_id', profile.organization_id)
       .neq('transaction_status', 'Void')
-      .order('transaction_date', { ascending: false });
+      .order('transaction_date', { ascending: true });
 
     if (error) {
       console.error(error);
       return;
     }
-
     const all = txs || [];
 
-    // Get all allocations for these txs
-    const txIds = all.map((t) => t.id);
-    let allocMap = new Map<string, { category_id: string | null }>();
-    if (txIds.length > 0) {
-      const { data: allocs } = await supabase
+    // 2. Fetch allocations for the income txs, joined with category metadata
+    const incomeTxIds = all.filter((t) => t.type === 'Income').map((t) => t.id);
+    type AllocRow = {
+      id: string;
+      transaction_id: string;
+      category_id: string | null;
+      amount: number;
+      AccountCategories: { name: string; is_secondary_income: boolean } | null;
+    };
+    let allocs: AllocRow[] = [];
+    if (incomeTxIds.length > 0) {
+      const { data } = await supabase
         .from('IncomeAllocations')
-        .select('transaction_id, category_id')
-        .in('transaction_id', txIds);
-      allocs?.forEach((a) => {
-        allocMap.set(a.transaction_id, { category_id: a.category_id });
-      });
+        .select('id, transaction_id, category_id, amount, AccountCategories(name, is_secondary_income)')
+        .in('transaction_id', incomeTxIds);
+      allocs = (data as AllocRow[] | null) || [];
     }
 
-    // Pool txs = those allocated to "Secondary Income" category
-    const poolTxs = all.filter((t) => allocMap.get(t.id)?.category_id === secondaryIncomeCategoryId);
-    setPoolTxs(poolTxs);
-
-    // Refund txs (unchanged)
-    const refundTxs = all.filter(
-      (t) => t.type === 'Refund' && (t.description || '').startsWith(SEC_REFUND_TAG_PREFIX),
+    // 3. Identify which Income txs are deposits to "Secondary Deposit" anchor category
+    const depositTxIds = new Set(
+      allocs
+        .filter((a) => a.AccountCategories?.name === 'Secondary Deposit')
+        .map((a) => a.transaction_id),
     );
+    const depositTxs = all
+      .filter((t) => t.type === 'Income' && depositTxIds.has(t.id))
+      .map((t) => ({ id: t.id, amount: Number(t.amount) }));
+    setPoolDepositTxs(depositTxs);
 
-    setPoolRefundTxs(
-      refundTxs.map((t) => ({
-        id: t.id,
-        amount: Number(t.amount),
-        date: t.transaction_date,
-        from_account_id: t.from_account_id, // assuming from_account_id is selected
-      })),
-    );
-
-    // Re-fetch refund details if needed (similar to before)
-    if (refundTxs.length > 0) {
-      const { data: rd } = await supabase
-        .from('Transactions')
-        .select('id, amount, transaction_date, from_account_id')
-        .in('id', refundTxs.map((t) => t.id));
-      setPoolRefundTxs(
-        (rd || []).map((t) => ({
-          id: t.id,
-          amount: Number(t.amount),
-          date: t.transaction_date,
-          from_account_id: t.from_account_id,
-        })),
-      );
-    } else {
-      setPoolRefundTxs([]);
-    }
-
-    setPoolRefundedAmount(refundTxs.reduce((s, t) => s + Number(t.amount), 0));
-
-    // 2. Allocations from pool txs to secondary categories
-    const poolTxIds = poolTxs.map((t) => t.id);
-    if (poolTxIds.length > 0) {
-      const { data: allocs } = await supabase
-        .from('IncomeAllocations')
-        .select('id, category_id, amount, AccountCategories(name)')
-        .in('transaction_id', poolTxIds)
-        .eq('AccountCategories.is_secondary_income', true); // Only secondary categories
-      type AllocRow = {
-        id: string;
-        category_id: string | null;
-        amount: number;
-        AccountCategories: { name: string } | null;
-      };
-      // Aggregate per category
-      const byCategory = new Map<string, PoolAllocation>();
-      (allocs as AllocRow[] | null)?.forEach((a) => {
+    // 4. Aggregate allocations to TRUE secondary categories (is_secondary_income=true)
+    //    These can be attached to ANY income tx for this booking; we sum them per category.
+    const byCategory = new Map<string, PoolAllocation>();
+    allocs
+      .filter((a) => a.AccountCategories?.is_secondary_income === true)
+      .forEach((a) => {
         const key = a.category_id || 'uncategorized';
         const existing = byCategory.get(key);
         if (existing) {
           existing.amount += Number(a.amount);
-          // keep first id; we treat as one logical row per category
         } else {
           byCategory.set(key, {
             id: a.id,
@@ -290,11 +252,22 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
           });
         }
       });
-      setPoolAllocations(Array.from(byCategory.values()));
-    } else {
-      setPoolAllocations([]);
-    }
-  }, [booking?.id, profile?.organization_id, secondaryIncomeCategoryId]);
+    setPoolAllocations(Array.from(byCategory.values()));
+
+    // 5. Refund txs tagged as secondary refunds
+    const refundTxs = all.filter(
+      (t) => t.type === 'Refund' && (t.description || '').includes(SEC_REFUND_TAG_PREFIX),
+    );
+    setPoolRefundTxs(
+      refundTxs.map((t) => ({
+        id: t.id,
+        amount: Number(t.amount),
+        date: t.transaction_date,
+        from_account_id: t.from_account_id,
+      })),
+    );
+    setPoolRefundedAmount(refundTxs.reduce((s, t) => s + Number(t.amount), 0));
+  }, [booking?.id, profile?.organization_id]);
 
   useEffect(() => {
     if (open) {
@@ -337,6 +310,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       setPayDescription('');
       setPayCategoryId('');
       await loadPayments();
+      await loadSecondaryPool();
       await refetchBookings();
     } catch (e) {
       console.error(e);
@@ -349,53 +323,21 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       await supabase.from('IncomeAllocations').delete().eq('transaction_id', id);
       await deleteTransaction(id);
       await loadPayments();
+      await loadSecondaryPool();
       await refetchBookings();
     } catch (e) {
       console.error(e);
     }
   };
 
-  // ── Secondary pool handlers ──
-
-  const secTotalReceived = poolTxs.reduce((s, t) => s + Number(t.amount), 0);
+  // ── Secondary pool computed values ──
+  const secTotalReceived = poolDepositTxs.reduce((s, t) => s + t.amount, 0);
   const secTotalAllocated = poolAllocations.reduce((s, a) => s + a.amount, 0);
   const secUnallocated = secTotalReceived - secTotalAllocated - poolRefundedAmount;
 
-  // Categories already used (each can only be allocated once)
+  // Each secondary category can be allocated only once per booking
   const usedCategoryIds = new Set(poolAllocations.map((a) => a.category_id).filter(Boolean) as string[]);
   const availableCategories = secondaryCategories.filter((c) => !usedCategoryIds.has(c.id));
-
-  const handleAddSecReceipt = async () => {
-    const amt = parseFloat(secReceiptAmount);
-    if (!amt || amt <= 0 || !secReceiptAccountId) {
-      toast({ title: 'Missing fields', description: 'Amount and account are required', variant: 'destructive' });
-      return;
-    }
-    if (!secondaryIncomeCategoryId) {
-      toast({ title: 'Missing category', description: '"Secondary Income" category not found', variant: 'destructive' });
-      return;
-    }
-    try {
-      const tx = await addTransaction({
-        type: 'Income',
-        amount: amt,
-        to_account_id: secReceiptAccountId,
-        booking_id: booking.id,
-        entity_id: booking.clientId,
-        transaction_date: secReceiptDate,
-        description: secReceiptDescription || null,
-      });
-      await allocate({ transaction_id: tx.id, category_id: secondaryIncomeCategoryId, amount: amt });
-      setSecReceiptAmount('');
-      setSecReceiptDescription('');
-      setSecReceiptAccountId('');
-      await loadSecondaryPool();
-      await loadPayments();
-      await refetchBookings();
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const handleAllocatePool = async () => {
     const amt = parseFloat(allocAmount);
@@ -411,12 +353,12 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       toast({ title: 'Already allocated', description: 'This category is already allocated', variant: 'destructive' });
       return;
     }
-    if (poolTxs.length === 0) {
-      toast({ title: 'No pool', description: 'No secondary income payments to allocate from', variant: 'destructive' });
+    if (poolDepositTxs.length === 0) {
+      toast({ title: 'No pool', description: 'No Secondary Deposit receipts to allocate from. Record one in the Payments tab.', variant: 'destructive' });
       return;
     }
-    // Pool model: attach allocation to the first pool transaction
-    const targetTx = poolTxs[0];
+    // Attach allocation to the first deposit transaction (booking-level pool math is the source of truth).
+    const targetTx = poolDepositTxs[0];
     try {
       await allocate({ transaction_id: targetTx.id, category_id: allocCategoryId, amount: amt });
       setAllocCategoryId('');
@@ -431,14 +373,14 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const handleRemoveAllocation = async (alloc: PoolAllocation) => {
     if (!confirm(`Remove allocation for ${alloc.category_name}?`)) return;
     try {
-      // Remove ALL allocations matching this category across pool txs
-      const txIds = poolTxs.map((t) => t.id);
-      if (txIds.length > 0) {
+      // Remove ALL allocations matching this category across booking income txs
+      const txIds = poolDepositTxs.map((t) => t.id);
+      if (txIds.length > 0 && alloc.category_id) {
         const { data: allocsToRemove } = await supabase
           .from('IncomeAllocations')
           .select('id, transaction_id')
           .in('transaction_id', txIds)
-          .eq('category_id', alloc.category_id || '');
+          .eq('category_id', alloc.category_id);
         for (const a of allocsToRemove || []) {
           await removeAllocation(a.id, a.transaction_id);
         }
