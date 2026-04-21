@@ -40,7 +40,6 @@ const splitDateTime = (dt: string) => {
 const fmtINR = (n: number) =>
   `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const SEC_PREFIX = '[SEC] ';
 const SEC_REFUND_TAG_PREFIX = '[SEC-REFUND]';
 const SEC_REFUND_DESC = (bookingId: string) => `${SEC_REFUND_TAG_PREFIX} for booking ${bookingId}`;
 
@@ -72,12 +71,17 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const { toast } = useToast();
 
   const cashBankAccounts = accounts.filter((a) => a.account_type === 'cash_bank');
+  // Payments tab categories: all income categories that are not "true" secondary income.
+  // Secondary Deposit is the pool anchor (is_secondary_income=false) and remains selectable here.
   const paymentCategories = categories.filter((c) => c.type === 'income' && !c.is_secondary_income);
+  // Secondary Income tab allocation targets: only categories flagged is_secondary_income=true.
   const secondaryCategories = categories.filter((c) => c.type === 'income' && c.is_secondary_income);
 
-  // Find the "Secondary Income" category (is_secondary_income = false)
-  const secondaryIncomeCategory = categories.find(c => c.name === 'Secondary Income' && c.type === 'income' && !c.is_secondary_income);
-  const secondaryIncomeCategoryId = secondaryIncomeCategory?.id;
+  // Anchor pool category — money received into "Secondary Deposit" via the Payments tab.
+  const secondaryDepositCategory = categories.find(
+    (c) => c.name === 'Secondary Deposit' && c.type === 'income' && !c.is_secondary_income,
+  );
+  const secondaryDepositCategoryId = secondaryDepositCategory?.id;
 
   // Details
   const [eventName, setEventName] = useState('');
