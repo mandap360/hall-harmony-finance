@@ -1,188 +1,74 @@
 
+
 ## Goal
 
-Restore a working “old-style” Secondary Income flow in Edit Booking:
+Replace the single-row allocation form in **Edit Booking → Secondary Income** with a multi-row draft form so multiple categories can be allocated in one click. No DB schema changes.
 
-- Money is received only from the **Payments** tab.
-- The special pool category is **Secondary Deposit**.
-- The **Secondary Income** tab only does:
-  - show received / allocated / refunded / remaining
-  - allocate that pool to `AccountCategories` where `type='income'` and `is_secondary_income=true`
-  - refund any unallocated balance from a **Cash/Bank** account
-- Each secondary category can be allocated **only once per booking**.
-- Rent totals must come only from the **Rent** category.
+## Current behavior (problem)
 
-## What is broken today and why
+- One category + one amount + Allocate button.
+- Each click writes one `IncomeAllocations` row immediately and re-renders.
+- Adding 5 categories = 5 separate clicks, 5 toasts, 5 round-trips.
 
-### 1. Wrong anchor category
-Current code still searches for a non-secondary income category named **“Secondary Income”** to identify the pool. The database now has **“Secondary Deposit”** instead, so pool detection breaks.
+## New behavior
 
-### 2. `transaction_status` is being used in the wrong way
-Right now, when a secondary receipt is recorded, the code immediately creates an `IncomeAllocation` for the full amount to the anchor category. Then `useIncomeAllocations.recomputeStatus()` sees:
+In the **Allocate to Categories** card:
 
-- transaction amount = full receipt
-- allocation sum = full receipt
+- Show a list of **draft rows**, each with: Category dropdown · Amount input · trash icon to remove the row.
+- A **+** icon button to the right of the last row's amount appends another empty draft row.
+- A single **Allocate** button below the list commits all draft rows in one go.
+- After commit: drafts clear, list of saved allocations refreshes.
 
-So it marks that transaction as **`Fully Allocated`**.
+Existing saved allocations continue to render above the draft form (unchanged), each removable individually.
 
-That is technically true for the anchor allocation, but it is wrong for your business flow, because:
-- the money has only been parked in **Secondary Deposit**
-- it has **not** yet been allocated to the real secondary income categories
-- the UI then behaves as if nothing is left to allocate
+### Validation rules per click of Allocate
 
-### 3. Pool allocations are attached to one source transaction
-The current “single pool” code allocates secondary categories onto the first pool transaction. That makes per-transaction status unreliable for a booking-level pool and causes confusing totals.
+- Skip rows with no category or amount ≤ 0.
+- Each draft category must be unique within the draft (no duplicate rows in the same submit).
+- Each draft category must not already exist in saved `poolAllocations` for this booking.
+- Sum of draft amounts must be ≤ `secUnallocated`.
+- If any rule fails, show a toast and do not commit.
 
-### 4. Refund logic is inconsistent
-`EditBookingDialog` writes booking-level refund descriptions like:
-- `[SEC-REFUND] for booking <bookingId>`
+### Commit behavior
 
-But `useIncomeAllocations.recomputeStatus()` still looks for:
-- `[SEC-REFUND] for receipt <transactionId>`
+- Loop draft rows and call existing `allocate(...)` per row inside a single handler.
+- Show one success toast: "Allocated N categories".
+- Suppress the per-row toast inside this multi-allocate path (or keep `useIncomeAllocations.allocate` as-is and just show one summary toast at the end — accept the minor duplicate toasts; preferred: add a `silent` flag to `allocate` to skip its internal toast when called from batch).
 
-So status recalculation and refund tracking no longer agree.
+### Available categories per row
 
-## Recommended design
+- The dropdown for each draft row hides:
+  - categories already saved in `poolAllocations`
+  - categories selected in other draft rows
+- This keeps the "one allocation per category per booking" rule intact.
 
-## No new schema for secondary deposit flow
-The working version can be built with existing tables:
+## UI sketch
 
-- `Transactions` for money movement
-- `IncomeAllocations` for category allocations
-- `AccountCategories` for Rent / Secondary Deposit / real secondary categories
+```text
+Allocate to Categories
+Pool available: ₹X · Each category can be allocated only once.
 
-## One data cleanup for accounts
-There are currently **4** `Accounts` rows with `account_type='party'`, and there are **0** `Transactions` referencing them. So removing them is safe.
+[saved allocation rows ...]
+─────────────────────────────────
+[ Category ▾ ] [ Amount ] [+] [🗑]
+[ Category ▾ ] [ Amount ]     [🗑]
+[ Allocate ]   (disabled if no valid drafts or sum > pool)
+```
 
-## Build plan
-
-### 1. Remove Party from accounts completely
-Update the app so accounts only support:
-
-- `cash_bank`
-- `owners_capital`
-
-Changes:
-- Remove `party` from the account type unions in `useAccounts` and `AddAccountDialog`
-- Remove the Party option from the Add Account dialog
-- Remove the Parties section from `AccountsPage`
-- Keep transaction/account pickers limited to Cash/Bank where appropriate
-
-Database/data work:
-- Delete existing `Accounts` rows where `account_type='party'`
-- Optionally harden the database afterward so future inserts cannot use `party`
-
-### 2. Re-anchor the pool to `Secondary Deposit`
-Change every place that currently uses **Secondary Income** as the pool bucket to use:
-
-- category name = `Secondary Deposit`
-- category type = `income`
-- `is_secondary_income = false`
-
-This becomes the only pool source for the Secondary Income tab.
-
-### 3. Restore the expected old UI in Edit Booking
-#### Payments tab
-- Keep the payment entry UI
-- Category dropdown should show only non-secondary income categories
-- `Secondary Deposit` remains available here as the pool category
-- Payment history continues to show receipts added from this tab
-
-Behavior:
-- If payment category = `Rent`, it contributes to rent received
-- If payment category = `Secondary Deposit`, it contributes to the secondary pool
-- Other non-secondary income categories stay primary/non-secondary and do not appear in the secondary allocation UI
-
-#### Secondary Income tab
-Remove the receipt form entirely.
-
-Show only:
-- Summary cards:
-  - Received
-  - Allocated
-  - Refunded
-  - Remaining
-- Existing allocations list
-- Allocation form
-- Refund form
-
-Allocation form behavior:
-- Source amount = total booking payments allocated to `Secondary Deposit`
-- Available categories = `AccountCategories` with:
-  - `type='income'`
-  - `is_secondary_income=true`
-  - not already allocated for this booking
-- One row per category per booking
-- Allocation amount cannot exceed remaining pool
-
-Refund behavior:
-- Refund unallocated balance only
-- Refund account dropdown = only `Accounts` with `account_type='cash_bank'`
-- Refund creates a `Transactions` row of type `Refund` linked to the booking
-- Refund decreases remaining pool immediately
-
-### 4. Stop relying on `transaction_status` for secondary pool availability
-For this flow, the source of truth should be booking-level math, not transaction status.
-
-Use:
-- `received = sum(booking income txs allocated to Secondary Deposit)`
-- `allocated = sum(booking allocations to categories where is_secondary_income=true)`
-- `refunded = sum(booking refund txs tagged as secondary refunds)`
-- `remaining = received - allocated - refunded`
-
-Implementation effect:
-- The Secondary Income tab will not disappear or lock because a source transaction became `Fully Allocated`
-- Allocate/refund buttons will be driven by `remaining > 0`, not by transaction status
-
-### 5. Fix booking calculations so rent and secondary stay separate
-Update `useBookings` so:
-
-- `rentReceived` = only allocations where category name is `Rent`
-- `secondaryIncomeNet` = amounts received into `Secondary Deposit` minus secondary refunds
-- Secondary Deposit must never inflate rent totals
-
-This restores the earlier rule you called out:
-- Rent received should only include **Rent**
-- Secondary Deposit is only the pool for later allocation/refund
-
-### 6. Keep the “allocate once per category per booking” rule
-In the Secondary Income tab:
-
-- once a secondary category has an allocation for the booking, remove it from the dropdown
-- deleting that allocation makes it available again
-- no duplicate category rows for the same booking
-
-This matches the pre-refactor business rule from the earlier version.
+The **+** sits to the right of the amount field of the last draft row. Earlier rows show only the trash icon in that slot.
 
 ## Files to update
 
-- `src/components/AddAccountDialog.tsx`
-- `src/components/AccountsPage.tsx`
-- `src/hooks/useAccounts.ts`
 - `src/components/EditBookingDialog.tsx`
-- `src/hooks/useBookings.ts`
-- `src/hooks/useIncomeAllocations.ts` only to stop secondary-flow dependence on receipt-style status assumptions
-- any labels/badges still showing “Secondary Income” where they should say `Secondary Deposit` for the pool category
+  - Replace single `allocCategoryId` / `allocAmount` state with `draftAllocations: { id: string; categoryId: string; amount: string }[]`.
+  - Add handlers: `addDraftRow`, `updateDraftRow`, `removeDraftRow`, `handleAllocateAll`.
+  - Render draft rows + single Allocate button.
+- `src/hooks/useIncomeAllocations.ts`
+  - Add optional `silent?: boolean` arg to `allocate(...)` to suppress its toast when batching (keeps existing single-call sites unchanged).
 
-## Database/data work needed
+## Out of scope
 
-### Required data cleanup
-- Delete `Accounts` rows with `account_type='party'`
+- Editing an existing saved allocation amount in place (still delete + re-add).
+- Refund card (unchanged).
+- Payments tab (unchanged).
 
-### Optional hardening
-- Add database validation so new account rows can only use:
-  - `cash_bank`
-  - `owners_capital`
-
-No schema change is required for the Secondary Deposit allocation/refund flow itself.
-
-## Expected result after implementation
-
-- User records a payment in **Payments** with category **Secondary Deposit**
-- That amount appears under **Secondary Income → Received**
-- User can allocate that amount later to true secondary categories
-- Each category can be used once per booking
-- User can refund the leftover from a Cash/Bank account
-- Rent totals stay tied only to **Rent**
-- No secondary receipt form exists in the Secondary Income tab
-- No Party account type exists anywhere in the app
