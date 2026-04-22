@@ -723,41 +723,89 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                 </div>
               )}
 
-              {/* Add allocation */}
-              {availableCategories.length > 0 ? (
-                <div className="border-t pt-2 space-y-2">
-                  <div className="grid grid-cols-[1fr_120px_auto] gap-2 items-end">
-                    <Select value={allocCategoryId} onValueChange={setAllocCategoryId}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableCategories.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="Amount"
-                      value={allocAmount}
-                      onChange={(e) => setAllocAmount(e.target.value)}
-                      className="h-9"
-                    />
-                    <Button size="sm" onClick={handleAllocatePool} disabled={secUnallocated <= 0}>
-                      Allocate
-                    </Button>
-                  </div>
-                </div>
-              ) : secondaryCategories.length > 0 ? (
+              {/* Add allocations (multi-row drafts) */}
+              {secondaryCategories.length === 0 ? (
+                <p className="text-xs text-muted-foreground border-t pt-2">
+                  No secondary income categories defined. Create one in Settings → Categories.
+                </p>
+              ) : availableCategories.length === 0 ? (
                 <p className="text-xs text-muted-foreground border-t pt-2">
                   All secondary categories already allocated.
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground border-t pt-2">
-                  No secondary income categories defined. Create one in Settings → Categories.
-                </p>
+                <div className="border-t pt-2 space-y-2">
+                  {draftAllocations.map((row, idx) => {
+                    const otherSelected = new Set(
+                      draftAllocations.filter((r) => r.id !== row.id).map((r) => r.categoryId).filter(Boolean),
+                    );
+                    const optionsForRow = availableCategories.filter(
+                      (c) => !otherSelected.has(c.id),
+                    );
+                    const isLast = idx === draftAllocations.length - 1;
+                    const canAddMore = availableCategories.length > draftAllocations.length;
+                    return (
+                      <div
+                        key={row.id}
+                        className="grid grid-cols-[1fr_120px_auto_auto] gap-2 items-end"
+                      >
+                        <Select
+                          value={row.categoryId}
+                          onValueChange={(v) => updateDraftRow(row.id, { categoryId: v })}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {optionsForRow.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="Amount"
+                          value={row.amount}
+                          onChange={(e) => updateDraftRow(row.id, { amount: e.target.value })}
+                          className="h-9"
+                        />
+                        {isLast && canAddMore ? (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            className="h-9 w-9"
+                            onClick={addDraftRow}
+                            aria-label="Add category"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <span className="w-9" />
+                        )}
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-9 w-9 text-destructive"
+                          onClick={() => removeDraftRow(row.id)}
+                          aria-label="Remove row"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      size="sm"
+                      onClick={handleAllocateAll}
+                      disabled={secUnallocated <= 0}
+                    >
+                      Allocate
+                    </Button>
+                  </div>
+                </div>
               )}
             </Card>
 
