@@ -107,9 +107,10 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const [poolRefundTxs, setPoolRefundTxs] = useState<{ id: string; amount: number; date: string; from_account_id: string | null }[]>([]);
   const [poolDepositTxs, setPoolDepositTxs] = useState<{ id: string; amount: number }[]>([]);
 
-  // Allocation form
-  const [allocCategoryId, setAllocCategoryId] = useState('');
-  const [allocAmount, setAllocAmount] = useState('');
+  // Allocation form (multi-row drafts)
+  const [draftAllocations, setDraftAllocations] = useState<
+    { id: string; categoryId: string; amount: string }[]
+  >([{ id: crypto.randomUUID(), categoryId: '', amount: '' }]);
 
   // Refund form
   const [refundAccountId, setRefundAccountId] = useState('');
@@ -339,34 +340,73 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const usedCategoryIds = new Set(poolAllocations.map((a) => a.category_id).filter(Boolean) as string[]);
   const availableCategories = secondaryCategories.filter((c) => !usedCategoryIds.has(c.id));
 
-  const handleAllocatePool = async () => {
-    const amt = parseFloat(allocAmount);
-    if (!allocCategoryId || !amt || amt <= 0) {
-      toast({ title: 'Missing fields', description: 'Category and amount required', variant: 'destructive' });
+  const addDraftRow = () => {
+    setDraftAllocations((prev) => [...prev, { id: crypto.randomUUID(), categoryId: '', amount: '' }]);
+  };
+
+  const updateDraftRow = (id: string, patch: Partial<{ categoryId: string; amount: string }>) => {
+    setDraftAllocations((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  };
+
+  const removeDraftRow = (id: string) => {
+    setDraftAllocations((prev) => {
+      const next = prev.filter((r) => r.id !== id);
+      return next.length === 0 ? [{ id: crypto.randomUUID(), categoryId: '', amount: '' }] : next;
+    });
+  };
+
+  const handleAllocateAll = async () => {
+    const valid = draftAllocations
+      .map((r) => ({ ...r, amt: parseFloat(r.amount) }))
+      .filter((r) => r.categoryId && !isNaN(r.amt) && r.amt > 0);
+
+    if (valid.length === 0) {
+      toast({ title: 'Nothing to allocate', description: 'Add a category and amount', variant: 'destructive' });
       return;
     }
-    if (amt > secUnallocated + 0.001) {
+
+    const seen = new Set<string>();
+    for (const r of valid) {
+      if (seen.has(r.categoryId)) {
+        toast({ title: 'Duplicate category', description: 'Each category can only be used once', variant: 'destructive' });
+        return;
+      }
+      seen.add(r.categoryId);
+    }
+
+    for (const r of valid) {
+      if (usedCategoryIds.has(r.categoryId)) {
+        toast({ title: 'Already allocated', description: 'A selected category is already allocated', variant: 'destructive' });
+        return;
+      }
+    }
+
+    const total = valid.reduce((s, r) => s + r.amt, 0);
+    if (total > secUnallocated + 0.001) {
       toast({ title: 'Exceeds pool', description: `Max allocatable: ${fmtINR(secUnallocated)}`, variant: 'destructive' });
       return;
     }
-    if (usedCategoryIds.has(allocCategoryId)) {
-      toast({ title: 'Already allocated', description: 'This category is already allocated', variant: 'destructive' });
-      return;
-    }
+
     if (poolDepositTxs.length === 0) {
-      toast({ title: 'No pool', description: 'No Secondary Deposit receipts to allocate from. Record one in the Payments tab.', variant: 'destructive' });
+      toast({ title: 'No pool', description: 'No Secondary Deposit receipts. Record one in the Payments tab.', variant: 'destructive' });
       return;
     }
-    // Attach allocation to the first deposit transaction (booking-level pool math is the source of truth).
+
     const targetTx = poolDepositTxs[0];
     try {
-      await allocate({ transaction_id: targetTx.id, category_id: allocCategoryId, amount: amt });
-      setAllocCategoryId('');
-      setAllocAmount('');
+      for (const r of valid) {
+        await allocate(
+          { transaction_id: targetTx.id, category_id: r.categoryId, amount: r.amt },
+          { silent: true },
+        );
+      }
+      setDraftAllocations([{ id: crypto.randomUUID(), categoryId: '', amount: '' }]);
       await loadSecondaryPool();
       await refetchBookings();
+      toast({ title: 'Allocated', description: `${valid.length} categor${valid.length === 1 ? 'y' : 'ies'} allocated` });
     } catch (e) {
       console.error(e);
+      toast({ title: 'Error', description: 'Failed to allocate', variant: 'destructive' });
     }
   };
 
@@ -683,41 +723,89 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                 </div>
               )}
 
-              {/* Add allocation */}
-              {availableCategories.length > 0 ? (
-                <div className="border-t pt-2 space-y-2">
-                  <div className="grid grid-cols-[1fr_120px_auto] gap-2 items-end">
-                    <Select value={allocCategoryId} onValueChange={setAllocCategoryId}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableCategories.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="Amount"
-                      value={allocAmount}
-                      onChange={(e) => setAllocAmount(e.target.value)}
-                      className="h-9"
-                    />
-                    <Button size="sm" onClick={handleAllocatePool} disabled={secUnallocated <= 0}>
-                      Allocate
-                    </Button>
-                  </div>
-                </div>
-              ) : secondaryCategories.length > 0 ? (
+              {/* Add allocations (multi-row drafts) */}
+              {secondaryCategories.length === 0 ? (
+                <p className="text-xs text-muted-foreground border-t pt-2">
+                  No secondary income categories defined. Create one in Settings → Categories.
+                </p>
+              ) : availableCategories.length === 0 ? (
                 <p className="text-xs text-muted-foreground border-t pt-2">
                   All secondary categories already allocated.
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground border-t pt-2">
-                  No secondary income categories defined. Create one in Settings → Categories.
-                </p>
+                <div className="border-t pt-2 space-y-2">
+                  {draftAllocations.map((row, idx) => {
+                    const otherSelected = new Set(
+                      draftAllocations.filter((r) => r.id !== row.id).map((r) => r.categoryId).filter(Boolean),
+                    );
+                    const optionsForRow = availableCategories.filter(
+                      (c) => !otherSelected.has(c.id),
+                    );
+                    const isLast = idx === draftAllocations.length - 1;
+                    const canAddMore = availableCategories.length > draftAllocations.length;
+                    return (
+                      <div
+                        key={row.id}
+                        className="grid grid-cols-[1fr_120px_auto_auto] gap-2 items-end"
+                      >
+                        <Select
+                          value={row.categoryId}
+                          onValueChange={(v) => updateDraftRow(row.id, { categoryId: v })}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {optionsForRow.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="Amount"
+                          value={row.amount}
+                          onChange={(e) => updateDraftRow(row.id, { amount: e.target.value })}
+                          className="h-9"
+                        />
+                        {isLast && canAddMore ? (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            className="h-9 w-9"
+                            onClick={addDraftRow}
+                            aria-label="Add category"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <span className="w-9" />
+                        )}
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-9 w-9 text-destructive"
+                          onClick={() => removeDraftRow(row.id)}
+                          aria-label="Remove row"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      size="sm"
+                      onClick={handleAllocateAll}
+                      disabled={secUnallocated <= 0}
+                    >
+                      Allocate
+                    </Button>
+                  </div>
+                </div>
               )}
             </Card>
 
