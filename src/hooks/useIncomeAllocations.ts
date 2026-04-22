@@ -81,11 +81,14 @@ export const useIncomeAllocations = () => {
     await fetchAll(profile.organization_id);
   };
 
-  const allocate = async (data: {
-    transaction_id: string;
-    category_id: string;
-    amount: number;
-  }) => {
+  const allocate = async (
+    data: {
+      transaction_id: string;
+      category_id: string;
+      amount: number;
+    },
+    options?: { silent?: boolean },
+  ) => {
     if (!profile?.organization_id) throw new Error('No organization');
     try {
       const { error } = await supabase.from('IncomeAllocations').insert([
@@ -99,10 +102,14 @@ export const useIncomeAllocations = () => {
       if (error) throw error;
       await recomputeStatus(data.transaction_id);
       await refetch();
-      toast({ title: 'Success', description: 'Income allocated' });
+      if (!options?.silent) {
+        toast({ title: 'Success', description: 'Income allocated' });
+      }
     } catch (error) {
       console.error('Error allocating income:', error);
-      toast({ title: 'Error', description: 'Failed to allocate', variant: 'destructive' });
+      if (!options?.silent) {
+        toast({ title: 'Error', description: 'Failed to allocate', variant: 'destructive' });
+      }
       throw error;
     }
   };
