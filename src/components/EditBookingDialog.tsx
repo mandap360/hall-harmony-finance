@@ -340,34 +340,73 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const usedCategoryIds = new Set(poolAllocations.map((a) => a.category_id).filter(Boolean) as string[]);
   const availableCategories = secondaryCategories.filter((c) => !usedCategoryIds.has(c.id));
 
-  const handleAllocatePool = async () => {
-    const amt = parseFloat(allocAmount);
-    if (!allocCategoryId || !amt || amt <= 0) {
-      toast({ title: 'Missing fields', description: 'Category and amount required', variant: 'destructive' });
+  const addDraftRow = () => {
+    setDraftAllocations((prev) => [...prev, { id: crypto.randomUUID(), categoryId: '', amount: '' }]);
+  };
+
+  const updateDraftRow = (id: string, patch: Partial<{ categoryId: string; amount: string }>) => {
+    setDraftAllocations((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  };
+
+  const removeDraftRow = (id: string) => {
+    setDraftAllocations((prev) => {
+      const next = prev.filter((r) => r.id !== id);
+      return next.length === 0 ? [{ id: crypto.randomUUID(), categoryId: '', amount: '' }] : next;
+    });
+  };
+
+  const handleAllocateAll = async () => {
+    const valid = draftAllocations
+      .map((r) => ({ ...r, amt: parseFloat(r.amount) }))
+      .filter((r) => r.categoryId && !isNaN(r.amt) && r.amt > 0);
+
+    if (valid.length === 0) {
+      toast({ title: 'Nothing to allocate', description: 'Add a category and amount', variant: 'destructive' });
       return;
     }
-    if (amt > secUnallocated + 0.001) {
+
+    const seen = new Set<string>();
+    for (const r of valid) {
+      if (seen.has(r.categoryId)) {
+        toast({ title: 'Duplicate category', description: 'Each category can only be used once', variant: 'destructive' });
+        return;
+      }
+      seen.add(r.categoryId);
+    }
+
+    for (const r of valid) {
+      if (usedCategoryIds.has(r.categoryId)) {
+        toast({ title: 'Already allocated', description: 'A selected category is already allocated', variant: 'destructive' });
+        return;
+      }
+    }
+
+    const total = valid.reduce((s, r) => s + r.amt, 0);
+    if (total > secUnallocated + 0.001) {
       toast({ title: 'Exceeds pool', description: `Max allocatable: ${fmtINR(secUnallocated)}`, variant: 'destructive' });
       return;
     }
-    if (usedCategoryIds.has(allocCategoryId)) {
-      toast({ title: 'Already allocated', description: 'This category is already allocated', variant: 'destructive' });
-      return;
-    }
+
     if (poolDepositTxs.length === 0) {
-      toast({ title: 'No pool', description: 'No Secondary Deposit receipts to allocate from. Record one in the Payments tab.', variant: 'destructive' });
+      toast({ title: 'No pool', description: 'No Secondary Deposit receipts. Record one in the Payments tab.', variant: 'destructive' });
       return;
     }
-    // Attach allocation to the first deposit transaction (booking-level pool math is the source of truth).
+
     const targetTx = poolDepositTxs[0];
     try {
-      await allocate({ transaction_id: targetTx.id, category_id: allocCategoryId, amount: amt });
-      setAllocCategoryId('');
-      setAllocAmount('');
+      for (const r of valid) {
+        await allocate(
+          { transaction_id: targetTx.id, category_id: r.categoryId, amount: r.amt },
+          { silent: true },
+        );
+      }
+      setDraftAllocations([{ id: crypto.randomUUID(), categoryId: '', amount: '' }]);
       await loadSecondaryPool();
       await refetchBookings();
+      toast({ title: 'Allocated', description: `${valid.length} categor${valid.length === 1 ? 'y' : 'ies'} allocated` });
     } catch (e) {
       console.error(e);
+      toast({ title: 'Error', description: 'Failed to allocate', variant: 'destructive' });
     }
   };
 
