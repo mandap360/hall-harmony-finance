@@ -107,9 +107,10 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const [poolRefundTxs, setPoolRefundTxs] = useState<{ id: string; amount: number; date: string; from_account_id: string | null }[]>([]);
   const [poolDepositTxs, setPoolDepositTxs] = useState<{ id: string; amount: number }[]>([]);
 
-  // Allocation form
-  const [allocCategoryId, setAllocCategoryId] = useState('');
-  const [allocAmount, setAllocAmount] = useState('');
+  // Allocation form (multi-row drafts)
+  const [draftAllocations, setDraftAllocations] = useState<
+    { id: string; categoryId: string; amount: string }[]
+  >([{ id: crypto.randomUUID(), categoryId: '', amount: '' }]);
 
   // Refund form
   const [refundAccountId, setRefundAccountId] = useState('');
