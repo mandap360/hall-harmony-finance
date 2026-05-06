@@ -205,7 +205,7 @@ export const useBills = () => {
         if (txAllocRes.data) {
           const totalAllocated = txAllocRes.data.reduce((sum, a) => sum + Number(a.amount_applied), 0);
           
-          let txStatus = 'Available';
+          let txStatus: 'Available' | 'Fully Allocated' | 'Partially Allocated' | 'Void' = 'Available';
           if (totalAllocated >= txAmount) {
             txStatus = 'Fully Allocated';
           } else if (totalAllocated > 0) {
