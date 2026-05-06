@@ -385,6 +385,7 @@ export type Database = {
           email_verified: boolean | null
           full_name: string | null
           id: string
+          is_super_admin: boolean
           organization_id: string
           phone_number: string | null
           phone_verified: boolean | null
@@ -399,6 +400,7 @@ export type Database = {
           email_verified?: boolean | null
           full_name?: string | null
           id: string
+          is_super_admin?: boolean
           organization_id: string
           phone_number?: string | null
           phone_verified?: boolean | null
@@ -413,6 +415,7 @@ export type Database = {
           email_verified?: boolean | null
           full_name?: string | null
           id?: string
+          is_super_admin?: boolean
           organization_id?: string
           phone_number?: string | null
           phone_verified?: boolean | null
