@@ -26,6 +26,11 @@ export interface BillAllocation {
   amount_applied: number;
   applied_at: string;
   organization_id: string;
+  // Transaction details (loaded via join)
+  transaction_type?: 'Income' | 'Expense' | 'Refund' | 'Advance Paid' | 'Transfer';
+  transaction_date?: string;
+  transaction_amount?: number;
+  transaction_description?: string | null;
 }
 
 interface State {
@@ -45,13 +50,37 @@ const fetchAll = async (orgId: string) => {
       .select('*')
       .eq('organization_id', orgId)
       .order('date', { ascending: false }),
-    supabase.from('BillAllocations').select('*').eq('organization_id', orgId),
+    supabase.from('BillAllocations').select(`
+      *,
+      Transactions!inner (
+        id,
+        type,
+        transaction_date,
+        amount,
+        description
+      )
+    `).eq('organization_id', orgId),
   ]);
   if (billRes.error) throw billRes.error;
   if (allocRes.error) throw allocRes.error;
+
+  // Map allocations with transaction details
+  const allocationsWithTx = (allocRes.data || []).map((alloc: any) => ({
+    id: alloc.id,
+    transaction_id: alloc.transaction_id,
+    bill_id: alloc.bill_id,
+    amount_applied: alloc.amount_applied,
+    applied_at: alloc.applied_at,
+    organization_id: alloc.organization_id,
+    transaction_type: alloc.Transactions?.type,
+    transaction_date: alloc.Transactions?.transaction_date,
+    transaction_amount: alloc.Transactions?.amount,
+    transaction_description: alloc.Transactions?.description,
+  }));
+
   store.set({
     bills: (billRes.data || []) as Bill[],
-    allocations: (allocRes.data || []) as BillAllocation[],
+    allocations: allocationsWithTx as BillAllocation[],
     loading: false,
     orgId,
   });
@@ -114,7 +143,8 @@ export const useBills = () => {
   }) => {
     if (!profile?.organization_id) throw new Error('No organization');
     try {
-      const { error } = await supabase.from('BillAllocations').insert([
+      // 1. Insert the allocation
+      const { error: allocError } = await supabase.from('BillAllocations').insert([
         {
           transaction_id: data.transaction_id,
           bill_id: data.bill_id,
@@ -122,20 +152,71 @@ export const useBills = () => {
           organization_id: profile.organization_id,
         },
       ]);
-      if (error) throw error;
+      if (allocError) throw allocError;
 
-      const bill = state.bills.find((b) => b.id === data.bill_id);
-      if (bill) {
-        const totalApplied =
-          state.allocations
-            .filter((a) => a.bill_id === data.bill_id)
-            .reduce((sum, a) => sum + Number(a.amount_applied), 0) + data.amount_applied;
+      // 2. Get bill amount and recalculate status from DB
+      const billRes = await supabase
+        .from('Bills')
+        .select('amount')
+        .eq('id', data.bill_id)
+        .single();
+      
+      if (billRes.data) {
+        const billAmount = Number(billRes.data.amount);
+        
+        // Get all allocations for this bill (fresh from DB)
+        const allocRes = await supabase
+          .from('BillAllocations')
+          .select('amount_applied')
+          .eq('bill_id', data.bill_id)
+          .eq('organization_id', profile.organization_id);
 
-        let status: BillStatus = 'unpaid';
-        if (totalApplied >= Number(bill.amount)) status = 'paid';
-        else if (totalApplied > 0) status = 'partial';
+        if (allocRes.data) {
+          const totalApplied = allocRes.data.reduce((sum, a) => sum + Number(a.amount_applied), 0);
+          
+          let billStatus: BillStatus = 'unpaid';
+          if (totalApplied >= billAmount) {
+            billStatus = 'paid';
+          } else if (totalApplied > 0) {
+            billStatus = 'partial';
+          }
 
-        await supabase.from('Bills').update({ status }).eq('id', data.bill_id);
+          await supabase.from('Bills').update({ status: billStatus }).eq('id', data.bill_id);
+        }
+      }
+
+      // 3. Update transaction status based on total allocations
+      const txRes = await supabase
+        .from('Transactions')
+        .select('amount')
+        .eq('id', data.transaction_id)
+        .single();
+
+      if (txRes.data) {
+        const txAmount = Number(txRes.data.amount);
+        
+        // Get all allocations for this transaction across ALL bills
+        const txAllocRes = await supabase
+          .from('BillAllocations')
+          .select('amount_applied')
+          .eq('transaction_id', data.transaction_id)
+          .eq('organization_id', profile.organization_id);
+
+        if (txAllocRes.data) {
+          const totalAllocated = txAllocRes.data.reduce((sum, a) => sum + Number(a.amount_applied), 0);
+          
+          let txStatus = 'Available';
+          if (totalAllocated >= txAmount) {
+            txStatus = 'Fully Allocated';
+          } else if (totalAllocated > 0) {
+            txStatus = 'Partially Allocated';
+          }
+
+          await supabase
+            .from('Transactions')
+            .update({ transaction_status: txStatus })
+            .eq('id', data.transaction_id);
+        }
       }
 
       await refetch();

@@ -48,6 +48,7 @@ interface PaymentRow {
   amount: number;
   date: string;
   to_account_id: string | null;
+  type: 'Income' | 'Expense' | 'Refund' | 'Advance Paid' | 'Transfer';
   description: string | null;
   category_id: string | null;
   category_name: string | null;
@@ -138,10 +139,9 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
     if (!booking?.id || !profile?.organization_id) return;
     const { data: txs, error } = await supabase
       .from('Transactions')
-      .select('id, amount, transaction_date, to_account_id, description')
+      .select('id, amount, transaction_date, to_account_id, type, description')
       .eq('booking_id', booking.id)
       .eq('organization_id', profile.organization_id)
-      .eq('type', 'Income')
       .neq('transaction_status', 'Void')
       .order('transaction_date', { ascending: false });
 
@@ -180,6 +180,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
         amount: Number(t.amount),
         date: t.transaction_date,
         to_account_id: t.to_account_id,
+        type: t.type,
         description: t.description,
         category_id: allocMap.get(t.id)?.category_id || null,
         category_name: allocMap.get(t.id)?.category_name || null,
@@ -459,14 +460,36 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
     }
   };
 
-  const handleDeleteRefund = async (id: string) => {
-    if (!confirm('Delete this refund?')) return;
-    try {
-      await deleteTransaction(id);
-      await loadSecondaryPool();
-      await refetchBookings();
-    } catch (e) {
-      console.error(e);
+  // ── Transaction type colors ──
+  const getTransactionTypeColor = (type: string) => {
+    switch (type) {
+      case 'Income':
+        return 'text-green-600 bg-green-50';
+      case 'Expense':
+      case 'Refund':
+        return 'text-red-600 bg-red-50';
+      case 'Advance Paid':
+        return 'text-purple-600 bg-purple-50';
+      case 'Transfer':
+        return 'text-slate-600 bg-slate-50';
+      default:
+        return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  const getTransactionTypeAmount = (type: string) => {
+    switch (type) {
+      case 'Income':
+        return 'text-green-600';
+      case 'Expense':
+      case 'Refund':
+        return 'text-red-600';
+      case 'Advance Paid':
+        return 'text-purple-600';
+      case 'Transfer':
+        return 'text-slate-600';
+      default:
+        return 'text-gray-600';
     }
   };
 
@@ -563,21 +586,6 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
 
           {/* PAYMENTS */}
           <TabsContent value="payments" className="space-y-4">
-            <div className="grid grid-cols-3 gap-2 text-sm">
-              <Card className="p-3">
-                <div className="text-xs text-muted-foreground">Finalized</div>
-                <div className="font-semibold">{fmtINR(parseFloat(rentFinalized) || 0)}</div>
-              </Card>
-              <Card className="p-3">
-                <div className="text-xs text-muted-foreground">Received</div>
-                <div className="font-semibold text-green-600">{fmtINR(totalPaid)}</div>
-              </Card>
-              <Card className="p-3">
-                <div className="text-xs text-muted-foreground">Balance</div>
-                <div className="font-semibold text-orange-600">{fmtINR(balance)}</div>
-              </Card>
-            </div>
-
             <Card className="p-4 space-y-3">
               <h4 className="font-semibold text-sm">Add Payment</h4>
               <div className="grid grid-cols-2 gap-2">
@@ -642,10 +650,15 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
               ) : (
                 payments.map((p) => {
                   const acc = accounts.find((a) => a.id === p.to_account_id);
+                  const typeColor = getTransactionTypeColor(p.type);
+                  const amountColor = getTransactionTypeAmount(p.type);
                   return (
                     <Card key={p.id} className="p-3 flex justify-between items-center">
                       <div className="flex-1">
-                        <div className="font-semibold text-green-600">{fmtINR(p.amount)}</div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className={`font-semibold ${amountColor}`}>{fmtINR(p.amount)}</div>
+                          <span className={`text-xs px-2 py-1 rounded ${typeColor}`}>{p.type}</span>
+                        </div>
                         <div className="text-xs text-muted-foreground">
                           {p.date} · {acc?.name || '—'} · {p.category_name || 'Uncategorized'}
                         </div>
@@ -828,34 +841,6 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                 </Button>
               </div>
             </Card>
-
-            {/* Refund history */}
-            {poolRefundTxs.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="font-semibold text-sm">Refunds</h4>
-                {poolRefundTxs.map((r) => {
-                  const acc = accounts.find((a) => a.id === r.from_account_id);
-                  return (
-                    <Card key={r.id} className="p-3 flex justify-between items-center">
-                      <div className="flex-1">
-                        <div className="font-semibold text-orange-600">{fmtINR(r.amount)}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {r.date} · from {acc?.name || '—'}
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive"
-                        onClick={() => handleDeleteRefund(r.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
           </TabsContent>
         </Tabs>
       </DialogContent>
