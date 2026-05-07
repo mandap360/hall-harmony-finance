@@ -36,13 +36,30 @@ export const PasswordSecuritySettings = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       toast({
         title: "Error",
-        description: "New password must be at least 6 characters long",
+        description: "New password must be at least 8 characters long",
         variant: "destructive",
       });
       return;
+    }
+
+    {
+      const hasUpper = /[A-Z]/.test(newPassword);
+      const hasLower = /[a-z]/.test(newPassword);
+      const hasDigit = /\d/.test(newPassword);
+      const hasSpecial = /[!@#$%^&*(),.?":{}|<>_\-+=/\\[\]~`';]/.test(newPassword);
+      const strength = [hasUpper, hasLower, hasDigit, hasSpecial].filter(Boolean).length;
+      if (strength < 3) {
+        toast({
+          title: "Weak password",
+          description:
+            "Password must include at least 3 of: uppercase, lowercase, numbers, special characters.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setIsUpdating(true);
