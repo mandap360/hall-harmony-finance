@@ -41,10 +41,14 @@ export const useVendors = () => {
 
   useEffect(() => {
     const orgId = profile?.organization_id;
-    if (!orgId) return;
+    if (!orgId) {
+      store.set({ vendors: [], loading: false, orgId: null });
+      return;
+    }
     if (state.orgId === orgId && state.vendors.length > 0) return;
     singleFlight(() => fetchAll(orgId)).catch((err) => {
       console.error('Error fetching vendors:', err);
+      store.set({ vendors: [], loading: false, orgId });
       toast({ title: 'Error', description: 'Failed to fetch vendors', variant: 'destructive' });
     });
   }, [profile?.organization_id, state.orgId, state.vendors.length, toast]);

@@ -52,7 +52,7 @@ const fetchAll = async (orgId: string) => {
       .order('date', { ascending: false }),
     supabase.from('BillAllocations').select(`
       *,
-      Transactions!inner (
+      Transactions (
         id,
         type,
         transaction_date,
@@ -61,8 +61,14 @@ const fetchAll = async (orgId: string) => {
       )
     `).eq('organization_id', orgId),
   ]);
-  if (billRes.error) throw billRes.error;
-  if (allocRes.error) throw allocRes.error;
+  if (billRes.error) {
+    console.error('Error fetching bills:', billRes.error);
+    throw billRes.error;
+  }
+  if (allocRes.error) {
+    console.error('Error fetching bill allocations:', allocRes.error);
+    throw allocRes.error;
+  }
 
   // Map allocations with transaction details
   const allocationsWithTx = (allocRes.data || []).map((alloc: any) => ({
@@ -93,10 +99,14 @@ export const useBills = () => {
 
   useEffect(() => {
     const orgId = profile?.organization_id;
-    if (!orgId) return;
+    if (!orgId) {
+      store.set({ bills: [], allocations: [], loading: false, orgId: null });
+      return;
+    }
     if (state.orgId === orgId && (state.bills.length > 0 || state.allocations.length > 0)) return;
     singleFlight(() => fetchAll(orgId)).catch((err) => {
       console.error('Error fetching bills:', err);
+      store.set({ bills: [], allocations: [], loading: false, orgId });
       toast({ title: 'Error', description: 'Failed to fetch bills', variant: 'destructive' });
     });
   }, [profile?.organization_id, state.orgId, state.bills.length, state.allocations.length, toast]);
@@ -115,7 +125,7 @@ export const useBills = () => {
   }) => {
     if (!profile?.organization_id) throw new Error('No organization');
     try {
-      const { error } = await supabase.from('Bills').insert([
+      const { data: inserted, error } = await supabase.from('Bills').insert([
         {
           vendor_id: data.vendor_id,
           bill_number: data.bill_number || null,
@@ -125,10 +135,11 @@ export const useBills = () => {
           status: 'unpaid' as BillStatus,
           organization_id: profile.organization_id,
         },
-      ]);
+      ]).select().single();
       if (error) throw error;
       await refetch();
       toast({ title: 'Success', description: 'Bill created' });
+      return inserted as Bill;
     } catch (error) {
       console.error('Error adding bill:', error);
       toast({ title: 'Error', description: 'Failed to add bill', variant: 'destructive' });

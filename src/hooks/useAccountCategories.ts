@@ -43,10 +43,14 @@ export const useAccountCategories = () => {
 
   useEffect(() => {
     const orgId = profile?.organization_id;
-    if (!orgId) return;
+    if (!orgId) {
+      store.set({ categories: [], loading: false, orgId: null });
+      return;
+    }
     if (state.orgId === orgId && state.categories.length > 0) return;
     singleFlight(() => fetchAll(orgId)).catch((err) => {
       console.error('Error fetching account categories:', err);
+      store.set({ categories: [], loading: false, orgId });
       toast({ title: 'Error', description: 'Failed to fetch categories', variant: 'destructive' });
     });
   }, [profile?.organization_id, state.orgId, state.categories.length, toast]);

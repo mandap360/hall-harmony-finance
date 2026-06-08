@@ -41,10 +41,14 @@ export const useClients = () => {
 
   useEffect(() => {
     const orgId = profile?.organization_id;
-    if (!orgId) return;
+    if (!orgId) {
+      store.set({ clients: [], loading: false, orgId: null });
+      return;
+    }
     if (state.orgId === orgId && state.clients.length > 0) return;
     singleFlight(() => fetchAll(orgId)).catch((err) => {
       console.error('Error fetching clients:', err);
+      store.set({ clients: [], loading: false, orgId });
       toast({ title: 'Error', description: 'Failed to fetch clients', variant: 'destructive' });
     });
   }, [profile?.organization_id, state.orgId, state.clients.length, toast]);

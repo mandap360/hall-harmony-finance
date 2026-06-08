@@ -90,10 +90,14 @@ export const useAccounts = () => {
 
   useEffect(() => {
     const orgId = profile?.organization_id;
-    if (!orgId) return;
+    if (!orgId) {
+      store.set({ accounts: [], loading: false, orgId: null });
+      return;
+    }
     if (state.orgId === orgId && state.accounts.length > 0) return;
     singleFlight(() => fetchAll(orgId)).catch((err) => {
       console.error('Error fetching accounts:', err);
+      store.set({ accounts: [], loading: false, orgId });
       toast({ title: 'Error', description: 'Failed to fetch accounts', variant: 'destructive' });
     });
   }, [profile?.organization_id, state.orgId, state.accounts.length, toast]);

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, ChevronDown, ChevronUp, DollarSign } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, ChevronDown, ChevronUp, DollarSign, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBills, type Bill, type BillStatus, type BillAllocation } from '@/hooks/useBills';
 import { useVendors } from '@/hooks/useVendors';
 import { useAccountCategories } from '@/hooks/useAccountCategories';
@@ -37,107 +38,510 @@ const txTypeColors = (type?: string) => {
   }
 };
 
-const AddBillDialog = ({
+const ApplyAdvanceToBillDialog = ({
+  open,
+  onOpenChange,
+  advanceId,
+  advances,
+  bills,
+  allocations,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  advanceId: string | null;
+  advances: any[];
+  bills: Bill[];
+  allocations: BillAllocation[];
+}) => {
+  const { allocateToBill } = useBills();
+  const { vendors } = useVendors();
+  const [billId, setBillId] = useState('');
+  const [amount, setAmount] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setBillId('');
+      setAmount('');
+    }
+  }, [open]);
+
+  if (!open || !advanceId) return null;
+
+  const advance = advances.find((a) => a.id === advanceId);
+  if (!advance) return null;
+
+  // Calculate advance's remaining balance
+  const advanceAllocated = allocations
+    .filter((a) => a.transaction_id === advanceId)
+    .reduce((s, a) => s + Number(a.amount_applied), 0);
+  const advanceRemaining = Math.max(0, Number(advance.amount) - advanceAllocated);
+
+  // Get bills for this vendor
+  const vendorBills = bills.filter((b) => b.vendor_id === advance.entity_id);
+
+  // For selected bill, calculate remaining amount
+  const selectedBill = vendorBills.find((b) => b.id === billId);
+  const billAllocated = allocations
+    .filter((a) => a.bill_id === billId)
+    .reduce((s, a) => s + Number(a.amount_applied), 0);
+  const billRemaining = selectedBill ? Math.max(0, Number(selectedBill.amount) - billAllocated) : 0;
+
+  const maxAllowableAmount = Math.min(advanceRemaining, billRemaining);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!billId || !amount || !advance) return;
+    const allocAmount = parseFloat(amount);
+    if (allocAmount > maxAllowableAmount) return;
+
+    await allocateToBill({
+      transaction_id: advance.id,
+      bill_id: billId,
+      amount_applied: allocAmount,
+    });
+    onOpenChange(false);
+  };
+
+  const vendorName = vendors.find((v) => v.vendor_id === advance.entity_id)?.name || 'Unknown';
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Apply Advance to Bill</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="bg-purple-50 p-3 rounded text-sm">
+            <p className="font-semibold text-purple-900">Advance Details</p>
+            <p className="text-purple-700">{vendorName}</p>
+            <p className="text-purple-700">Amount: ₹{Number(advance.amount).toLocaleString('en-IN')}</p>
+            <p className="text-purple-700 font-semibold">Available: ₹{advanceRemaining.toLocaleString('en-IN')}</p>
+          </div>
+
+          {vendorBills.length === 0 && (
+            <div className="bg-amber-50 p-3 rounded text-sm">
+              <p className="text-amber-700 font-semibold">No Bills Available</p>
+              <p className="text-amber-600">This vendor has no bills to allocate to.</p>
+            </div>
+          )}
+
+          {vendorBills.length > 0 && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Select Bill *</Label>
+                <Select value={billId} onValueChange={setBillId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pick a bill" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendorBills.map((b) => {
+                      const allocated = allocations
+                        .filter((a) => a.bill_id === b.id)
+                        .reduce((s, a) => s + Number(a.amount_applied), 0);
+                      const remaining = Math.max(0, Number(b.amount) - allocated);
+                      return (
+                        <SelectItem key={b.id} value={b.id}>
+                          Bill {b.bill_number || b.id.substring(0, 8)} — ₹{remaining.toLocaleString('en-IN')} due
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedBill && (
+                <div className="bg-blue-50 p-3 rounded text-sm">
+                  <p className="font-semibold text-blue-900">Bill Details</p>
+                  <p className="text-blue-700">Amount: ₹{Number(selectedBill.amount).toLocaleString('en-IN')}</p>
+                  <p className="text-blue-700">Remaining: ₹{billRemaining.toLocaleString('en-IN')}</p>
+                </div>
+              )}
+
+              {selectedBill && (
+                <div className="space-y-2">
+                  <Label>Amount to Allocate *</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.00"
+                    max={maxAllowableAmount}
+                  />
+                  {amount && parseFloat(amount) > maxAllowableAmount && (
+                    <p className="text-xs text-red-600">
+                      Cannot allocate more than ₹{maxAllowableAmount.toLocaleString('en-IN')}
+                    </p>
+                  )}
+                  {amount && parseFloat(amount) <= maxAllowableAmount && (
+                    <p className="text-xs text-green-600">
+                      ✓ After allocation: ₹{(maxAllowableAmount - parseFloat(amount)).toLocaleString('en-IN')} advance remaining
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={!billId || !amount || parseFloat(amount) > maxAllowableAmount}
+                >
+                  Apply Advance
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const AddExpenseDialog = ({
   open,
   onOpenChange,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) => {
-  const { addBill } = useBills();
+  const { addBill, allocateToBill } = useBills();
+  const { addTransaction } = useTransactions();
   const { vendors } = useVendors();
   const { expenseCategories } = useAccountCategories();
+  const { accounts } = useAccounts();
+  
+  // Expense tab state
   const [vendorId, setVendorId] = useState('');
   const [billNumber, setBillNumber] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [amount, setAmount] = useState('');
+  const [fromAccountId, setFromAccountId] = useState('');
+  const [isPayLater, setIsPayLater] = useState(false);
+  
+  // Advance tab state
+  const [advAmount, setAdvAmount] = useState('');
+  const [advDate, setAdvDate] = useState(new Date().toISOString().split('T')[0]);
+  const [advFromAccountId, setAdvFromAccountId] = useState('');
+  const [advVendorId, setAdvVendorId] = useState('');
+  const [advDescription, setAdvDescription] = useState('');
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<'expense' | 'advance'>('expense');
 
   useEffect(() => {
     if (open) {
+      // Reset expense form
       setVendorId('');
       setBillNumber('');
       setCategoryId('');
       setDate(new Date().toISOString().split('T')[0]);
       setAmount('');
+      setFromAccountId(accounts.find((a) => a.is_default)?.id || '');
+      setIsPayLater(false);
+      
+      // Reset advance form
+      setAdvAmount('');
+      setAdvDate(new Date().toISOString().split('T')[0]);
+      setAdvFromAccountId(accounts.find((a) => a.is_default)?.id || '');
+      setAdvVendorId('');
+      setAdvDescription('');
+      
+      setActiveTab('expense');
     }
-  }, [open]);
+  }, [open, accounts]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleExpenseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!vendorId || !amount) return;
-    await addBill({
-      vendor_id: vendorId,
-      bill_number: billNumber || undefined,
-      category_id: categoryId || null,
-      date,
-      amount: parseFloat(amount),
-    });
-    onOpenChange(false);
+    if (!isPayLater && !fromAccountId) return;
+
+    setIsSubmitting(true);
+    try {
+      // First, add the bill
+      const newBill = await addBill({
+        vendor_id: vendorId,
+        bill_number: billNumber || undefined,
+        category_id: categoryId || null,
+        date,
+        amount: parseFloat(amount),
+      });
+
+      // If "Pay Now" is selected, create a transaction and allocate it to the bill
+      if (!isPayLater && fromAccountId) {
+        const newTransaction = await addTransaction({
+          type: 'Expense',
+          amount: parseFloat(amount),
+          from_account_id: fromAccountId,
+          entity_id: vendorId,
+          transaction_date: date,
+          description: `Payment for Bill ${billNumber || '(no bill number)'}`,
+          transaction_status: 'Available',
+        });
+
+        // Link the transaction to the bill and update bill status to "paid"
+        if (newBill && newTransaction) {
+          await allocateToBill({
+            transaction_id: newTransaction.id,
+            bill_id: newBill.id,
+            amount_applied: parseFloat(amount),
+          });
+        }
+      }
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error adding expense:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAdvanceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!advAmount || !advFromAccountId) return;
+
+    setIsSubmitting(true);
+    try {
+      await addTransaction({
+        type: 'Advance Paid',
+        amount: parseFloat(advAmount),
+        from_account_id: advFromAccountId,
+        entity_id: advVendorId || null,
+        transaction_date: advDate,
+        description: advDescription || null,
+        transaction_status: 'Available',
+      });
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error adding advance:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Bill</DialogTitle>
+          <DialogTitle>Add Expense / Advance</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Vendor *</Label>
-            <Select value={vendorId} onValueChange={setVendorId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select vendor" />
-              </SelectTrigger>
-              <SelectContent>
-                {vendors.map((v) => (
-                  <SelectItem key={v.vendor_id} value={v.vendor_id}>
-                    {v.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Bill Number</Label>
-            <Input value={billNumber} onChange={(e) => setBillNumber(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {expenseCategories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Date *</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-          </div>
-          <div className="space-y-2">
-            <Label>Amount *</Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">Save Bill</Button>
-          </div>
-        </form>
+        
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'expense' | 'advance')} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="expense">Expense</TabsTrigger>
+            <TabsTrigger value="advance">Advance</TabsTrigger>
+          </TabsList>
+          
+          {/* EXPENSE TAB */}
+          <TabsContent value="expense" className="space-y-4 mt-4">
+            <form onSubmit={handleExpenseSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Vendor *</Label>
+                <Select value={vendorId} onValueChange={setVendorId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select vendor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendors.map((v) => (
+                      <SelectItem key={v.vendor_id} value={v.vendor_id}>
+                        {v.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Bill No and Bill Date on same line */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Bill No</Label>
+                  <Input value={billNumber} onChange={(e) => setBillNumber(e.target.value)} placeholder="e.g., INV-001" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Bill Date *</Label>
+                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {expenseCategories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Amount *</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  required
+                  placeholder="0.00"
+                />
+              </div>
+
+              {/* Payment Method Section */}
+              <div className="space-y-3 pt-2 border-t">
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-base font-semibold">Payment Method *</Label>
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                </div>
+
+                <div className="space-y-2">
+                  <Select value={fromAccountId} onValueChange={setFromAccountId} disabled={isPayLater}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts.length === 0 ? (
+                        <SelectItem value="none" disabled>
+                          No accounts available
+                        </SelectItem>
+                      ) : (
+                        accounts
+                          .filter((a) => a.account_type === 'cash_bank')
+                          .map((a) => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.name} (₹{a.balance.toLocaleString('en-IN')})
+                            </SelectItem>
+                          ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="pay_later_checkbox"
+                    checked={isPayLater}
+                    onChange={(e) => setIsPayLater(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="pay_later_checkbox" className="cursor-pointer font-normal">
+                    Pay later
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || (!isPayLater && !fromAccountId)}
+                >
+                  {isSubmitting ? 'Saving...' : 'Save Expense'}
+                </Button>
+              </div>
+            </form>
+          </TabsContent>
+          
+          {/* ADVANCE TAB */}
+          <TabsContent value="advance" className="space-y-4 mt-4">
+            <form onSubmit={handleAdvanceSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Amount *</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={advAmount}
+                  onChange={(e) => setAdvAmount(e.target.value)}
+                  required
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Date *</Label>
+                <Input
+                  type="date"
+                  value={advDate}
+                  onChange={(e) => setAdvDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>From Account *</Label>
+                <Select value={advFromAccountId} onValueChange={setAdvFromAccountId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No accounts available
+                      </SelectItem>
+                    ) : (
+                      accounts
+                        .filter((a) => a.account_type === 'cash_bank')
+                        .map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.name} (₹{a.balance.toLocaleString('en-IN')})
+                          </SelectItem>
+                        ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Vendor (optional)</Label>
+                <Select value={advVendorId} onValueChange={setAdvVendorId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select vendor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendors.map((v) => (
+                      <SelectItem key={v.vendor_id} value={v.vendor_id}>
+                        {v.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Description (optional)</Label>
+                <Input
+                  value={advDescription}
+                  onChange={(e) => setAdvDescription(e.target.value)}
+                  placeholder="e.g., Advance to ABC vendor"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || !advAmount || !advFromAccountId}
+                >
+                  {isSubmitting ? 'Saving...' : 'Save Advance'}
+                </Button>
+              </div>
+            </form>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
@@ -147,12 +551,16 @@ const QuickPayBillDialog = ({
   open,
   onOpenChange,
   bill,
+  advances,
+  allocations,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   bill: Bill | null;
+  advances: any[];
+  allocations: BillAllocation[];
 }) => {
-  const { allocateToBill, allocations } = useBills();
+  const { allocateToBill } = useBills();
   const { addTransaction } = useTransactions();
   const { accounts } = useAccounts();
   const { vendors } = useVendors();
@@ -160,7 +568,20 @@ const QuickPayBillDialog = ({
   const [fromAccountId, setFromAccountId] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [description, setDescription] = useState('');
+  const [useAdvance, setUseAdvance] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Calculate total advance available for this vendor
+  const vendorAdvances = bill
+    ? advances.filter((a) => a.entity_id === bill.vendor_id)
+    : [];
+  
+  const totalAdvanceAvailable = vendorAdvances.reduce((sum, adv) => {
+    const allocated = allocations
+      .filter((a) => a.transaction_id === adv.id)
+      .reduce((s, a) => s + Number(a.amount_applied), 0);
+    return sum + (Number(adv.amount) - allocated);
+  }, 0);
 
   useEffect(() => {
     if (open && bill) {
@@ -172,32 +593,61 @@ const QuickPayBillDialog = ({
       setPaymentDate(new Date().toISOString().split('T')[0]);
       setDescription('');
       setFromAccountId(accounts.find((a) => a.is_default)?.id || '');
+      setUseAdvance(false);
     }
   }, [open, bill, allocations, accounts]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bill || !fromAccountId || !amount) return;
+    if (!bill || !amount) return;
 
     setIsLoading(true);
     try {
-      // 1. Create Expense transaction
-      const tx = await addTransaction({
-        type: 'Expense',
-        amount: parseFloat(amount),
-        from_account_id: fromAccountId,
-        entity_id: bill.vendor_id,
-        transaction_date: paymentDate,
-        description: description || `Payment for Bill #${bill.bill_number || bill.id}`,
-        transaction_status: 'Available',
-      });
+      const amountToAllocate = parseFloat(amount);
 
-      // 2. Allocate transaction to bill
-      await allocateToBill({
-        transaction_id: tx.id,
-        bill_id: bill.id,
-        amount_applied: parseFloat(amount),
-      });
+      if (useAdvance && totalAdvanceAvailable > 0) {
+        // Allocate from advances
+        let remainingAmount = Math.min(amountToAllocate, totalAdvanceAvailable);
+        
+        for (const adv of vendorAdvances) {
+          if (remainingAmount <= 0) break;
+          
+          const allocated = allocations
+            .filter((a) => a.transaction_id === adv.id)
+            .reduce((s, a) => s + Number(a.amount_applied), 0);
+          const available = Number(adv.amount) - allocated;
+          
+          if (available > 0) {
+            const toAllocate = Math.min(available, remainingAmount);
+            await allocateToBill({
+              transaction_id: adv.id,
+              bill_id: bill.id,
+              amount_applied: toAllocate,
+            });
+            remainingAmount -= toAllocate;
+          }
+        }
+      } else if (!useAdvance) {
+        // Create Expense transaction from account
+        if (!fromAccountId) return;
+        
+        const tx = await addTransaction({
+          type: 'Expense',
+          amount: amountToAllocate,
+          from_account_id: fromAccountId,
+          entity_id: bill.vendor_id,
+          transaction_date: paymentDate,
+          description: description || `Payment for Bill #${bill.bill_number || bill.id}`,
+          transaction_status: 'Available',
+        });
+
+        // Allocate transaction to bill
+        await allocateToBill({
+          transaction_id: tx.id,
+          bill_id: bill.id,
+          amount_applied: amountToAllocate,
+        });
+      }
 
       onOpenChange(false);
     } catch (error) {
@@ -266,27 +716,53 @@ const QuickPayBillDialog = ({
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="account">Pay From Account *</Label>
-              <Select value={fromAccountId} onValueChange={setFromAccountId}>
-                <SelectTrigger id="account">
-                  <SelectValue placeholder="Select cash/bank account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cashBankAccounts.length === 0 ? (
-                    <SelectItem value="none" disabled>
-                      No cash/bank accounts available
-                    </SelectItem>
-                  ) : (
-                    cashBankAccounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name} (₹{a.balance.toLocaleString('en-IN')})
+            {/* Advance Payment Option */}
+            {totalAdvanceAvailable > 0 && (
+              <div className="space-y-3 p-4 rounded-lg bg-purple-50 border border-purple-200">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="use_advance_checkbox"
+                    checked={useAdvance}
+                    onChange={(e) => setUseAdvance(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 mt-1"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="use_advance_checkbox" className="cursor-pointer font-semibold text-purple-900">
+                      Use Advance Payment
+                    </Label>
+                    <p className="text-xs text-purple-700 mt-1">
+                      Available Credit: ₹{totalAdvanceAvailable.toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Pay From Account - Show only if not using advance */}
+            {!useAdvance && (
+              <div className="space-y-2">
+                <Label htmlFor="account">Pay From Account *</Label>
+                <Select value={fromAccountId} onValueChange={setFromAccountId}>
+                  <SelectTrigger id="account">
+                    <SelectValue placeholder="Select cash/bank account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cashBankAccounts.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No cash/bank accounts available
                       </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+                    ) : (
+                      cashBankAccounts.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.name} (₹{a.balance.toLocaleString('en-IN')})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="date">Payment Date *</Label>
@@ -299,22 +775,24 @@ const QuickPayBillDialog = ({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="e.g., Check #123, Online transfer"
-              />
-            </div>
+            {!useAdvance && (
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Input
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="e.g., Check #123, Online transfer"
+                />
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading} className="bg-green-600 hover:bg-green-700">
-                {isLoading ? 'Recording...' : 'Record Payment'}
+              <Button type="submit" disabled={isLoading || (useAdvance ? false : !fromAccountId)} className="bg-green-600 hover:bg-green-700">
+                {isLoading ? 'Processing...' : 'Record Payment'}
               </Button>
             </div>
           </form>
@@ -511,76 +989,51 @@ const AllocateBillDialog = ({
   );
 };
 
-export const BillsPage = () => {
+export const ExpensesPage = () => {
   const { bills, allocations, loading, deleteBill } = useBills();
   const { vendors } = useVendors();
-  const { transactions } = useTransactions();
-  const [search, setSearch] = useState('');
+  const { transactions, deleteTransaction } = useTransactions();
+  const [selectedVendor, setSelectedVendor] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [showAdd, setShowAdd] = useState(false);
-  const [allocBill, setAllocBill] = useState<Bill | null>(null);
   const [quickPayBill, setQuickPayBill] = useState<Bill | null>(null);
   const [expandedBill, setExpandedBill] = useState<string | null>(null);
+  const [expandedAdvance, setExpandedAdvance] = useState<string | null>(null);
+  const [advanceToApply, setAdvanceToApply] = useState<string | null>(null);
 
   const vendorMap = useMemo(() => new Map(vendors.map((v) => [v.vendor_id, v.name])), [vendors]);
 
+  // Filter bills by criteria
   const filtered = bills.filter((b) => {
-    const vendor = vendorMap.get(b.vendor_id) || '';
-    return (
-      vendor.toLowerCase().includes(search.toLowerCase()) ||
-      (b.bill_number || '').toLowerCase().includes(search.toLowerCase())
-    );
+    const matchesVendor = !selectedVendor || b.vendor_id === selectedVendor;
+    const billDate = new Date(b.date);
+    const matchesStartDate = !startDate || billDate >= new Date(startDate);
+    const matchesEndDate = !endDate || billDate <= new Date(endDate);
+    return matchesVendor && matchesStartDate && matchesEndDate;
   });
 
-  // Calculate vendor summary
-  const vendorSummary = useMemo(() => {
-    const summary = new Map<
-      string,
-      { totalBills: number; totalPaid: number; totalRemaining: number; advanceBalance: number }
-    >();
+  // Filter and process advances
+  const advances = transactions.filter((t) => t.type === 'Advance Paid');
+  const filteredAdvances = advances.filter((adv) => {
+    const matchesVendor = !selectedVendor || adv.entity_id === selectedVendor;
+    const advDate = new Date(adv.transaction_date);
+    const matchesStartDate = !startDate || advDate >= new Date(startDate);
+    const matchesEndDate = !endDate || advDate <= new Date(endDate);
+    return matchesVendor && matchesStartDate && matchesEndDate;
+  });
 
-    bills.forEach((bill) => {
-      const paid = allocations
-        .filter((a) => a.bill_id === bill.id)
-        .reduce((s, a) => s + Number(a.amount_applied), 0);
-      const remaining = Number(bill.amount) - paid;
+  const advancesWithAllocations = filteredAdvances.map((adv) => {
+    const allocated = allocations
+      .filter((a) => a.transaction_id === adv.id)
+      .reduce((s, a) => s + Number(a.amount_applied), 0);
+    return {
+      transaction: adv,
+      allocated,
+      available: Number(adv.amount) - allocated,
+    };
+  });
 
-      const current = summary.get(bill.vendor_id) || {
-        totalBills: 0,
-        totalPaid: 0,
-        totalRemaining: 0,
-        advanceBalance: 0,
-      };
-      current.totalBills += Number(bill.amount);
-      current.totalPaid += paid;
-      current.totalRemaining += remaining;
-      summary.set(bill.vendor_id, current);
-    });
-
-    // Calculate advance balance per vendor
-    vendors.forEach((v) => {
-      const vendorAdvances = transactions.filter(
-        (t) => t.type === 'Advance Paid' && t.entity_id === v.vendor_id && t.transaction_status !== 'Void',
-      );
-      const advanceBalance = vendorAdvances.reduce((sum, tx) => {
-        const allocated = allocations
-          .filter((a) => a.transaction_id === tx.id)
-          .reduce((s, a) => s + Number(a.amount_applied), 0);
-        const remaining = Number(tx.amount) - allocated;
-        return sum + (remaining > 0 ? remaining : 0);
-      }, 0);
-
-      const current = summary.get(v.vendor_id) || {
-        totalBills: 0,
-        totalPaid: 0,
-        totalRemaining: 0,
-        advanceBalance: 0,
-      };
-      current.advanceBalance = advanceBalance;
-      summary.set(v.vendor_id, current);
-    });
-
-    return summary;
-  }, [bills, allocations, vendors, transactions]);
 
   if (loading) {
     return (
@@ -591,61 +1044,175 @@ export const BillsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold text-foreground mb-6">Bills</h1>
-
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search bills…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
+    <div className="min-h-screen bg-background pb-24">
+      {/* Header */}
+      <div className="sticky top-0 z-10 border-b border-border bg-card">
+        <div className="px-4 py-4">
+          <h1 className="text-2xl font-bold">Expenses</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage vendor expenses and advances</p>
         </div>
+      </div>
 
-        {/* Vendor Summary Section */}
-        {vendors.length > 0 && (
-          <Card className="p-4 mb-6 bg-slate-50">
-            <h3 className="font-semibold text-sm text-slate-700 mb-3">Vendor Overview</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {vendors.map((v) => {
-                const summary = vendorSummary.get(v.vendor_id) || {
-                  totalBills: 0,
-                  totalPaid: 0,
-                  totalRemaining: 0,
-                  advanceBalance: 0,
-                };
-                return (
-                  <div
-                    key={v.vendor_id}
-                    className="bg-white p-3 rounded border border-slate-200 text-sm"
-                  >
-                    <p className="font-semibold text-foreground">{v.name}</p>
-                    <div className="text-xs text-muted-foreground space-y-1 mt-2">
-                      <p>Bills: ₹{summary.totalBills.toLocaleString('en-IN')}</p>
-                      <p className="text-green-600">Paid: ₹{summary.totalPaid.toLocaleString('en-IN')}</p>
-                      <p className="text-red-600">Owed: ₹{summary.totalRemaining.toLocaleString('en-IN')}</p>
-                      {summary.advanceBalance > 0 && (
-                        <p className="text-purple-600 font-semibold">
-                          Advance: ₹{summary.advanceBalance.toLocaleString('en-IN')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        {/* Filters */}
+        <Card className="p-4 border-border">
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold">Filters</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Vendor</label>
+                <Select value={selectedVendor} onValueChange={setSelectedVendor}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All vendors" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendors.map((v) => (
+                      <SelectItem key={v.vendor_id} value={v.vendor_id}>
+                        {v.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Start Date</label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  placeholder="From date"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">End Date</label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  placeholder="To date"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedVendor('');
+                    setStartDate('');
+                    setEndDate('');
+                  }}
+                  className="w-full"
+                >
+                  Reset Filters
+                </Button>
+              </div>
             </div>
-          </Card>
-        )}
+          </div>
+        </Card>
 
-        {filtered.length === 0 ? (
-          <Card className="p-8 text-center">
-            <p className="text-muted-foreground">No bills yet</p>
+        {/* Bills List */}
+        {filtered.length === 0 && advancesWithAllocations.length === 0 ? (
+          <Card className="p-12 text-center border-dashed">
+            <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+            <p className="text-muted-foreground font-medium">No expenses found</p>
+            <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or add a new expense</p>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
+            {/* Advances */}
+            {advancesWithAllocations.map(({ transaction: adv, allocated, available }) => {
+              const advAllocations = allocations.filter((a) => a.transaction_id === adv.id);
+              const isExpanded = expandedAdvance === adv.id;
+              const vendorName = vendorMap.get(adv.entity_id || '') || 'General';
+              const refNum = `ADV-${(allocations.length + 1).toString().padStart(2, '0')}`;
+
+              return (
+                <div key={adv.id}>
+                  <Card className="p-6 border transition-all hover:shadow-md bg-purple-50 border-purple-200">
+                    <div className="flex items-start justify-between">
+                      {/* Left Section */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <h3 className="text-lg font-semibold text-foreground">{vendorName}</h3>
+                          <Badge className="bg-purple-100 text-purple-700 border-purple-200">advance paid</Badge>
+                        </div>
+                        
+                        <div className="space-y-1 mb-3">
+                          <p className="text-sm text-muted-foreground">Ref #: {refNum}</p>
+                          <p className="text-sm text-muted-foreground">Date: {format(new Date(adv.transaction_date), 'dd MMM yyyy')}</p>
+                        </div>
+
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Available Credit: ₹{available.toLocaleString('en-IN')} unutilized • ₹{allocated.toLocaleString('en-IN')} advanced
+                        </p>
+                      </div>
+
+                      {/* Right Section */}
+                      <div className="flex flex-col items-end gap-4 ml-6">
+                        <p className="text-2xl font-bold text-foreground">₹{Number(adv.amount).toLocaleString('en-IN')}</p>
+                        
+                        <div className="flex items-center gap-2">
+                          {available > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                              onClick={() => setAdvanceToApply(adv.id)}
+                            >
+                              Apply to Bill
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => {
+                              if (confirm('Delete this advance?')) deleteTransaction(adv.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expandable Allocation History */}
+                    {advAllocations.length > 0 && (
+                      <div className="mt-4 pt-4 border-t">
+                        <button
+                          onClick={() => setExpandedAdvance(isExpanded ? null : adv.id)}
+                          className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                          Allocated to Bills ({advAllocations.length})
+                        </button>
+
+                        {isExpanded && (
+                          <div className="mt-3 space-y-2">
+                            {advAllocations.map((alloc) => (
+                              <div key={alloc.id} className="p-3 rounded-md text-sm bg-white border border-purple-100">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium">₹{Number(alloc.amount_applied).toLocaleString('en-IN')}</p>
+                                    <p className="text-xs opacity-75">
+                                      Bill ID: {alloc.bill_id.substring(0, 8)}...
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                </div>
+              );
+            })}
+            {/* Bills Rows */}
             {filtered.map((b) => {
               const totalAllocated = allocations
                 .filter((a) => a.bill_id === b.id)
@@ -656,96 +1223,92 @@ export const BillsPage = () => {
 
               return (
                 <div key={b.id}>
-                  <Card className="p-4">
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-foreground">
-                            {vendorMap.get(b.vendor_id) || 'Unknown vendor'}
-                          </h3>
+                  <Card className={`p-6 border transition-all hover:shadow-md ${
+                    b.status === 'paid' ? 'bg-green-50 border-green-200' : 'bg-card border-border'
+                  }`}>
+                    <div className="flex items-start justify-between">
+                      {/* Left Section */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <h3 className="text-lg font-semibold text-foreground">{vendorMap.get(b.vendor_id) || 'Unknown'}</h3>
                           <Badge className={statusColors[b.status]}>{b.status}</Badge>
                         </div>
-                        {b.bill_number && (
-                          <p className="text-sm text-muted-foreground">Bill #: {b.bill_number}</p>
-                        )}
-                        <p className="text-sm text-muted-foreground">
-                          Date: {format(new Date(b.date), 'dd MMM yyyy')}
-                        </p>
-                        <p className="text-sm font-medium text-foreground mt-2">
-                          ₹{totalAllocated.toLocaleString('en-IN')} paid • ₹
-                          {remaining.toLocaleString('en-IN')} remaining
+                        
+                        <div className="space-y-1 mb-3">
+                          {b.bill_number && (
+                            <p className="text-sm text-muted-foreground">Bill #: {b.bill_number}</p>
+                          )}
+                          <p className="text-sm text-muted-foreground">Date: {format(new Date(b.date), 'dd MMM yyyy')}</p>
+                        </div>
+
+                        <p className="text-sm font-medium text-muted-foreground">
+                          ₹{totalAllocated.toLocaleString('en-IN')} paid • ₹{remaining.toLocaleString('en-IN')} remaining
                         </p>
                       </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <p className="font-bold text-lg">₹{Number(b.amount).toLocaleString('en-IN')}</p>
-                        <div className="flex flex-wrap gap-1 justify-end">
+
+                      {/* Right Section */}
+                      <div className="flex flex-col items-end gap-4 ml-6">
+                        <p className="text-2xl font-bold text-foreground">₹{Number(b.amount).toLocaleString('en-IN')}</p>
+                        
+                        <div className="flex items-center gap-2">
                           {b.status !== 'paid' && (
-                            <>
-                              <Button 
-                                size="sm" 
-                                onClick={() => setQuickPayBill(b)}
-                                className="bg-green-600 hover:bg-green-700 text-white"
-                              >
-                                Pay Now
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => setAllocBill(b)}>
-                                Allocate
-                              </Button>
-                            </>
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={() => setQuickPayBill(b)}
+                            >
+                              Pay
+                            </Button>
                           )}
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-destructive"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={() => {
                               if (confirm('Delete this bill?')) deleteBill(b.id);
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                          {billAllocations.length > 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setExpandedBill(isExpanded ? null : b.id)}
-                            >
-                              {isExpanded ? (
-                                <ChevronUp className="h-4 w-4" />
-                              ) : (
-                                <ChevronDown className="h-4 w-4" />
-                              )}
-                            </Button>
-                          )}
                         </div>
                       </div>
                     </div>
-                  </Card>
 
-                  {/* Expandable Payment History */}
-                  {isExpanded && billAllocations.length > 0 && (
-                    <Card className="p-4 bg-slate-50 rounded-t-none border-t-0 space-y-2">
-                      <h4 className="text-sm font-semibold text-foreground mb-3">Payment History</h4>
-                      {billAllocations.map((alloc) => (
-                        <div
-                          key={alloc.id}
-                          className={`p-3 rounded border ${txTypeColors(alloc.transaction_type)}`}
+                    {/* Expandable Payment History */}
+                    {billAllocations.length > 0 && (
+                      <div className="mt-4 pt-4 border-t">
+                        <button
+                          onClick={() => setExpandedBill(isExpanded ? null : b.id)}
+                          className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                         >
-                          <div className="flex justify-between items-start">
-                            <div className="text-sm">
-                              <p className="font-medium">₹{Number(alloc.amount_applied).toLocaleString('en-IN')}</p>
-                              <p className="text-xs">{alloc.transaction_date && format(new Date(alloc.transaction_date), 'dd MMM yyyy')}</p>
-                              {alloc.transaction_description && (
-                                <p className="text-xs">{alloc.transaction_description}</p>
-                              )}
-                            </div>
-                            <Badge variant="outline" className="text-xs">
-                              {alloc.transaction_type}
-                            </Badge>
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                          Payment History ({billAllocations.length})
+                        </button>
+
+                        {isExpanded && (
+                          <div className="mt-3 space-y-2">
+                            {billAllocations.map((alloc) => (
+                              <div key={alloc.id} className={`p-3 rounded-md text-sm ${txTypeColors(alloc.transaction_type)}`}>
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium">₹{Number(alloc.amount_applied).toLocaleString('en-IN')}</p>
+                                    <p className="text-xs opacity-75">
+                                      {alloc.transaction_date && format(new Date(alloc.transaction_date), 'dd MMM yyyy')}
+                                    </p>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">{alloc.transaction_type}</Badge>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                      ))}
-                    </Card>
-                  )}
+                        )}
+                      </div>
+                    )}
+                  </Card>
                 </div>
               );
             })}
@@ -755,22 +1318,27 @@ export const BillsPage = () => {
 
       <Button
         onClick={() => setShowAdd(true)}
-        className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg z-50"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
         size="icon"
       >
         <Plus className="h-6 w-6" />
       </Button>
 
-      <AddBillDialog open={showAdd} onOpenChange={setShowAdd} />
+      <AddExpenseDialog open={showAdd} onOpenChange={setShowAdd} />
       <QuickPayBillDialog
         open={!!quickPayBill}
         onOpenChange={(o) => !o && setQuickPayBill(null)}
         bill={quickPayBill}
+        advances={advances}
+        allocations={allocations}
       />
-      <AllocateBillDialog
-        open={!!allocBill}
-        onOpenChange={(o) => !o && setAllocBill(null)}
-        bill={allocBill}
+      <ApplyAdvanceToBillDialog
+        open={!!advanceToApply}
+        onOpenChange={(o) => !o && setAdvanceToApply(null)}
+        advanceId={advanceToApply}
+        advances={advances}
+        bills={bills}
+        allocations={allocations}
       />
     </div>
   );

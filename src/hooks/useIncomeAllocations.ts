@@ -69,11 +69,15 @@ export const useIncomeAllocations = () => {
 
   useEffect(() => {
     const orgId = profile?.organization_id;
-    if (!orgId) return;
+    if (!orgId) {
+      store.set({ allocations: [], loading: false, orgId: null });
+      return;
+    }
     if (state.orgId === orgId) return;
-    singleFlight(() => fetchAll(orgId)).catch((err) =>
-      console.error('Error fetching income allocations:', err),
-    );
+    singleFlight(() => fetchAll(orgId)).catch((err) => {
+      console.error('Error fetching income allocations:', err);
+      store.set({ allocations: [], loading: false, orgId });
+    });
   }, [profile?.organization_id, state.orgId]);
 
   const refetch = async () => {

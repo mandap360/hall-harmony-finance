@@ -1,5 +1,5 @@
 
-import { Calendar, Receipt, BarChart3, Settings, User, CreditCard, TrendingUp } from "lucide-react";
+import { Calendar, Receipt, BarChart3, Settings, User, Wallet } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -18,8 +18,8 @@ import {
 
 const items = [
   { title: "Bookings", url: "/bookings", icon: Calendar },
-  { title: "Transactions", url: "/transactions", icon: Receipt },
-  { title: "Accounts", url: "/accounts", icon: CreditCard },
+  { title: "Expenses", url: "/bills", icon: Receipt },
+  { title: "Banking", url: "/banking", icon: Wallet },
   { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "More", url: "/more", icon: Settings },
 ];

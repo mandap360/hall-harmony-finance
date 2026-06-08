@@ -62,10 +62,14 @@ export const useTransactions = (accountId?: string) => {
 
   useEffect(() => {
     const orgId = profile?.organization_id;
-    if (!orgId) return;
+    if (!orgId) {
+      store.set({ transactions: [], loading: false, orgId: null });
+      return;
+    }
     if (state.orgId === orgId && state.transactions.length > 0) return;
     singleFlight(() => fetchAll(orgId)).catch((err) => {
       console.error('Error fetching transactions:', err);
+      store.set({ transactions: [], loading: false, orgId });
       toast({ title: 'Error', description: 'Failed to fetch transactions', variant: 'destructive' });
     });
   }, [profile?.organization_id, state.orgId, state.transactions.length, toast]);

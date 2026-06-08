@@ -28,10 +28,17 @@ const App = () => (
                 </AuthenticatedLayout>
               </ProtectedRoute>
             } />
-            <Route path="/accounts" element={
+            <Route path="/banking" element={
               <ProtectedRoute>
                 <AuthenticatedLayout>
-                  <Index activeTab="accounts" />
+                  <Index activeTab="banking" />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/bills" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Index activeTab="bills" />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             } />
@@ -46,20 +53,6 @@ const App = () => (
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <Index activeTab="more" />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/transactions" element={
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <Index activeTab="transactions" />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/stats" element={
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <Index activeTab="transactions" />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             } />

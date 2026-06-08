@@ -4,7 +4,7 @@ import { Tag, Shield, Users, Building2, Receipt } from 'lucide-react';
 import { CategoriesPage } from '@/components/CategoriesPage';
 import { ClientsPage } from '@/components/ClientsPage';
 import { VendorsPage } from '@/components/VendorsPage';
-import { BillsPage } from '@/components/BillsPage';
+import { ExpensesPage } from '@/components/BillsPage';
 import { PasswordSecuritySettings } from '@/components/PasswordSecuritySettings';
 
 export const MorePage = () => {
@@ -21,7 +21,7 @@ export const MorePage = () => {
   if (view === 'categories') return <CategoriesPage onBack={() => setView('menu')} />;
   if (view === 'clients') return <Wrap onBack={() => setView('menu')}><ClientsPage /></Wrap>;
   if (view === 'vendors') return <Wrap onBack={() => setView('menu')}><VendorsPage /></Wrap>;
-  if (view === 'bills') return <Wrap onBack={() => setView('menu')}><BillsPage /></Wrap>;
+  if (view === 'bills') return <Wrap onBack={() => setView('menu')}><ExpensesPage /></Wrap>;
   if (view === 'password') return <Wrap onBack={() => setView('menu')}><PasswordSecuritySettings /></Wrap>;
 
   return (
