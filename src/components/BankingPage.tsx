@@ -11,16 +11,9 @@ import { useVendors } from '@/hooks/useVendors';
 import { AddAccountDialog } from '@/components/AddAccountDialog';
 import { AddTransactionDialog } from '@/components/AddTransactionDialog';
 import { AccountTransactions } from '@/components/AccountTransactions';
+import { formatINR, getTransactionTypeColor } from '@/utils/constants';
 import { addMonths, subMonths, format, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
-
-const TYPE_COLORS: Record<TransactionType, string> = {
-  Income: 'bg-green-100 text-green-700 border-green-200',
-  Expense: 'bg-red-100 text-red-700 border-red-200',
-  Refund: 'bg-orange-100 text-orange-700 border-orange-200',
-  'Advance Paid': 'bg-purple-100 text-purple-700 border-purple-200',
-  Transfer: 'bg-blue-100 text-blue-700 border-blue-200',
-};
 
 export const BankingPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -40,13 +33,6 @@ export const BankingPage = () => {
     vendors.forEach((v) => m.set(v.vendor_id, v.name));
     return m;
   }, [clients, vendors]);
-
-  const formatBalance = (balance: number) =>
-    new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-    }).format(balance);
 
   const start = startOfMonth(currentDate);
   const end = endOfMonth(currentDate);
@@ -118,7 +104,7 @@ export const BankingPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-blue-700 font-medium">Total Balance</p>
-                <p className="text-3xl font-bold text-blue-900 mt-1">{formatBalance(totalBalance)}</p>
+                <p className="text-3xl font-bold text-blue-900 mt-1">{formatINR(totalBalance)}</p>
               </div>
               <Wallet className="h-12 w-12 text-blue-300" />
             </div>
@@ -155,7 +141,7 @@ export const BankingPage = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <p className="text-sm font-medium text-muted-foreground">{account.name}</p>
-                          <p className="text-xl font-bold mt-2">{formatBalance(account.balance || 0)}</p>
+                          <p className="text-xl font-bold mt-2">{formatINR(account.balance || 0)}</p>
                         </div>
                         <CreditCard className="h-5 w-5 text-blue-500 flex-shrink-0" />
                       </div>
@@ -179,7 +165,7 @@ export const BankingPage = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <p className="text-sm font-medium text-muted-foreground">{account.name}</p>
-                          <p className="text-xl font-bold mt-2">{formatBalance(account.balance || 0)}</p>
+                          <p className="text-xl font-bold mt-2">{formatINR(account.balance || 0)}</p>
                         </div>
                         <TrendingUp className="h-5 w-5 text-green-500 flex-shrink-0" />
                       </div>
@@ -232,7 +218,7 @@ export const BankingPage = () => {
                       ₹{Number(t.amount).toLocaleString('en-IN')}
                     </div>
                     <div className="col-span-2 flex justify-center">
-                      <Badge variant="outline" className={cn('text-xs', TYPE_COLORS[t.type])}>
+                      <Badge variant="outline" className={cn('text-xs', getTransactionTypeColor(t.type))}>
                         {t.type}
                       </Badge>
                     </div>

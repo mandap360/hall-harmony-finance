@@ -13,30 +13,8 @@ import { useVendors } from '@/hooks/useVendors';
 import { useAccountCategories } from '@/hooks/useAccountCategories';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useAccounts } from '@/hooks/useAccounts';
+import { formatINR, getTransactionTypeColor, getBillStatusColor, APP_CONSTANTS } from '@/utils/constants';
 import { format } from 'date-fns';
-
-const statusColors: Record<BillStatus, string> = {
-  unpaid: 'bg-red-100 text-red-700 border-red-200',
-  partial: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  paid: 'bg-green-100 text-green-700 border-green-200',
-};
-
-const txTypeColors = (type?: string) => {
-  switch (type) {
-    case 'Income':
-      return 'bg-green-50 text-green-700';
-    case 'Advance Paid':
-      return 'bg-purple-50 text-purple-700';
-    case 'Expense':
-      return 'bg-red-50 text-red-700';
-    case 'Refund':
-      return 'bg-orange-50 text-orange-700';
-    case 'Transfer':
-      return 'bg-slate-50 text-slate-700';
-    default:
-      return 'bg-gray-50 text-gray-700';
-  }
-};
 
 const ApplyAdvanceToBillDialog = ({
   open,
@@ -1231,7 +1209,7 @@ export const ExpensesPage = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
                           <h3 className="text-lg font-semibold text-foreground">{vendorMap.get(b.vendor_id) || 'Unknown'}</h3>
-                          <Badge className={statusColors[b.status]}>{b.status}</Badge>
+                          <Badge className={getBillStatusColor(b.status)}>{b.status}</Badge>
                         </div>
                         
                         <div className="space-y-1 mb-3">
@@ -1292,7 +1270,7 @@ export const ExpensesPage = () => {
                         {isExpanded && (
                           <div className="mt-3 space-y-2">
                             {billAllocations.map((alloc) => (
-                              <div key={alloc.id} className={`p-3 rounded-md text-sm ${txTypeColors(alloc.transaction_type)}`}>
+                              <div key={alloc.id} className={`p-3 rounded-md text-sm ${getTransactionTypeColor(alloc.transaction_type)}`}>
                                 <div className="flex justify-between items-start">
                                   <div>
                                     <p className="font-medium">₹{Number(alloc.amount_applied).toLocaleString('en-IN')}</p>

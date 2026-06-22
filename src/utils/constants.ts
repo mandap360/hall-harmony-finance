@@ -51,7 +51,33 @@ export const APP_CONSTANTS = {
     MOBILE_BREAKPOINT: 768,
     FIXED_BUTTON_BOTTOM: 24,
     ANIMATION_DURATION: 200
-  } as const
+  } as const,
+  
+  // Account Types (from database)
+  ACCOUNT_TYPE_DB: {
+    CASH_BANK: 'cash_bank',
+    OWNERS_CAPITAL: 'owners_capital'
+  } as const,
+  
+  // Transaction Type Colors
+  TRANSACTION_TYPE_COLORS: {
+    'Income': 'bg-green-50 text-green-700',
+    'Expense': 'bg-red-50 text-red-700',
+    'Refund': 'bg-orange-50 text-orange-700',
+    'Advance Paid': 'bg-purple-50 text-purple-700',
+    'Transfer': 'bg-slate-50 text-slate-700'
+  } as const,
+  
+  // Bill Status Colors
+  BILL_STATUS_COLORS: {
+    unpaid: 'bg-red-100 text-red-700 border-red-200',
+    partial: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    paid: 'bg-green-100 text-green-700 border-green-200'
+  } as const,
+  
+  // Locale & Currency
+  LOCALE: 'en-IN',
+  CURRENCY_SYMBOL: '₹'
 } as const;
 
 // Type exports for better type safety
@@ -60,3 +86,36 @@ export type TransactionType = typeof APP_CONSTANTS.TRANSACTION_TYPES[keyof typeo
 export type PaymentStatus = typeof APP_CONSTANTS.PAYMENT_STATUS[keyof typeof APP_CONSTANTS.PAYMENT_STATUS];
 export type ReferenceType = typeof APP_CONSTANTS.REFERENCE_TYPES[keyof typeof APP_CONSTANTS.REFERENCE_TYPES];
 export type UserRole = typeof APP_CONSTANTS.USER_ROLES[keyof typeof APP_CONSTANTS.USER_ROLES];
+
+// Utility Functions
+/**
+ * Format number as Indian Rupees (₹)
+ * @example formatINR(1000) => '₹1,000.00'
+ */
+export const formatINR = (amount: number): string => {
+  return `${APP_CONSTANTS.CURRENCY_SYMBOL}${amount.toLocaleString(APP_CONSTANTS.LOCALE, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
+};
+
+/**
+ * Get today's date in ISO format (YYYY-MM-DD)
+ */
+export const getTodayISOString = (): string => {
+  return new Date().toISOString().split('T')[0];
+};
+
+/**
+ * Get transaction type color classes
+ */
+export const getTransactionTypeColor = (type: string): string => {
+  return APP_CONSTANTS.TRANSACTION_TYPE_COLORS[type as keyof typeof APP_CONSTANTS.TRANSACTION_TYPE_COLORS] || 'bg-gray-50 text-gray-700';
+};
+
+/**
+ * Get bill status color classes
+ */
+export const getBillStatusColor = (status: string): string => {
+  return APP_CONSTANTS.BILL_STATUS_COLORS[status as keyof typeof APP_CONSTANTS.BILL_STATUS_COLORS] || 'bg-gray-100 text-gray-700';
+};
