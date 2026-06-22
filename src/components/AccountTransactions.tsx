@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useTransactions, type Transaction } from '@/hooks/useTransactions';
 import { useAccounts, type Account } from '@/hooks/useAccounts';
-import { AddTransactionDialog } from '@/components/AddTransactionDialog';
+import { AddTransferDialog } from '@/components/AddTransferDialog';
 import { SetOpeningBalanceDialog } from '@/components/SetOpeningBalanceDialog';
 import { format } from 'date-fns';
 
@@ -138,10 +138,10 @@ export const AccountTransactions = ({ account, onBack, showBalance = true }: Acc
         </Button>
       )}
 
-      <AddTransactionDialog
+      <AddTransferDialog
         open={showAdd}
         onOpenChange={setShowAdd}
-        defaultAccountId={currentAccount.id}
+        defaultFromAccountId={currentAccount.id}
         onSuccess={() => {
           refreshTransactions();
           refreshAccounts();
