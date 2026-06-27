@@ -563,7 +563,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
 
               <div className="space-y-2">
                 <Label>Notes</Label>
-                <Textarea value={notes} readOnly disabled rows={2} />
+                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
