@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, ChevronDown, ChevronUp, DollarSign, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AmountInput } from '@/components/ui/amount-input';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -138,13 +139,10 @@ const ApplyAdvanceToBillDialog = ({
               {selectedBill && (
                 <div className="space-y-2">
                   <Label>Amount to Allocate *</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <AmountInput
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={setAmount}
                     placeholder="0.00"
-                    max={maxAllowableAmount}
                   />
                   {amount && parseFloat(amount) > maxAllowableAmount && (
                     <p className="text-xs text-red-600">
@@ -364,11 +362,9 @@ const AddExpenseDialog = ({
 
               <div className="space-y-2">
                 <Label>Amount *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
+                <AmountInput
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={setAmount}
                   required
                   placeholder="0.00"
                 />
@@ -437,11 +433,9 @@ const AddExpenseDialog = ({
             <form onSubmit={handleAdvanceSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Amount *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
+                <AmountInput
                   value={advAmount}
-                  onChange={(e) => setAdvAmount(e.target.value)}
+                  onChange={setAdvAmount}
                   required
                   placeholder="0.00"
                 />
@@ -676,12 +670,10 @@ const QuickPayBillDialog = ({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="amount">Payment Amount * (₹)</Label>
-              <Input
+              <AmountInput
                 id="amount"
-                type="number"
-                step="0.01"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={setAmount}
                 required
                 placeholder="0.00"
               />
@@ -926,15 +918,12 @@ const AllocateBillDialog = ({
 
               <div className="space-y-2">
                 <Label htmlFor="allocate-amount">Amount to Allocate *</Label>
-                <Input
+                <AmountInput
                   id="allocate-amount"
-                  type="number"
-                  step="0.01"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={setAmount}
                   required
                   placeholder="0.00"
-                  max={maxAllowableAmount}
                 />
                 {amount && parseFloat(amount) > maxAllowableAmount && (
                   <p className="text-xs text-red-600">

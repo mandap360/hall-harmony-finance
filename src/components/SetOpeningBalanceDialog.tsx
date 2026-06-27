@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { AmountInput } from '@/components/ui/amount-input';
 import { Label } from '@/components/ui/label';
 import { useAccounts } from '@/hooks/useAccounts';
+import { isValidAmount, parseAmount } from '@/utils/validation';
 
 interface Props {
   open: boolean;
@@ -19,7 +20,8 @@ export const SetOpeningBalanceDialog = ({ open, onOpenChange, accountId, current
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateAccount(accountId, { initial_balance: parseFloat(value) || 0 });
+    if (!isValidAmount(value, 0)) return;
+    await updateAccount(accountId, { initial_balance: parseAmount(value) ?? 0 });
     onSuccess ? onSuccess() : onOpenChange(false);
   };
 
@@ -32,7 +34,7 @@ export const SetOpeningBalanceDialog = ({ open, onOpenChange, accountId, current
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Initial Balance (₹)</Label>
-            <Input type="number" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} required />
+            <AmountInput value={value} onChange={setValue} required />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

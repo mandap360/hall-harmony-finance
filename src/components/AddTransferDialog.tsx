@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AmountInput } from '@/components/ui/amount-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
+import { parseAmount } from '@/utils/validation';
 
 interface AddTransferDialogProps {
   open: boolean;
@@ -52,8 +54,8 @@ export const AddTransferDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsedAmount = parseFloat(amount);
-    if (!parsedAmount || parsedAmount <= 0 || !fromAccountId || !toAccountId) return;
+    const parsedAmount = parseAmount(amount);
+    if (parsedAmount === null || parsedAmount <= 0 || !fromAccountId || !toAccountId) return;
     if (fromAccountId === toAccountId) return;
 
     setSubmitting(true);
@@ -83,11 +85,9 @@ export const AddTransferDialog = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Amount *</Label>
-            <Input
-              type="number"
-              step="0.01"
+            <AmountInput
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={setAmount}
               placeholder="0.00"
               required
             />

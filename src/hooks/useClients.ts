@@ -8,6 +8,7 @@ export interface Client {
   client_id: string;
   name: string;
   phone_number: string | null;
+  alternate_phone_number: string | null;
   email: string | null;
   address: string | null;
   organization_id: string;
@@ -61,6 +62,7 @@ export const useClients = () => {
   const addClient = async (data: {
     name: string;
     phone_number?: string | null;
+    alternate_phone_number?: string | null;
     email?: string | null;
     address?: string | null;
   }) => {
@@ -84,7 +86,7 @@ export const useClients = () => {
 
   const updateClient = async (
     client_id: string,
-    data: Partial<Pick<Client, 'name' | 'phone_number' | 'email' | 'address'>>,
+    data: Partial<Pick<Client, 'name' | 'phone_number' | 'alternate_phone_number' | 'email' | 'address'>>,
   ) => {
     try {
       const { error } = await supabase.from('Clients').update(data).eq('client_id', client_id);

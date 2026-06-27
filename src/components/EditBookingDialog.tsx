@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AmountInput } from '@/components/ui/amount-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,6 +18,7 @@ import { useBookings, type Booking } from '@/hooks/useBookings';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { isValidAmount, parseAmount } from '@/utils/validation';
 
 interface EditBookingDialogProps {
   open: boolean;
@@ -65,7 +67,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const { clients } = useClients();
   const { accounts } = useAccounts();
   const { categories } = useAccountCategories();
-  const { addTransaction, deleteTransaction } = useTransactions();
+  const { addTransaction } = useTransactions();
   const { allocate, removeAllocation } = useIncomeAllocations();
   const { refetch: refetchBookings } = useBookings();
   const { profile } = useAuth();
@@ -280,20 +282,28 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
 
   const handleDetailsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isValidAmount(rentFinalized, 0)) {
+      toast({
+        title: 'Invalid rent amount',
+        description: 'Rent Finalized must be a number greater than or equal to 0.',
+        variant: 'destructive',
+      });
+      return;
+    }
     onSubmit(booking.id, {
       eventName,
       clientId,
       startDate: `${startDate}T${startTime}:00`,
       endDate: `${endDate}T${endTime}:00`,
-      rentFinalized: parseFloat(rentFinalized) || 0,
+      rentFinalized: parseFloat(rentFinalized),
       notes: notes || undefined,
     });
   };
 
   // ── Primary payments handlers ──
   const handleAddPayment = async () => {
-    const amt = parseFloat(payAmount);
-    if (!amt || amt <= 0 || !payAccountId || !payCategoryId) {
+    const amt = parseAmount(payAmount);
+    if (amt === null || amt <= 0 || !payAccountId || !payCategoryId) {
       toast({ title: 'Missing fields', description: 'Amount, account, and category are required', variant: 'destructive' });
       return;
     }
@@ -311,19 +321,6 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       setPayAmount('');
       setPayDescription('');
       setPayCategoryId('');
-      await loadPayments();
-      await loadSecondaryPool();
-      await refetchBookings();
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleDeletePayment = async (id: string) => {
-    if (!confirm('Delete this payment?')) return;
-    try {
-      await supabase.from('IncomeAllocations').delete().eq('transaction_id', id);
-      await deleteTransaction(id);
       await loadPayments();
       await loadSecondaryPool();
       await refetchBookings();
@@ -516,12 +513,12 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
             <form onSubmit={handleDetailsSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Event Name *</Label>
-                <Input value={eventName} onChange={(e) => setEventName(e.target.value)} required />
+                <Input value={eventName} readOnly disabled />
               </div>
 
               <div className="space-y-2">
                 <Label>Client *</Label>
-                <Select value={clientId} onValueChange={setClientId}>
+                <Select value={clientId} disabled>
                   <SelectTrigger>
                     <SelectValue placeholder={displayClientName || 'Select client'}>
                       {displayClientName || 'Select client'}
@@ -540,7 +537,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Start Date *</Label>
-                  <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+                  <Input type="date" value={startDate} readOnly disabled />
                 </div>
                 <div className="space-y-2">
                   <Label>Start Time *</Label>
@@ -551,7 +548,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>End Date *</Label>
-                  <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+                  <Input type="date" value={endDate} readOnly disabled />
                 </div>
                 <div className="space-y-2">
                   <Label>End Time *</Label>
@@ -561,18 +558,12 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
 
               <div className="space-y-2">
                 <Label>Rent Finalized *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={rentFinalized}
-                  onChange={(e) => setRentFinalized(e.target.value)}
-                  required
-                />
+                <AmountInput value={rentFinalized} onChange={setRentFinalized} disabled />
               </div>
 
               <div className="space-y-2">
                 <Label>Notes</Label>
-                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+                <Textarea value={notes} readOnly disabled rows={2} />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -591,11 +582,9 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label className="text-xs">Amount *</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <AmountInput
                     value={payAmount}
-                    onChange={(e) => setPayAmount(e.target.value)}
+                    onChange={setPayAmount}
                     placeholder="0.00"
                   />
                 </div>
@@ -664,14 +653,6 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                         </div>
                         {p.description && <div className="text-xs">{p.description}</div>}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive"
-                        onClick={() => handleDeletePayment(p.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </Card>
                   );
                 })
@@ -774,12 +755,10 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                             ))}
                           </SelectContent>
                         </Select>
-                        <Input
-                          type="number"
-                          step="0.01"
+                        <AmountInput
                           placeholder="Amount"
                           value={row.amount}
-                          onChange={(e) => updateDraftRow(row.id, { amount: e.target.value })}
+                          onChange={(v) => updateDraftRow(row.id, { amount: v })}
                           className="h-9"
                         />
                         {isLast && canAddMore ? (

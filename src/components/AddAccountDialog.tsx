@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AmountInput } from '@/components/ui/amount-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { isValidAmount, parseAmount } from '@/utils/validation';
 
 interface AddAccountDialogProps {
   open: boolean;
@@ -23,10 +25,12 @@ export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDia
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const balance = initialBalance.trim() ? parseAmount(initialBalance) ?? 0 : 0;
+    if (initialBalance.trim() && !isValidAmount(initialBalance, 0)) return;
     onSubmit({
       name,
       account_type: accountType,
-      initial_balance: initialBalance ? parseFloat(initialBalance) : 0,
+      initial_balance: balance,
     });
     setName('');
     setAccountType('cash_bank');
@@ -58,11 +62,9 @@ export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDia
           </div>
           <div className="space-y-2">
             <Label>Initial Balance</Label>
-            <Input
-              type="number"
-              step="0.01"
+            <AmountInput
               value={initialBalance}
-              onChange={(e) => setInitialBalance(e.target.value)}
+              onChange={setInitialBalance}
               placeholder="0.00"
             />
           </div>

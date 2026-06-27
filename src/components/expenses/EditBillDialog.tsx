@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AmountInput } from '@/components/ui/amount-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBills, type Bill } from '@/hooks/useBills';
 import { useVendors } from '@/hooks/useVendors';
 import { useAccountCategories } from '@/hooks/useAccountCategories';
+import { isValidAmount, parseAmount } from '@/utils/validation';
 
 interface EditBillDialogProps {
   open: boolean;
@@ -38,7 +40,7 @@ export const EditBillDialog = ({ open, onOpenChange, bill }: EditBillDialogProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bill || !vendorId || !amount) return;
+    if (!bill || !vendorId || !amount || !isValidAmount(amount, 0)) return;
 
     setSubmitting(true);
     try {
@@ -47,7 +49,7 @@ export const EditBillDialog = ({ open, onOpenChange, bill }: EditBillDialogProps
         bill_number: billNumber || null,
         category_id: categoryId || null,
         date,
-        amount: parseFloat(amount),
+        amount: parseAmount(amount) ?? 0,
       });
       onOpenChange(false);
     } finally {
@@ -109,11 +111,9 @@ export const EditBillDialog = ({ open, onOpenChange, bill }: EditBillDialogProps
 
           <div className="space-y-2">
             <Label>Amount *</Label>
-            <Input
-              type="number"
-              step="0.01"
+            <AmountInput
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={setAmount}
               required
             />
           </div>

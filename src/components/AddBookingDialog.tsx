@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AmountInput } from '@/components/ui/amount-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useClients } from '@/hooks/useClients';
+import { useToast } from '@/hooks/use-toast';
+import { isValidAmount } from '@/utils/validation';
 import { Plus } from 'lucide-react';
 import { AddClientDialog } from '@/components/clients/AddClientDialog';
 
@@ -24,6 +27,7 @@ interface AddBookingDialogProps {
 
 export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDialogProps) => {
   const { clients, refetch: refetchClients } = useClients();
+  const { toast } = useToast();
   const [showAddClient, setShowAddClient] = useState(false);
 
   const [eventName, setEventName] = useState('');
@@ -49,12 +53,20 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientId) return;
+    if (!isValidAmount(rentFinalized, 0)) {
+      toast({
+        title: 'Invalid rent amount',
+        description: 'Rent Finalized must be a number greater than or equal to 0.',
+        variant: 'destructive',
+      });
+      return;
+    }
     onSubmit({
       eventName,
       clientId,
       startDate: `${startDate}T${startTime}:00`,
       endDate: `${endDate}T${endTime}:00`,
-      rentFinalized: parseFloat(rentFinalized) || 0,
+      rentFinalized: parseFloat(rentFinalized),
       notes: notes || undefined,
     });
   };
@@ -118,11 +130,10 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
 
             <div className="space-y-2">
               <Label>Rent Finalized *</Label>
-              <Input
-                type="number"
-                step="0.01"
+              <AmountInput
                 value={rentFinalized}
-                onChange={(e) => setRentFinalized(e.target.value)}
+                onChange={setRentFinalized}
+                placeholder="0.00"
                 required
               />
             </div>
