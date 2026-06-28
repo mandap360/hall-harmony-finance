@@ -59,6 +59,7 @@ export const AddTransactionDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     const parsedAmount = parseAmount(amount);
     if (parsedAmount === null || parsedAmount <= 0) return;
 

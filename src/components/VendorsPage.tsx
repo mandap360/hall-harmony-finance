@@ -23,6 +23,7 @@ const VendorDialog = ({
   const [phone, setPhone] = useState('');
   const [gstin, setGstin] = useState('');
   const [address, setAddress] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -30,27 +31,35 @@ const VendorDialog = ({
       setPhone(vendor?.phone_number || '');
       setGstin(vendor?.gstin || '');
       setAddress(vendor?.address || '');
+      setSubmitting(false);
     }
   }, [open, vendor]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (vendor) {
-      await updateVendor(vendor.vendor_id, {
-        name,
-        phone_number: phone || null,
-        gstin: gstin || null,
-        address: address || null,
-      });
-    } else {
-      await addVendor({
-        name,
-        phone_number: phone || null,
-        gstin: gstin || null,
-        address: address || null,
-      });
+    if (submitting) return;
+
+    setSubmitting(true);
+    try {
+      if (vendor) {
+        await updateVendor(vendor.vendor_id, {
+          name,
+          phone_number: phone || null,
+          gstin: gstin || null,
+          address: address || null,
+        });
+      } else {
+        await addVendor({
+          name,
+          phone_number: phone || null,
+          gstin: gstin || null,
+          address: address || null,
+        });
+      }
+      onOpenChange(false);
+    } finally {
+      setSubmitting(false);
     }
-    onOpenChange(false);
   };
 
   return (
@@ -77,10 +86,12 @@ const VendorDialog = ({
             <Textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
               Cancel
             </Button>
-            <Button type="submit">{vendor ? 'Update' : 'Add Vendor'}</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? 'Saving…' : vendor ? 'Update' : 'Add Vendor'}
+            </Button>
           </div>
         </form>
       </DialogContent>

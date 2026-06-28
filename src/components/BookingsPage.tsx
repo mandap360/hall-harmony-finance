@@ -9,6 +9,8 @@ import { BookingTableView } from '@/components/booking/BookingTableView';
 import { BookingCalendarView } from '@/components/booking/BookingCalendarView';
 import { MonthNavigation } from '@/components/MonthNavigation';
 import { addMonths, subMonths } from 'date-fns';
+import { compareBookingDateTime } from '@/utils/bookingDateTime';
+import { PageLoading } from '@/components/ui/page-loading';
 
 export const BookingsPage = () => {
   const { bookings, loading, addBooking, updateBooking, cancelBooking } = useBookings();
@@ -34,15 +36,11 @@ export const BookingsPage = () => {
         const by = parseInt(parts[0], 10);
         return match && bm === m && by === y;
       })
-      .sort((a, b) => a.startDate.localeCompare(b.startDate));
+      .sort((a, b) => compareBookingDateTime(a.startDate, b.startDate));
   }, [bookings, searchTerm, currentDate]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   return (
@@ -108,9 +106,9 @@ export const BookingsPage = () => {
       <AddBookingDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        onSubmit={(data) => {
-          addBooking(data);
-          setShowAddDialog(false);
+        onSubmit={async (data) => {
+          const ok = await addBooking(data);
+          if (ok) setShowAddDialog(false);
         }}
       />
 
@@ -119,9 +117,9 @@ export const BookingsPage = () => {
           open={!!editing}
           onOpenChange={(o) => !o && setEditing(null)}
           booking={editing}
-          onSubmit={(id, data) => {
-            updateBooking(id, data);
-            setEditing(null);
+          onSubmit={async (id, data) => {
+            const ok = await updateBooking(id, data);
+            if (ok) setEditing(null);
           }}
         />
       )}

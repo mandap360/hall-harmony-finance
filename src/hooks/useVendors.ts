@@ -3,6 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
+import {
+  toastAddError,
+  toastDeleteError,
+  toastFetchError,
+  toastUpdateError,
+  toastAdded,
+  toastDeleted,
+  toastUpdated,
+} from '@/utils/toastHelpers';
+import { ENTITY_NAMES } from '@/utils/messages';
 
 export interface Vendor {
   vendor_id: string;
@@ -49,7 +59,7 @@ export const useVendors = () => {
     singleFlight(() => fetchAll(orgId)).catch((err) => {
       console.error('Error fetching vendors:', err);
       store.set({ vendors: [], loading: false, orgId });
-      toast({ title: 'Error', description: 'Failed to fetch vendors', variant: 'destructive' });
+      toastFetchError(toast, ENTITY_NAMES.vendors);
     });
   }, [profile?.organization_id, state.orgId, state.vendors.length, toast]);
 
@@ -73,11 +83,11 @@ export const useVendors = () => {
         .single();
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Vendor added successfully' });
+      toastAdded(toast, 'Vendor');
       return inserted as Vendor;
     } catch (error) {
       console.error('Error adding vendor:', error);
-      toast({ title: 'Error', description: 'Failed to add vendor', variant: 'destructive' });
+      toastAddError(toast, ENTITY_NAMES.vendor);
       throw error;
     }
   };
@@ -90,10 +100,10 @@ export const useVendors = () => {
       const { error } = await supabase.from('Vendors').update(data).eq('vendor_id', vendor_id);
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Vendor updated' });
+      toastUpdated(toast, 'Vendor');
     } catch (error) {
       console.error('Error updating vendor:', error);
-      toast({ title: 'Error', description: 'Failed to update vendor', variant: 'destructive' });
+      toastUpdateError(toast, ENTITY_NAMES.vendor);
     }
   };
 
@@ -102,10 +112,10 @@ export const useVendors = () => {
       const { error } = await supabase.from('Vendors').delete().eq('vendor_id', vendor_id);
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Vendor deleted' });
+      toastDeleted(toast, 'Vendor');
     } catch (error) {
       console.error('Error deleting vendor:', error);
-      toast({ title: 'Error', description: 'Failed to delete vendor', variant: 'destructive' });
+      toastDeleteError(toast, ENTITY_NAMES.vendor);
     }
   };
 

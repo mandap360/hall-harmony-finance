@@ -27,23 +27,32 @@ const CategoryDialog = ({
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountCategoryType>('income');
   const [isSecondary, setIsSecondary] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
       setName(category?.name || '');
       setType(category?.type || 'income');
       setIsSecondary(category?.is_secondary_income || false);
+      setSubmitting(false);
     }
   }, [open, category]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (category) {
-      await updateCategory(category.id, { name, type, is_secondary_income: isSecondary });
-    } else {
-      await addCategory({ name, type, is_secondary_income: isSecondary });
+    if (submitting) return;
+
+    setSubmitting(true);
+    try {
+      if (category) {
+        await updateCategory(category.id, { name, type, is_secondary_income: isSecondary });
+      } else {
+        await addCategory({ name, type, is_secondary_income: isSecondary });
+      }
+      onOpenChange(false);
+    } finally {
+      setSubmitting(false);
     }
-    onOpenChange(false);
   };
 
   return (
@@ -82,10 +91,12 @@ const CategoryDialog = ({
             </div>
           )}
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
               Cancel
             </Button>
-            <Button type="submit">{category ? 'Update' : 'Add'}</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? 'Saving…' : category ? 'Update' : 'Add'}
+            </Button>
           </div>
         </form>
       </DialogContent>

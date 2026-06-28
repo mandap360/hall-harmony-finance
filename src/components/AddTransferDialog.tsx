@@ -41,6 +41,7 @@ export const AddTransferDialog = ({
       setToAccountId('');
       setTransactionDate(new Date().toISOString().split('T')[0]);
       setDescription('');
+      setSubmitting(false);
     }
   }, [open, defaultFromAccountId]);
 
@@ -54,6 +55,7 @@ export const AddTransferDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     const parsedAmount = parseAmount(amount);
     if (parsedAmount === null || parsedAmount <= 0 || !fromAccountId || !toAccountId) return;
     if (fromAccountId === toAccountId) return;

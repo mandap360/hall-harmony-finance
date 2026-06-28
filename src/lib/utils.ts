@@ -5,14 +5,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Re-export utility functions for easier access
-export { financialUtils } from '@/utils/financial';
-export { dateUtils } from '@/utils/dateUtils';
-export { APP_CONSTANTS } from '@/utils/constants';
-export type { 
-  AccountType, 
-  TransactionType, 
-  PaymentStatus, 
-  ReferenceType, 
-  UserRole 
+export { APP_CONSTANTS, formatINR, getTransactionTypeColor, getBillStatusColor, getTransactionTypeAmountColor } from '@/utils/constants';
+export type {
+  AccountType,
+  TransactionType,
+  PaymentStatus,
+  ReferenceType,
+  UserRole,
 } from '@/utils/constants';

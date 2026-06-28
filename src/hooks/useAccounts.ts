@@ -3,6 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
+import {
+  toastAddError,
+  toastDeleteError,
+  toastFetchError,
+  toastUpdateError,
+  toastAdded,
+  toastDeleted,
+  toastUpdated,
+} from '@/utils/toastHelpers';
+import { ENTITY_NAMES } from '@/utils/messages';
 
 export interface Account {
   id: string;
@@ -98,7 +108,7 @@ export const useAccounts = () => {
     singleFlight(() => fetchAll(orgId)).catch((err) => {
       console.error('Error fetching accounts:', err);
       store.set({ accounts: [], loading: false, orgId });
-      toast({ title: 'Error', description: 'Failed to fetch accounts', variant: 'destructive' });
+      toastFetchError(toast, ENTITY_NAMES.accounts);
     });
   }, [profile?.organization_id, state.orgId, state.accounts.length, toast]);
 
@@ -126,10 +136,10 @@ export const useAccounts = () => {
       ]);
       if (error) throw error;
       await refreshAccounts();
-      toast({ title: 'Success', description: 'Account added successfully' });
+      toastAdded(toast, 'Account');
     } catch (error) {
       console.error('Error adding account:', error);
-      toast({ title: 'Error', description: 'Failed to add account', variant: 'destructive' });
+      toastAddError(toast, ENTITY_NAMES.account);
       throw error;
     }
   };
@@ -145,10 +155,10 @@ export const useAccounts = () => {
         .eq('id', id);
       if (error) throw error;
       await refreshAccounts();
-      toast({ title: 'Success', description: 'Account updated successfully' });
+      toastUpdated(toast, 'Account', true);
     } catch (error) {
       console.error('Error updating account:', error);
-      toast({ title: 'Error', description: 'Failed to update account', variant: 'destructive' });
+      toastUpdateError(toast, ENTITY_NAMES.account);
       throw error;
     }
   };
@@ -158,10 +168,10 @@ export const useAccounts = () => {
       const { error } = await supabase.from('Accounts').delete().eq('id', id);
       if (error) throw error;
       await refreshAccounts();
-      toast({ title: 'Success', description: 'Account deleted successfully' });
+      toastDeleted(toast, 'Account', true);
     } catch (error) {
       console.error('Error deleting account:', error);
-      toast({ title: 'Error', description: 'Failed to delete account', variant: 'destructive' });
+      toastDeleteError(toast, ENTITY_NAMES.account);
       throw error;
     }
   };

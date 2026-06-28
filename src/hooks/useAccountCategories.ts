@@ -3,6 +3,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
+import {
+  showErrorToast,
+  toastAddError,
+  toastDeleteError,
+  toastFetchError,
+  toastUpdateError,
+  toastAdded,
+  toastDeleted,
+  toastUpdated,
+} from '@/utils/toastHelpers';
+import { ENTITY_NAMES, VALIDATION_MESSAGES } from '@/utils/messages';
 
 export type AccountCategoryType = 'income' | 'expense';
 
@@ -51,7 +62,7 @@ export const useAccountCategories = () => {
     singleFlight(() => fetchAll(orgId)).catch((err) => {
       console.error('Error fetching account categories:', err);
       store.set({ categories: [], loading: false, orgId });
-      toast({ title: 'Error', description: 'Failed to fetch categories', variant: 'destructive' });
+      toastFetchError(toast, ENTITY_NAMES.categories);
     });
   }, [profile?.organization_id, state.orgId, state.categories.length, toast]);
 
@@ -78,10 +89,10 @@ export const useAccountCategories = () => {
       ]);
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Category added successfully' });
+      toastAdded(toast, 'Category');
     } catch (error) {
       console.error('Error adding category:', error);
-      toast({ title: 'Error', description: 'Failed to add category', variant: 'destructive' });
+      toastAddError(toast, ENTITY_NAMES.category);
     }
   };
 
@@ -91,34 +102,34 @@ export const useAccountCategories = () => {
   ) => {
     const cat = state.categories.find((c) => c.id === id);
     if (cat && !cat.organization_id) {
-      toast({ title: 'Cannot edit default category', variant: 'destructive' });
+      showErrorToast(toast, '', VALIDATION_MESSAGES.cannotEditDefaultCategory.title);
       return;
     }
     try {
       const { error } = await supabase.from('AccountCategories').update(data).eq('id', id);
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Category updated' });
+      toastUpdated(toast, 'Category');
     } catch (error) {
       console.error('Error updating category:', error);
-      toast({ title: 'Error', description: 'Failed to update category', variant: 'destructive' });
+      toastUpdateError(toast, ENTITY_NAMES.category);
     }
   };
 
   const deleteCategory = async (id: string) => {
     const cat = state.categories.find((c) => c.id === id);
     if (cat && !cat.organization_id) {
-      toast({ title: 'Cannot delete default category', variant: 'destructive' });
+      showErrorToast(toast, '', VALIDATION_MESSAGES.cannotDeleteDefaultCategory.title);
       return;
     }
     try {
       const { error } = await supabase.from('AccountCategories').delete().eq('id', id);
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Category deleted' });
+      toastDeleted(toast, 'Category');
     } catch (error) {
       console.error('Error deleting category:', error);
-      toast({ title: 'Error', description: 'Failed to delete category', variant: 'destructive' });
+      toastDeleteError(toast, ENTITY_NAMES.category);
     }
   };
 

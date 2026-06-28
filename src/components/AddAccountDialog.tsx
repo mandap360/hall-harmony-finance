@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AmountInput } from '@/components/ui/amount-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { isValidAmount, parseAmount } from '@/utils/validation';
+import { DialogFormFooter } from '@/components/shared/DialogFormFooter';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 
 interface AddAccountDialogProps {
   open: boolean;
@@ -15,26 +16,36 @@ interface AddAccountDialogProps {
     account_type: 'cash_bank' | 'owners_capital';
     initial_balance?: number;
     is_default?: boolean;
-  }) => void;
+  }) => void | Promise<void>;
 }
 
 export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDialogProps) => {
   const [name, setName] = useState('');
   const [accountType, setAccountType] = useState<'cash_bank' | 'owners_capital'>('cash_bank');
   const [initialBalance, setInitialBalance] = useState('');
+  const { submitting, reset, run } = useSubmitGuard();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (open) {
+      setName('');
+      setAccountType('cash_bank');
+      setInitialBalance('');
+      reset();
+    }
+  }, [open, reset]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const balance = initialBalance.trim() ? parseAmount(initialBalance) ?? 0 : 0;
     if (initialBalance.trim() && !isValidAmount(initialBalance, 0)) return;
-    onSubmit({
-      name,
-      account_type: accountType,
-      initial_balance: balance,
+
+    await run(async () => {
+      await onSubmit({
+        name,
+        account_type: accountType,
+        initial_balance: balance,
+      });
     });
-    setName('');
-    setAccountType('cash_bank');
-    setInitialBalance('');
   };
 
   return (
@@ -46,11 +57,11 @@ export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDia
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Account Name *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input value={name} onChange={(e) => setName(e.target.value)} required disabled={submitting} />
           </div>
           <div className="space-y-2">
             <Label>Account Type *</Label>
-            <Select value={accountType} onValueChange={(v) => setAccountType(v as typeof accountType)}>
+            <Select value={accountType} onValueChange={(v) => setAccountType(v as typeof accountType)} disabled={submitting}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -66,14 +77,15 @@ export const AddAccountDialog = ({ open, onOpenChange, onSubmit }: AddAccountDia
               value={initialBalance}
               onChange={setInitialBalance}
               placeholder="0.00"
+              disabled={submitting}
             />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">Add Account</Button>
-          </div>
+          <DialogFormFooter
+            onCancel={() => onOpenChange(false)}
+            submitLabel="Add Account"
+            submitting={submitting}
+            submittingLabel="Adding…"
+          />
         </form>
       </DialogContent>
     </Dialog>

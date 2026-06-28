@@ -19,6 +19,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { isValidAmount, parseAmount } from '@/utils/validation';
+import { compareBookingDateTime, splitBookingDateTime } from '@/utils/bookingDateTime';
+import { formatINR, getTransactionTypeColor, getTransactionTypeAmountColor } from '@/utils/constants';
+import { VALIDATION_MESSAGES } from '@/utils/messages';
+import { showErrorToast } from '@/utils/toastHelpers';
 
 interface EditBookingDialogProps {
   open: boolean;
@@ -31,16 +35,8 @@ interface EditBookingDialogProps {
     endDate: string;
     rentFinalized: number;
     notes?: string;
-  }) => void;
+  }) => void | Promise<void>;
 }
-
-const splitDateTime = (dt: string) => {
-  const [date, timePart = '10:00:00'] = dt.split('T');
-  return { date, time: timePart.substring(0, 5) };
-};
-
-const fmtINR = (n: number) =>
-  `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const SEC_REFUND_TAG_PREFIX = '[SEC-REFUND]';
 const SEC_REFUND_DESC = (bookingId: string) => `${SEC_REFUND_TAG_PREFIX} for booking ${bookingId}`;
@@ -95,6 +91,10 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   const [endTime, setEndTime] = useState('');
   const [rentFinalized, setRentFinalized] = useState('');
   const [notes, setNotes] = useState('');
+  const [detailsSubmitting, setDetailsSubmitting] = useState(false);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [allocateSubmitting, setAllocateSubmitting] = useState(false);
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
 
   // Payments
   const [payments, setPayments] = useState<PaymentRow[]>([]);
@@ -120,8 +120,8 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
 
   useEffect(() => {
     if (booking && open) {
-      const start = splitDateTime(booking.startDate);
-      const end = splitDateTime(booking.endDate);
+      const start = splitBookingDateTime(booking.startDate);
+      const end = splitBookingDateTime(booking.endDate);
       setEventName(booking.eventName);
       setClientId(booking.clientId || '');
       setStartDate(start.date);
@@ -130,6 +130,10 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       setEndTime(end.time);
       setRentFinalized(String(booking.rentFinalized));
       setNotes(booking.notes || '');
+      setDetailsSubmitting(false);
+      setPaymentSubmitting(false);
+      setAllocateSubmitting(false);
+      setRefundSubmitting(false);
     }
   }, [booking, open]);
 
@@ -280,33 +284,45 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
     }
   }, [open, loadPayments, loadSecondaryPool]);
 
-  const handleDetailsSubmit = (e: React.FormEvent) => {
+  const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (detailsSubmitting) return;
     if (!isValidAmount(rentFinalized, 0)) {
-      toast({
-        title: 'Invalid rent amount',
-        description: 'Rent Finalized must be a number greater than or equal to 0.',
-        variant: 'destructive',
-      });
+      showErrorToast(toast, VALIDATION_MESSAGES.rentInvalid.description, VALIDATION_MESSAGES.rentInvalid.title);
       return;
     }
-    onSubmit(booking.id, {
-      eventName,
-      clientId,
-      startDate: `${startDate}T${startTime}:00`,
-      endDate: `${endDate}T${endTime}:00`,
-      rentFinalized: parseFloat(rentFinalized),
-      notes: notes || undefined,
-    });
+
+    const start = `${startDate}T${startTime}:00`;
+    const end = `${endDate}T${endTime}:00`;
+    if (compareBookingDateTime(start, end) >= 0) {
+      showErrorToast(toast, VALIDATION_MESSAGES.timeRangeInvalid.description, VALIDATION_MESSAGES.timeRangeInvalid.title);
+      return;
+    }
+
+    setDetailsSubmitting(true);
+    try {
+      await onSubmit(booking.id, {
+        eventName,
+        clientId,
+        startDate: start,
+        endDate: end,
+        rentFinalized: parseFloat(rentFinalized),
+        notes: notes || undefined,
+      });
+    } finally {
+      setDetailsSubmitting(false);
+    }
   };
 
   // ── Primary payments handlers ──
   const handleAddPayment = async () => {
+    if (paymentSubmitting) return;
     const amt = parseAmount(payAmount);
     if (amt === null || amt <= 0 || !payAccountId || !payCategoryId) {
       toast({ title: 'Missing fields', description: 'Amount, account, and category are required', variant: 'destructive' });
       return;
     }
+    setPaymentSubmitting(true);
     try {
       const tx = await addTransaction({
         type: 'Income',
@@ -326,6 +342,8 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       await refetchBookings();
     } catch (e) {
       console.error(e);
+    } finally {
+      setPaymentSubmitting(false);
     }
   };
 
@@ -354,6 +372,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   };
 
   const handleAllocateAll = async () => {
+    if (allocateSubmitting) return;
     const valid = draftAllocations
       .map((r) => ({ ...r, amt: parseFloat(r.amount) }))
       .filter((r) => r.categoryId && !isNaN(r.amt) && r.amt > 0);
@@ -381,7 +400,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
 
     const total = valid.reduce((s, r) => s + r.amt, 0);
     if (total > secUnallocated + 0.001) {
-      toast({ title: 'Exceeds pool', description: `Max allocatable: ${fmtINR(secUnallocated)}`, variant: 'destructive' });
+      toast({ title: 'Exceeds pool', description: `Max allocatable: ${formatINR(secUnallocated)}`, variant: 'destructive' });
       return;
     }
 
@@ -391,6 +410,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
     }
 
     const targetTx = poolDepositTxs[0];
+    setAllocateSubmitting(true);
     try {
       for (const r of valid) {
         await allocate(
@@ -405,6 +425,8 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
     } catch (e) {
       console.error(e);
       toast({ title: 'Error', description: 'Failed to allocate', variant: 'destructive' });
+    } finally {
+      setAllocateSubmitting(false);
     }
   };
 
@@ -431,6 +453,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
   };
 
   const handleRefundPool = async () => {
+    if (refundSubmitting) return;
     if (secUnallocated <= 0) {
       toast({ title: 'Nothing to refund', variant: 'destructive' });
       return;
@@ -439,6 +462,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       toast({ title: 'Select account', description: 'Choose source account', variant: 'destructive' });
       return;
     }
+    setRefundSubmitting(true);
     try {
       await addTransaction({
         type: 'Refund',
@@ -454,39 +478,8 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
       await refetchBookings();
     } catch (e) {
       console.error(e);
-    }
-  };
-
-  // ── Transaction type colors ──
-  const getTransactionTypeColor = (type: string) => {
-    switch (type) {
-      case 'Income':
-        return 'text-green-600 bg-green-50';
-      case 'Expense':
-      case 'Refund':
-        return 'text-red-600 bg-red-50';
-      case 'Advance Paid':
-        return 'text-purple-600 bg-purple-50';
-      case 'Transfer':
-        return 'text-slate-600 bg-slate-50';
-      default:
-        return 'text-gray-600 bg-gray-50';
-    }
-  };
-
-  const getTransactionTypeAmount = (type: string) => {
-    switch (type) {
-      case 'Income':
-        return 'text-green-600';
-      case 'Expense':
-      case 'Refund':
-        return 'text-red-600';
-      case 'Advance Paid':
-        return 'text-purple-600';
-      case 'Transfer':
-        return 'text-slate-600';
-      default:
-        return 'text-gray-600';
+    } finally {
+      setRefundSubmitting(false);
     }
   };
 
@@ -567,10 +560,12 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={detailsSubmitting}>
                   Cancel
                 </Button>
-                <Button type="submit">Update Booking</Button>
+                <Button type="submit" disabled={detailsSubmitting}>
+                  {detailsSubmitting ? 'Saving…' : 'Update Booking'}
+                </Button>
               </div>
             </form>
           </TabsContent>
@@ -627,8 +622,8 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                 <Label className="text-xs">Description</Label>
                 <Input value={payDescription} onChange={(e) => setPayDescription(e.target.value)} />
               </div>
-              <Button type="button" onClick={handleAddPayment} className="w-full" size="sm">
-                <Plus className="h-4 w-4 mr-1" /> Add Payment
+              <Button type="button" onClick={handleAddPayment} className="w-full" size="sm" disabled={paymentSubmitting}>
+                <Plus className="h-4 w-4 mr-1" /> {paymentSubmitting ? 'Adding…' : 'Add Payment'}
               </Button>
             </Card>
 
@@ -640,12 +635,12 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                 payments.map((p) => {
                   const acc = accounts.find((a) => a.id === p.to_account_id);
                   const typeColor = getTransactionTypeColor(p.type);
-                  const amountColor = getTransactionTypeAmount(p.type);
+                  const amountColor = getTransactionTypeAmountColor(p.type);
                   return (
                     <Card key={p.id} className="p-3 flex justify-between items-center">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <div className={`font-semibold ${amountColor}`}>{fmtINR(p.amount)}</div>
+                          <div className={`font-semibold ${amountColor}`}>{formatINR(p.amount)}</div>
                           <span className={`text-xs px-2 py-1 rounded ${typeColor}`}>{p.type}</span>
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -665,19 +660,19 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
             <div className="grid grid-cols-4 gap-2 text-sm">
               <Card className="p-3">
                 <div className="text-xs text-muted-foreground">Received</div>
-                <div className="font-semibold text-green-600">{fmtINR(secTotalReceived)}</div>
+                <div className="font-semibold text-green-600">{formatINR(secTotalReceived)}</div>
               </Card>
               <Card className="p-3">
                 <div className="text-xs text-muted-foreground">Allocated</div>
-                <div className="font-semibold">{fmtINR(secTotalAllocated)}</div>
+                <div className="font-semibold">{formatINR(secTotalAllocated)}</div>
               </Card>
               <Card className="p-3">
                 <div className="text-xs text-muted-foreground">Refunded</div>
-                <div className="font-semibold text-orange-600">{fmtINR(poolRefundedAmount)}</div>
+                <div className="font-semibold text-orange-600">{formatINR(poolRefundedAmount)}</div>
               </Card>
               <Card className="p-3">
                 <div className="text-xs text-muted-foreground">Unallocated</div>
-                <div className="font-semibold text-blue-600">{fmtINR(secUnallocated)}</div>
+                <div className="font-semibold text-blue-600">{formatINR(secUnallocated)}</div>
               </Card>
             </div>
 
@@ -691,7 +686,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
             <Card className="p-4 space-y-3">
               <h4 className="font-semibold text-sm">Allocate to Categories</h4>
               <p className="text-xs text-muted-foreground">
-                Pool available: <span className="font-semibold text-blue-600">{fmtINR(secUnallocated)}</span>
+                Pool available: <span className="font-semibold text-blue-600">{formatINR(secUnallocated)}</span>
                 {' · '}Each category can be allocated only once.
               </p>
 
@@ -702,7 +697,7 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                     <div key={a.id} className="flex justify-between items-center text-sm">
                       <span>{a.category_name || 'Uncategorized'}</span>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{fmtINR(a.amount)}</span>
+                        <span className="font-medium">{formatINR(a.amount)}</span>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -792,9 +787,9 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                     <Button
                       size="sm"
                       onClick={handleAllocateAll}
-                      disabled={secUnallocated <= 0}
+                      disabled={allocateSubmitting || secUnallocated <= 0}
                     >
-                      Allocate
+                      {allocateSubmitting ? 'Allocating…' : 'Allocate'}
                     </Button>
                   </div>
                 </div>
@@ -815,8 +810,8 @@ export const EditBookingDialog = ({ open, onOpenChange, booking, onSubmit }: Edi
                     ))}
                   </SelectContent>
                 </Select>
-                <Button size="sm" variant="outline" onClick={handleRefundPool} disabled={secUnallocated <= 0}>
-                  Refund {fmtINR(Math.max(secUnallocated, 0))}
+                <Button size="sm" variant="outline" onClick={handleRefundPool} disabled={refundSubmitting || secUnallocated <= 0}>
+                  {refundSubmitting ? 'Refunding…' : `Refund ${formatINR(Math.max(secUnallocated, 0))}`}
                 </Button>
               </div>
             </Card>

@@ -9,6 +9,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { useClients } from '@/hooks/useClients';
 import { useToast } from '@/hooks/use-toast';
 import { isValidAmount } from '@/utils/validation';
+import { compareBookingDateTime } from '@/utils/bookingDateTime';
+import { VALIDATION_MESSAGES } from '@/utils/messages';
+import { showErrorToast } from '@/utils/toastHelpers';
+import { DialogFormFooter } from '@/components/shared/DialogFormFooter';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 import { Plus } from 'lucide-react';
 import { AddClientDialog } from '@/components/clients/AddClientDialog';
 
@@ -22,7 +27,7 @@ interface AddBookingDialogProps {
     endDate: string;
     rentFinalized: number;
     notes?: string;
-  }) => void;
+  }) => void | Promise<void>;
 }
 
 export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDialogProps) => {
@@ -38,6 +43,7 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
   const [endTime, setEndTime] = useState('22:00');
   const [rentFinalized, setRentFinalized] = useState('');
   const [notes, setNotes] = useState('');
+  const { submitting, reset, run } = useSubmitGuard();
 
   useEffect(() => {
     if (open) {
@@ -47,27 +53,34 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
       setEndDate('');
       setRentFinalized('');
       setNotes('');
+      reset();
     }
-  }, [open]);
+  }, [open, reset]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientId) return;
     if (!isValidAmount(rentFinalized, 0)) {
-      toast({
-        title: 'Invalid rent amount',
-        description: 'Rent Finalized must be a number greater than or equal to 0.',
-        variant: 'destructive',
-      });
+      showErrorToast(toast, VALIDATION_MESSAGES.rentInvalid.description, VALIDATION_MESSAGES.rentInvalid.title);
       return;
     }
-    onSubmit({
-      eventName,
-      clientId,
-      startDate: `${startDate}T${startTime}:00`,
-      endDate: `${endDate}T${endTime}:00`,
-      rentFinalized: parseFloat(rentFinalized),
-      notes: notes || undefined,
+
+    const start = `${startDate}T${startTime}:00`;
+    const end = `${endDate}T${endTime}:00`;
+    if (compareBookingDateTime(start, end) >= 0) {
+      showErrorToast(toast, VALIDATION_MESSAGES.timeRangeInvalid.description, VALIDATION_MESSAGES.timeRangeInvalid.title);
+      return;
+    }
+
+    await run(async () => {
+      await onSubmit({
+        eventName,
+        clientId,
+        startDate: start,
+        endDate: end,
+        rentFinalized: parseFloat(rentFinalized),
+        notes: notes || undefined,
+      });
     });
   };
 
@@ -143,12 +156,11 @@ export const AddBookingDialog = ({ open, onOpenChange, onSubmit }: AddBookingDia
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Save Booking</Button>
-            </div>
+            <DialogFormFooter
+              onCancel={() => onOpenChange(false)}
+              submitLabel="Save Booking"
+              submitting={submitting}
+            />
           </form>
         </DialogContent>
       </Dialog>

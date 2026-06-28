@@ -3,6 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
+import {
+  toastAddError,
+  toastDeleteError,
+  toastFetchError,
+  toastUpdateError,
+  toastAdded,
+  toastDeleted,
+  toastUpdated,
+} from '@/utils/toastHelpers';
+import { ENTITY_NAMES } from '@/utils/messages';
 
 export interface Client {
   client_id: string;
@@ -50,7 +60,7 @@ export const useClients = () => {
     singleFlight(() => fetchAll(orgId)).catch((err) => {
       console.error('Error fetching clients:', err);
       store.set({ clients: [], loading: false, orgId });
-      toast({ title: 'Error', description: 'Failed to fetch clients', variant: 'destructive' });
+      toastFetchError(toast, ENTITY_NAMES.clients);
     });
   }, [profile?.organization_id, state.orgId, state.clients.length, toast]);
 
@@ -75,11 +85,11 @@ export const useClients = () => {
         .single();
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Client added successfully' });
+      toastAdded(toast, 'Client');
       return inserted as Client;
     } catch (error) {
       console.error('Error adding client:', error);
-      toast({ title: 'Error', description: 'Failed to add client', variant: 'destructive' });
+      toastAddError(toast, ENTITY_NAMES.client);
       throw error;
     }
   };
@@ -92,10 +102,10 @@ export const useClients = () => {
       const { error } = await supabase.from('Clients').update(data).eq('client_id', client_id);
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Client updated' });
+      toastUpdated(toast, 'Client');
     } catch (error) {
       console.error('Error updating client:', error);
-      toast({ title: 'Error', description: 'Failed to update client', variant: 'destructive' });
+      toastUpdateError(toast, ENTITY_NAMES.client);
     }
   };
 
@@ -104,10 +114,10 @@ export const useClients = () => {
       const { error } = await supabase.from('Clients').delete().eq('client_id', client_id);
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Client deleted' });
+      toastDeleted(toast, 'Client');
     } catch (error) {
       console.error('Error deleting client:', error);
-      toast({ title: 'Error', description: 'Failed to delete client', variant: 'destructive' });
+      toastDeleteError(toast, ENTITY_NAMES.client);
     }
   };
 

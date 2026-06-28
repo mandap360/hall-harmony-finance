@@ -3,6 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
+import {
+  showErrorToast,
+  showSuccessToast,
+  toastAddError,
+  toastDeleteError,
+  toastFetchError,
+  toastDeleted,
+} from '@/utils/toastHelpers';
+import { CRUD_MESSAGES, ENTITY_NAMES } from '@/utils/messages';
 
 export type BillStatus = 'unpaid' | 'partial' | 'paid';
 
@@ -107,7 +116,7 @@ export const useBills = () => {
     singleFlight(() => fetchAll(orgId)).catch((err) => {
       console.error('Error fetching bills:', err);
       store.set({ bills: [], allocations: [], loading: false, orgId });
-      toast({ title: 'Error', description: 'Failed to fetch bills', variant: 'destructive' });
+      toastFetchError(toast, ENTITY_NAMES.bills);
     });
   }, [profile?.organization_id, state.orgId, state.bills.length, state.allocations.length, toast]);
 
@@ -138,11 +147,11 @@ export const useBills = () => {
       ]).select().single();
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Bill created' });
+      showSuccessToast(toast, CRUD_MESSAGES.created(ENTITY_NAMES.bill));
       return inserted as Bill;
     } catch (error) {
       console.error('Error adding bill:', error);
-      toast({ title: 'Error', description: 'Failed to add bill', variant: 'destructive' });
+      toastAddError(toast, ENTITY_NAMES.bill);
       throw error;
     }
   };
@@ -231,10 +240,10 @@ export const useBills = () => {
       }
 
       await refetch();
-      toast({ title: 'Success', description: 'Allocation recorded' });
+      showSuccessToast(toast, CRUD_MESSAGES.allocationRecorded);
     } catch (error) {
       console.error('Error allocating to bill:', error);
-      toast({ title: 'Error', description: 'Failed to allocate', variant: 'destructive' });
+      showErrorToast(toast, CRUD_MESSAGES.allocateFailed);
       throw error;
     }
   };
@@ -244,10 +253,10 @@ export const useBills = () => {
       const { error } = await supabase.from('Bills').delete().eq('id', id);
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Bill deleted' });
+      toastDeleted(toast, 'Bill');
     } catch (error) {
       console.error('Error deleting bill:', error);
-      toast({ title: 'Error', description: 'Failed to delete bill', variant: 'destructive' });
+      toastDeleteError(toast, ENTITY_NAMES.bill);
     }
   };
 

@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
+import { showErrorToast, showSuccessToast } from '@/utils/toastHelpers';
+import { CRUD_MESSAGES } from '@/utils/messages';
 
 export interface IncomeAllocation {
   id: string;
@@ -107,12 +109,12 @@ export const useIncomeAllocations = () => {
       await recomputeStatus(data.transaction_id);
       await refetch();
       if (!options?.silent) {
-        toast({ title: 'Success', description: 'Income allocated' });
+        showSuccessToast(toast, CRUD_MESSAGES.allocated);
       }
     } catch (error) {
       console.error('Error allocating income:', error);
       if (!options?.silent) {
-        toast({ title: 'Error', description: 'Failed to allocate', variant: 'destructive' });
+        showErrorToast(toast, CRUD_MESSAGES.allocateFailed);
       }
       throw error;
     }
@@ -124,10 +126,10 @@ export const useIncomeAllocations = () => {
       if (error) throw error;
       await recomputeStatus(transactionId);
       await refetch();
-      toast({ title: 'Allocation removed' });
+      showSuccessToast(toast, CRUD_MESSAGES.allocationRemoved);
     } catch (error) {
       console.error('Error removing allocation:', error);
-      toast({ title: 'Error', description: 'Failed to remove allocation', variant: 'destructive' });
+      showErrorToast(toast, CRUD_MESSAGES.removeAllocationFailed);
       throw error;
     }
   };

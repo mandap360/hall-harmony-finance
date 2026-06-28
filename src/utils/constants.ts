@@ -91,11 +91,13 @@ export type UserRole = typeof APP_CONSTANTS.USER_ROLES[keyof typeof APP_CONSTANT
 /**
  * Format number as Indian Rupees (₹)
  * @example formatINR(1000) => '₹1,000.00'
+ * @example formatINR(1000, { decimals: 0 }) => '₹1,000'
  */
-export const formatINR = (amount: number): string => {
+export const formatINR = (amount: number, options?: { decimals?: number }): string => {
+  const decimals = options?.decimals ?? 2;
   return `${APP_CONSTANTS.CURRENCY_SYMBOL}${amount.toLocaleString(APP_CONSTANTS.LOCALE, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   })}`;
 };
 
@@ -118,4 +120,21 @@ export const getTransactionTypeColor = (type: string): string => {
  */
 export const getBillStatusColor = (status: string): string => {
   return APP_CONSTANTS.BILL_STATUS_COLORS[status as keyof typeof APP_CONSTANTS.BILL_STATUS_COLORS] || 'bg-gray-100 text-gray-700';
+};
+
+/** Text color for transaction amount display (not badge background). */
+export const getTransactionTypeAmountColor = (type: string): string => {
+  switch (type) {
+    case 'Income':
+      return 'text-green-600';
+    case 'Expense':
+    case 'Refund':
+      return 'text-red-600';
+    case 'Advance Paid':
+      return 'text-purple-600';
+    case 'Transfer':
+      return 'text-slate-600';
+    default:
+      return 'text-gray-600';
+  }
 };

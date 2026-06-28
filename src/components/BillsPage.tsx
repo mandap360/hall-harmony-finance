@@ -14,7 +14,7 @@ import { useVendors } from '@/hooks/useVendors';
 import { useAccountCategories } from '@/hooks/useAccountCategories';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useAccounts } from '@/hooks/useAccounts';
-import { formatINR, getTransactionTypeColor, getBillStatusColor, APP_CONSTANTS } from '@/utils/constants';
+import { getTransactionTypeColor, getBillStatusColor } from '@/utils/constants';
 import { format } from 'date-fns';
 
 const ApplyAdvanceToBillDialog = ({
@@ -36,11 +36,13 @@ const ApplyAdvanceToBillDialog = ({
   const { vendors } = useVendors();
   const [billId, setBillId] = useState('');
   const [amount, setAmount] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
       setBillId('');
       setAmount('');
+      setSubmitting(false);
     }
   }, [open]);
 
@@ -69,16 +71,22 @@ const ApplyAdvanceToBillDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (!billId || !amount || !advance) return;
     const allocAmount = parseFloat(amount);
     if (allocAmount > maxAllowableAmount) return;
 
-    await allocateToBill({
-      transaction_id: advance.id,
-      bill_id: billId,
-      amount_applied: allocAmount,
-    });
-    onOpenChange(false);
+    setSubmitting(true);
+    try {
+      await allocateToBill({
+        transaction_id: advance.id,
+        bill_id: billId,
+        amount_applied: allocAmount,
+      });
+      onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const vendorName = vendors.find((v) => v.vendor_id === advance.entity_id)?.name || 'Unknown';
@@ -158,14 +166,14 @@ const ApplyAdvanceToBillDialog = ({
               )}
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={!billId || !amount || parseFloat(amount) > maxAllowableAmount}
+                  disabled={submitting || !billId || !amount || parseFloat(amount) > maxAllowableAmount}
                 >
-                  Apply Advance
+                  {submitting ? 'Applying…' : 'Apply Advance'}
                 </Button>
               </div>
             </form>
@@ -227,11 +235,13 @@ const AddExpenseDialog = ({
       setAdvDescription('');
       
       setActiveTab('expense');
+      setIsSubmitting(false);
     }
   }, [open, accounts]);
 
   const handleExpenseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!vendorId || !amount) return;
     if (!isPayLater && !fromAccountId) return;
 
@@ -278,6 +288,7 @@ const AddExpenseDialog = ({
 
   const handleAdvanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!advAmount || !advFromAccountId) return;
 
     setIsSubmitting(true);
@@ -571,6 +582,7 @@ const QuickPayBillDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     if (!bill || !amount) return;
 
     setIsLoading(true);
@@ -600,9 +612,8 @@ const QuickPayBillDialog = ({
           }
         }
       } else if (!useAdvance) {
-        // Create Expense transaction from account
         if (!fromAccountId) return;
-        
+
         const tx = await addTransaction({
           type: 'Expense',
           amount: amountToAllocate,
@@ -786,12 +797,14 @@ const AllocateBillDialog = ({
   const { vendors } = useVendors();
   const [transactionId, setTransactionId] = useState('');
   const [amount, setAmount] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   // Reset form when dialog opens/bill changes - THIS MUST BE AT TOP LEVEL
   useEffect(() => {
     if (open && bill) {
       setTransactionId('');
       setAmount('');
+      setSubmitting(false);
     }
   }, [open, bill?.id]);
 
@@ -840,17 +853,24 @@ const AllocateBillDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (!bill || !transactionId || !selectedTx) return;
     const allocAmount = parseFloat(amount);
     if (allocAmount > maxAllowableAmount) {
       return;
     }
-    await allocateToBill({
-      transaction_id: transactionId,
-      bill_id: bill.id,
-      amount_applied: allocAmount,
-    });
-    onOpenChange(false);
+
+    setSubmitting(true);
+    try {
+      await allocateToBill({
+        transaction_id: transactionId,
+        bill_id: bill.id,
+        amount_applied: allocAmount,
+      });
+      onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -938,14 +958,14 @@ const AllocateBillDialog = ({
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={!selectedTx || !amount || parseFloat(amount) > maxAllowableAmount}
+                  disabled={submitting || !selectedTx || !amount || parseFloat(amount) > maxAllowableAmount}
                 >
-                  Allocate
+                  {submitting ? 'Allocating…' : 'Allocate'}
                 </Button>
               </div>
             </form>

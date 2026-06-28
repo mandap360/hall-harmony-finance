@@ -3,6 +3,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
+import {
+  findOverlappingBooking,
+  formatOverlapMessage,
+  doBookingRangesOverlap,
+  type BookingTimeRange,
+} from '@/utils/bookingOverlap';
+import { compareBookingDateTime, normalizeBookingDateTime } from '@/utils/bookingDateTime';
+import {
+  showErrorToast,
+  showSuccessToast,
+  toastAddError,
+  toastDeleteError,
+  toastFetchError,
+  toastUpdateError,
+  toastAdded,
+  toastDeleted,
+  toastUpdated,
+} from '@/utils/toastHelpers';
+import { CRUD_MESSAGES, ENTITY_NAMES, VALIDATION_MESSAGES } from '@/utils/messages';
 
 export interface Booking {
   id: string;
@@ -34,6 +53,7 @@ interface State {
 
 const store = createSharedStore<State>({ bookings: [], loading: false, orgId: null });
 const singleFlight = createSingleFlight<void>();
+let addBookingInFlight = false;
 
 const isSecRefund = (t: { description: string | null }) =>
   (t.description || '').includes('[SEC-REFUND]');
@@ -104,8 +124,8 @@ const fetchAll = async (orgId: string) => {
       clientName: client?.name || '',
       phoneNumber: client?.phone_number || '',
       email: client?.email || '',
-      startDate: b.start_datetime,
-      endDate: b.end_datetime,
+      startDate: normalizeBookingDateTime(b.start_datetime),
+      endDate: normalizeBookingDateTime(b.end_datetime),
       rentFinalized: Number(b.rent_finalized),
       rentReceived: paidAmount,
       notes: b.notes || '',
@@ -136,13 +156,63 @@ export const useBookings = () => {
     singleFlight(() => fetchAll(orgId)).catch((err) => {
       console.error('Error fetching bookings:', err);
       store.set({ bookings: [], loading: false, orgId });
-      toast({ title: 'Error', description: 'Failed to fetch bookings', variant: 'destructive' });
+      toastFetchError(toast, ENTITY_NAMES.bookings);
     });
   }, [profile?.organization_id, state.orgId, state.bookings.length, toast]);
 
   const refetch = async () => {
     if (!profile?.organization_id) return;
     await fetchAll(profile.organization_id);
+  };
+
+  const fetchOverlappingFromDb = async (
+    startDate: string,
+    endDate: string,
+    excludeId?: string,
+  ): Promise<BookingTimeRange | null> => {
+    if (!profile?.organization_id) return null;
+
+    let query = supabase
+      .from('Bookings')
+      .select('id, event_name, start_datetime, end_datetime, status')
+      .eq('organization_id', profile.organization_id)
+      .neq('status', 'cancelled')
+      .lt('start_datetime', endDate)
+      .gt('end_datetime', startDate);
+
+    if (excludeId) {
+      query = query.neq('id', excludeId);
+    }
+
+    const { data, error } = await query.limit(1).maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+
+    const conflict: BookingTimeRange = {
+      id: data.id,
+      eventName: data.event_name,
+      startDate: normalizeBookingDateTime(data.start_datetime),
+      endDate: normalizeBookingDateTime(data.end_datetime),
+      status: data.status || undefined,
+    };
+
+    // Re-check with wall-clock compare (DB timestamptz can disagree with naive inputs).
+    if (!doBookingRangesOverlap(startDate, endDate, conflict.startDate, conflict.endDate)) {
+      return null;
+    }
+
+    return conflict;
+  };
+
+  const checkBookingOverlap = async (
+    startDate: string,
+    endDate: string,
+    excludeId?: string,
+  ): Promise<BookingTimeRange | null> => {
+    const localConflict = findOverlappingBooking(state.bookings, startDate, endDate, excludeId);
+    if (localConflict) return localConflict;
+
+    return fetchOverlappingFromDb(startDate, endDate, excludeId);
   };
 
   const addBooking = async (data: {
@@ -152,9 +222,28 @@ export const useBookings = () => {
     endDate: string;
     rentFinalized: number;
     notes?: string;
-  }) => {
-    if (!profile?.organization_id) return;
+  }): Promise<boolean> => {
+    if (!profile?.organization_id) return false;
+    if (addBookingInFlight) return false;
+
+    addBookingInFlight = true;
     try {
+      if (compareBookingDateTime(data.startDate, data.endDate) >= 0) {
+        showErrorToast(
+          toast,
+          VALIDATION_MESSAGES.timeRangeInvalid.description,
+          VALIDATION_MESSAGES.timeRangeInvalid.title,
+        );
+        return false;
+      }
+
+      const conflict = await checkBookingOverlap(data.startDate, data.endDate);
+      if (conflict) {
+        const conflictMsg = VALIDATION_MESSAGES.bookingConflict(formatOverlapMessage(conflict));
+        showErrorToast(toast, conflictMsg.description, conflictMsg.title);
+        return false;
+      }
+
       const { error } = await supabase.from('Bookings').insert([
         {
           event_name: data.eventName,
@@ -170,10 +259,14 @@ export const useBookings = () => {
       ]);
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Booking added successfully' });
+      toastAdded(toast, 'Booking');
+      return true;
     } catch (error) {
       console.error('Error adding booking:', error);
-      toast({ title: 'Error', description: 'Failed to add booking', variant: 'destructive' });
+      toastAddError(toast, ENTITY_NAMES.booking);
+      return false;
+    } finally {
+      addBookingInFlight = false;
     }
   };
 
@@ -187,9 +280,31 @@ export const useBookings = () => {
       rentFinalized: number;
       notes: string;
     }>,
-  ) => {
-    if (!profile?.organization_id) return;
+  ): Promise<boolean> => {
+    if (!profile?.organization_id) return false;
     try {
+      const existing = state.bookings.find((b) => b.id === id);
+      const nextStart = data.startDate ?? existing?.startDate;
+      const nextEnd = data.endDate ?? existing?.endDate;
+
+      if (nextStart && nextEnd) {
+        if (compareBookingDateTime(nextStart, nextEnd) >= 0) {
+          showErrorToast(
+            toast,
+            VALIDATION_MESSAGES.timeRangeInvalid.description,
+            VALIDATION_MESSAGES.timeRangeInvalid.title,
+          );
+          return false;
+        }
+
+        const conflict = await checkBookingOverlap(nextStart, nextEnd, id);
+        if (conflict) {
+          const conflictMsg = VALIDATION_MESSAGES.bookingConflictOnUpdate(formatOverlapMessage(conflict));
+          showErrorToast(toast, conflictMsg.description, conflictMsg.title);
+          return false;
+        }
+      }
+
       const updateData: Record<string, unknown> = {};
       if (data.eventName !== undefined) updateData.event_name = data.eventName;
       if (data.clientId !== undefined) updateData.client_id = data.clientId;
@@ -206,10 +321,12 @@ export const useBookings = () => {
 
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Booking updated' });
+      toastUpdated(toast, 'Booking');
+      return true;
     } catch (error) {
       console.error('Error updating booking:', error);
-      toast({ title: 'Error', description: 'Failed to update booking', variant: 'destructive' });
+      toastUpdateError(toast, ENTITY_NAMES.booking);
+      return false;
     }
   };
 
@@ -223,10 +340,10 @@ export const useBookings = () => {
         .eq('organization_id', profile.organization_id);
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Booking cancelled' });
+      showSuccessToast(toast, CRUD_MESSAGES.cancelled('Booking'));
     } catch (error) {
       console.error('Error cancelling booking:', error);
-      toast({ title: 'Error', description: 'Failed to cancel booking', variant: 'destructive' });
+      toastUpdateError(toast, ENTITY_NAMES.booking);
     }
   };
 
@@ -240,10 +357,10 @@ export const useBookings = () => {
         .eq('organization_id', profile.organization_id);
       if (error) throw error;
       await refetch();
-      toast({ title: 'Success', description: 'Booking deleted' });
+      toastDeleted(toast, 'Booking');
     } catch (error) {
       console.error('Error deleting booking:', error);
-      toast({ title: 'Error', description: 'Failed to delete booking', variant: 'destructive' });
+      toastDeleteError(toast, ENTITY_NAMES.booking);
     }
   };
 

@@ -3,6 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { createSharedStore, createSingleFlight } from '@/hooks/useSharedState';
+import {
+  toastAddError,
+  toastDeleteError,
+  toastFetchError,
+  toastAdded,
+  toastDeleted,
+} from '@/utils/toastHelpers';
+import { ENTITY_NAMES } from '@/utils/messages';
 
 export type TransactionType = 'Income' | 'Expense' | 'Refund' | 'Advance Paid' | 'Transfer';
 export type TransactionStatus = 'Available' | 'Partially Allocated' | 'Fully Allocated' | 'Void';
@@ -70,7 +78,7 @@ export const useTransactions = (accountId?: string) => {
     singleFlight(() => fetchAll(orgId)).catch((err) => {
       console.error('Error fetching transactions:', err);
       store.set({ transactions: [], loading: false, orgId });
-      toast({ title: 'Error', description: 'Failed to fetch transactions', variant: 'destructive' });
+      toastFetchError(toast, ENTITY_NAMES.transactions);
     });
   }, [profile?.organization_id, state.orgId, state.transactions.length, toast]);
 
@@ -102,11 +110,11 @@ export const useTransactions = (accountId?: string) => {
         .single();
       if (error) throw error;
       await refreshTransactions();
-      toast({ title: 'Success', description: 'Transaction added successfully' });
+      toastAdded(toast, 'Transaction');
       return inserted as Transaction;
     } catch (error) {
       console.error('Error adding transaction:', error);
-      toast({ title: 'Error', description: 'Failed to add transaction', variant: 'destructive' });
+      toastAddError(toast, ENTITY_NAMES.transaction);
       throw error;
     }
   };
@@ -116,10 +124,10 @@ export const useTransactions = (accountId?: string) => {
       const { error } = await supabase.from('Transactions').delete().eq('id', id);
       if (error) throw error;
       await refreshTransactions();
-      toast({ title: 'Success', description: 'Transaction deleted successfully' });
+      toastDeleted(toast, 'Transaction', true);
     } catch (error) {
       console.error('Error deleting transaction:', error);
-      toast({ title: 'Error', description: 'Failed to delete transaction', variant: 'destructive' });
+      toastDeleteError(toast, ENTITY_NAMES.transaction);
       throw error;
     }
   };

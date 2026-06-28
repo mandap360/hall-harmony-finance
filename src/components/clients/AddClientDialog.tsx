@@ -12,6 +12,9 @@ import {
   isValidPhone,
   sanitizePhoneInput,
 } from '@/utils/validation';
+import { VALIDATION_MESSAGES } from '@/utils/messages';
+import { DialogFormFooter } from '@/components/shared/DialogFormFooter';
+import { useSubmitGuard } from '@/hooks/useSubmitGuard';
 
 interface AddClientDialogProps {
   open: boolean;
@@ -28,7 +31,7 @@ export const AddClientDialog = ({ open, onOpenChange, client, onCreated }: AddCl
   const [alternatePhone, setAlternatePhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, reset, run } = useSubmitGuard();
 
   useEffect(() => {
     if (open) {
@@ -37,8 +40,9 @@ export const AddClientDialog = ({ open, onOpenChange, client, onCreated }: AddCl
       setAlternatePhone(client?.alternate_phone_number || '');
       setEmail(client?.email || '');
       setAddress(client?.address || '');
+      reset();
     }
-  }, [open, client]);
+  }, [open, client, reset]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,40 +52,27 @@ export const AddClientDialog = ({ open, onOpenChange, client, onCreated }: AddCl
     const trimmedEmail = email.trim();
 
     if (!trimmedName) {
-      toast({ title: 'Name required', description: 'Please enter the client name.', variant: 'destructive' });
+      toast({ ...VALIDATION_MESSAGES.nameRequired, variant: 'destructive' });
       return;
     }
     if (!isValidPhone(phone)) {
-      toast({
-        title: 'Invalid phone number',
-        description: 'Phone number must be exactly 10 digits.',
-        variant: 'destructive',
-      });
+      toast({ ...VALIDATION_MESSAGES.phoneInvalid, variant: 'destructive' });
       return;
     }
     if (!isValidOptionalPhone(alternatePhone)) {
-      toast({
-        title: 'Invalid alternate number',
-        description: 'Alternate number must be exactly 10 digits.',
-        variant: 'destructive',
-      });
+      toast({ ...VALIDATION_MESSAGES.alternatePhoneInvalid, variant: 'destructive' });
       return;
     }
     if (!trimmedAddress) {
-      toast({ title: 'Address required', description: 'Please enter the client address.', variant: 'destructive' });
+      toast({ ...VALIDATION_MESSAGES.addressRequired, variant: 'destructive' });
       return;
     }
     if (!isValidEmail(trimmedEmail)) {
-      toast({
-        title: 'Invalid email',
-        description: 'Please enter a valid email address.',
-        variant: 'destructive',
-      });
+      toast({ ...VALIDATION_MESSAGES.emailInvalid, variant: 'destructive' });
       return;
     }
 
-    setSubmitting(true);
-    try {
+    await run(async () => {
       const payload = {
         name: trimmedName,
         phone_number: phone,
@@ -98,9 +89,7 @@ export const AddClientDialog = ({ open, onOpenChange, client, onCreated }: AddCl
         if (created && onCreated) onCreated(created);
         else onOpenChange(false);
       }
-    } finally {
-      setSubmitting(false);
-    }
+    });
   };
 
   return (
@@ -143,14 +132,11 @@ export const AddClientDialog = ({ open, onOpenChange, client, onCreated }: AddCl
             <Label>Address *</Label>
             <Textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={2} required />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? 'Saving…' : client ? 'Update' : 'Add Client'}
-            </Button>
-          </div>
+          <DialogFormFooter
+            onCancel={() => onOpenChange(false)}
+            submitLabel={client ? 'Update' : 'Add Client'}
+            submitting={submitting}
+          />
         </form>
       </DialogContent>
     </Dialog>
